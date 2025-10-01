@@ -9,6 +9,7 @@ import {
   useEffect,
   useState,
   ReactNode,
+  useMemo,
 } from "react";
 
 interface UserContextType {
@@ -31,13 +32,19 @@ const UserProvider = ({
   const supabase = createClient();
 
   const router = useRouter();
+
   useEffect(() => {
+    // Set initial loading state based on whether we have initial user
+    if (initialUser) {
+      setLoading(false);
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("-----CONTEXT RELOAD-----");
       if (session?.user) {
-        // Only fetch user data if we don't already have it
+        // Only fetch user data if user ID changed
         if (!user || user.id !== session.user.id) {
           const { data: userData } = await supabase
             .from("users")
@@ -54,7 +61,7 @@ const UserProvider = ({
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, []); // Remove 'user' from dependencies to prevent unnecessary refetches
 
   // Inside UserProvider
   const refreshUser = async () => {
@@ -77,8 +84,14 @@ const UserProvider = ({
 
   const resetUser = () => setUser(null);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({ user, loading, refreshUser }),
+    [user, loading]
+  );
+
   return (
-    <UserContext.Provider value={{ user, loading, refreshUser }}>
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   );

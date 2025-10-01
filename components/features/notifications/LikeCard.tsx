@@ -1,4 +1,3 @@
-import { addScaleCorrector } from "framer-motion";
 import Link from "next/link";
 import React, { FC } from "react";
 import FollowButton from "./FollowButton";

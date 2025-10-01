@@ -89,7 +89,12 @@ export default async function Page() {
                         key={media.id}
                         className="snap-start scroll-ml-4 md:scroll-ml-8"
                       >
-                        <MediaCardUI media={media} user_id={user.id} rounded />
+                        <MediaCardUI
+                          media={media}
+                          user_id={user.id}
+                          rounded
+                          showRemoveButton
+                        />
                       </div>
                     ))}
                   </HorizontalScroll>

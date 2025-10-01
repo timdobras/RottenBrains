@@ -6,7 +6,6 @@ import tvGenres from "@/lib/constants/tv_genres.json";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
 import { getFromGenres } from "@/lib/tmdb";
-import { motion } from "framer-motion";
 
 const GenreSelector: React.FC = () => {
   const [selectedType, setSelectedType] = useState<"movie" | "tv">("movie");
@@ -18,11 +17,6 @@ const GenreSelector: React.FC = () => {
   const { ref, inView } = useInView();
 
   const targetRef = useRef<HTMLDivElement>(null);
-
-  const variants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-  };
 
   useEffect(() => {
     const loadMore = async () => {
@@ -116,26 +110,18 @@ const GenreSelector: React.FC = () => {
       <div className="mx-auto grid w-full grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
         {mediaGenre && mediaGenre.length > 0 ? (
           mediaGenre.map((media: any) => (
-            <Link href={`/protected/media/${selectedType}/${media.id}`}>
-              <motion.div
-                key={media.id}
-                variants={variants}
-                initial="hidden"
-                animate="visible"
-                transition={{
-                  delay: 0.15,
-                  ease: "easeInOut",
-                  duration: 0.25,
-                }}
-                viewport={{ amount: 0 }}
-              >
+            <Link
+              href={`/protected/media/${selectedType}/${media.id}`}
+              key={media.id}
+            >
+              <div className="animate-fade-in">
                 <img
                   src={`https://image.tmdb.org/t/p/w500${media.poster_path}`}
                   alt={media.title || media.name}
                   className="rounded-[8px] bg-foreground/10 hover:opacity-80"
                   loading="lazy"
                 />
-              </motion.div>
+              </div>
             </Link>
           ))
         ) : (

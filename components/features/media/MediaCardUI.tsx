@@ -3,6 +3,7 @@ import Link from "next/link";
 import MediaCardOverlay from "@/components/features/media/MediaCardOverlay";
 import HoverImage from "./TrailerDisplayOnHover";
 import MoreOptions from "./MoreOptions";
+import RemoveFromContinueWatching from "./RemoveFromContinueWatching";
 import {
   formatDate,
   formatEpisodeCode,
@@ -21,6 +22,7 @@ interface MediaCardProps {
   user_id?: string;
   quality?: string;
   rounded?: boolean;
+  showRemoveButton?: boolean;
 }
 
 const MediaCardUI: React.FC<MediaCardProps> = ({
@@ -33,6 +35,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   quality,
   user_id,
   rounded,
+  showRemoveButton = false,
 }) => {
   season_number = season_number || media.season_number || undefined;
   episode_number = episode_number || media.episode_number || undefined;
@@ -75,36 +78,47 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
 
   return (
     <article className="flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[350px]">
-      <Link
-        className={`relative w-full overflow-hidden md:rounded-[8px] ${
-          rounded === true ? "rounded-[8px]" : ""
-        }`}
-        href={getHrefFromMedia(
-          media_type || "movie",
-          media_id || 0,
-          season_number,
-          episode_number,
-        )}
-      >
-        <HoverImage
-          imageUrl={getImageUrl(media, season_number, episode_number)}
-          altText={mediaTitle}
-          media_type={media_type || "movie"}
-          media_id={media_id || 0}
+      <div className="relative">
+        <Link
+          className={`relative block w-full overflow-hidden md:rounded-[8px] ${
+            rounded === true ? "rounded-[8px]" : ""
+          }`}
+          href={getHrefFromMedia(
+            media_type || "movie",
+            media_id || 0,
+            season_number,
+            episode_number,
+          )}
         >
-          <MediaCardOverlay
-            runtime={media.runtime}
-            number_of_episodes={media.number_of_episodes}
-            voteAverage={media.vote_average}
-            isNew={isNew}
-            isSoon={isSoon}
-            quality={quality}
-            isNewEpisodes={isNewEpisodes}
-            watchTime={watch_time}
-            transformRuntime={transformRuntime}
+          <HoverImage
+            imageUrl={getImageUrl(media, season_number, episode_number)}
+            altText={mediaTitle}
+            media_type={media_type || "movie"}
+            media_id={media_id || 0}
+          >
+            <MediaCardOverlay
+              runtime={media.runtime}
+              number_of_episodes={media.number_of_episodes}
+              voteAverage={media.vote_average}
+              isNew={isNew}
+              isSoon={isSoon}
+              quality={quality}
+              isNewEpisodes={isNewEpisodes}
+              watchTime={watch_time}
+              transformRuntime={transformRuntime}
+            />
+          </HoverImage>
+        </Link>
+        {showRemoveButton && user_id && media_type && media_id && (
+          <RemoveFromContinueWatching
+            user_id={user_id}
+            media_type={media_type}
+            media_id={media_id}
+            season_number={season_number}
+            episode_number={episode_number}
           />
-        </HoverImage>
-      </Link>
+        )}
+      </div>
       <div className="flex flex-col md:p-0">
         <div className="mt-2 flex flex-row justify-between">
           <h2 className="text-sm font-semibold">

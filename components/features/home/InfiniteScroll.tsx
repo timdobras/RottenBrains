@@ -103,8 +103,8 @@ const InfiniteScrollHome: React.FC<InfiniteScrollHomeProps> = ({
         )}
         {loading && (
           <>
-            {Array.from({ length: 40 }).map((_, index) => (
-              <HomeMediaCardSkeleton></HomeMediaCardSkeleton>
+            {Array.from({ length: 12 }).map((_, index) => (
+              <HomeMediaCardSkeleton key={index}></HomeMediaCardSkeleton>
             ))}
           </>
         )}

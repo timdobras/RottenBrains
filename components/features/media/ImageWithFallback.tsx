@@ -13,7 +13,7 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
   altText,
   fallbackText = "No image available",
   fallbackIcon = "/assets/images/logo_new_black.svg",
-  quality = "w1280", // Default image quality (w500, w1280, etc.)
+  quality = "w500", // Default image quality (w500, w780, w1280, etc.) - w500 for most thumbnails
 }) => {
   return imageUrl ? (
     <img

@@ -1,11 +1,13 @@
 import { searchUsers } from "@/lib/client/searchUsers";
 import { searchMovies, searchMulti, searchPerson, searchTv } from "@/lib/tmdb";
-import { debounce } from "lodash";
+import { debounce, SearchCache } from "@/lib/utils/debounce";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import UserSearchCard from "./UserSearchCard";
 import PersonSearchCard from "./PersonSearchCard";
 import MediaSearchCard from "./MediaSearchCard";
 import { usePathname, useRouter } from "next/navigation";
+
+const searchCache = new SearchCache<any[]>(5);
 
 const SearchBar = () => {
   const categories = ["All", "Movies", "TV", "People", "Users"];
@@ -18,13 +20,16 @@ const SearchBar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const categoryContainerRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const router = useRouter();
 
@@ -51,14 +56,37 @@ const SearchBar = () => {
   const search = useMemo(
     () =>
       debounce(async (query: string) => {
-        if (!query) {
+        if (!query || query.trim().length < 2) {
           setSearchResults([]);
           setOpenSearchDialog(false);
           setLoading(false);
+          setError(null);
           return;
         }
+
+        // Cancel previous request
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
+        // Check cache first
+        const cacheKey = `${searchCategory}:${query.toLowerCase()}`;
+        const cached = searchCache.get(cacheKey);
+        if (cached) {
+          setSearchResults(cached);
+          setOpenSearchDialog(true);
+          setLoading(false);
+          setError(null);
+          return;
+        }
+
         setLoading(true);
+        setError(null);
+
         try {
+          let results: any[] = [];
+
           if (searchCategory === "All") {
             const [resMedia, resUsers] = await Promise.allSettled([
               searchMulti(query),
@@ -68,61 +96,60 @@ const SearchBar = () => {
             let mediaItems: any[] = [];
             let userItems: any[] = [];
             if (resMedia.status === "fulfilled") {
-              mediaItems = resMedia.value.results;
+              mediaItems = resMedia.value.results.slice(0, 15);
             } else {
               console.error("searchMulti failed:", resMedia.reason);
             }
             if (resUsers.status === "fulfilled") {
               userItems =
-                resUsers.value?.map((u: any) => ({
+                resUsers.value?.slice(0, 5).map((u: any) => ({
                   ...u,
                   media_type: "user",
                 })) ?? [];
             } else {
               console.error("searchUsers failed:", resUsers.reason);
             }
-            const resAll = [...(mediaItems ?? []), ...(userItems ?? [])];
-            setOpenSearchDialog(true);
-            setSearchResults(resAll);
+            results = [...(userItems ?? []), ...(mediaItems ?? [])];
           } else if (searchCategory === "Movies") {
             const resMedia = await searchMovies(query);
-            const mediaItems = resMedia.results.map((m: any) => ({
+            results = resMedia.results.slice(0, 20).map((m: any) => ({
               ...m,
               media_type: "movie",
             }));
-            setOpenSearchDialog(true);
-            setSearchResults(mediaItems);
           } else if (searchCategory === "TV") {
             const resMedia = await searchTv(query);
-            const mediaItems = resMedia.results.map((m: any) => ({
+            results = resMedia.results.slice(0, 20).map((m: any) => ({
               ...m,
               media_type: "tv",
             }));
-            setOpenSearchDialog(true);
-            setSearchResults(mediaItems);
           } else if (searchCategory === "People") {
             const resMedia = await searchPerson(query);
-            const mediaItems = resMedia.results.map((m: any) => ({
+            results = resMedia.results.slice(0, 20).map((m: any) => ({
               ...m,
               media_type: "person",
             }));
-            setOpenSearchDialog(true);
-            setSearchResults(mediaItems);
           } else if (searchCategory === "Users") {
             const resUsers = await searchUsers(query);
-            const userItems =
+            results =
               resUsers?.map((m: any) => ({
                 ...m,
                 media_type: "user",
               })) ?? [];
-            setOpenSearchDialog(true);
-            setSearchResults(userItems);
           }
-        } catch (error) {
-          console.log(error);
+
+          searchCache.set(cacheKey, results);
+          setSearchResults(results);
+          setOpenSearchDialog(true);
           setLoading(false);
+          setHighlightedIndex(0);
+        } catch (error: any) {
+          if (error.name !== "AbortError") {
+            console.error("Search error:", error);
+            setError("Failed to search. Please try again.");
+            setLoading(false);
+          }
         }
-      }),
+      }, 150),
     [searchCategory],
   );
 
@@ -219,26 +246,30 @@ const SearchBar = () => {
     <div className="flex h-full w-full flex-row items-center gap-2">
       <div ref={categoryContainerRef} className="relative h-full">
         <button
-          className="relative flex h-full min-w-32 flex-row items-center justify-center gap-2 rounded-full bg-foreground/10 px-8"
+          className="relative flex h-full min-w-32 flex-row items-center justify-center gap-2 rounded-full bg-foreground/10 px-8 transition-all hover:bg-foreground/20"
           onClick={() => setOpenCategoryDialog(!openCategoryDialog)}
         >
-          <p>{searchCategory}</p>
+          <p className="font-medium">{searchCategory}</p>
           <img
             src="/assets/icons/chevron-down.svg"
             alt=""
-            className="invert-on-dark"
+            className={`invert-on-dark transition-transform ${openCategoryDialog ? "rotate-180" : ""}`}
           />
         </button>
 
         <dialog
           open={openCategoryDialog}
-          className="absolute left-0 top-full z-10 m-0 mt-2 w-full overflow-hidden rounded-[16px] bg-background text-foreground drop-shadow-md"
+          className="absolute left-0 top-full z-10 m-0 mt-2 w-full overflow-hidden rounded-[16px] bg-background text-foreground shadow-lg"
         >
-          <div className="flex h-full w-full flex-col gap-2 bg-foreground/20 py-2">
+          <div className="flex h-full w-full flex-col bg-foreground/10">
             {categories.map((category) => (
               <button
                 key={category}
-                className="w-full p-2 hover:bg-foreground/10"
+                className={`w-full p-3 text-left transition-colors hover:bg-foreground/20 ${
+                  category === searchCategory
+                    ? "bg-primary/20 font-medium text-primary"
+                    : ""
+                }`}
                 onClick={() => handleCategorySelect(category)}
               >
                 {category}
@@ -249,54 +280,97 @@ const SearchBar = () => {
       </div>
 
       <div className="relative h-full w-full" ref={searchContainerRef}>
-        <input
-          type="text"
-          placeholder={`Search for ${searchCategory.toLowerCase()}...`}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="h-full w-full rounded-full bg-foreground/10 px-4 text-foreground focus:outline focus:outline-1 focus:outline-primary"
-        />
-        {openSearchDialog && searchResults.length > 0 && (
+        <div className="relative h-full w-full">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder={`Search for ${searchCategory.toLowerCase()}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => searchQuery.length >= 2 && setOpenSearchDialog(true)}
+            className="h-full w-full rounded-full bg-foreground/10 px-4 pr-10 text-foreground transition-all focus:bg-foreground/15 focus:outline focus:outline-2 focus:outline-primary"
+          />
+          {loading && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-primary"></div>
+            </div>
+          )}
+        </div>
+
+        {openSearchDialog && (
           <dialog
             open
-            className="absolute left-0 top-full m-0 mt-2 h-screen max-h-[500px] w-full overflow-hidden rounded-[16px] bg-background text-foreground drop-shadow-md"
+            className="absolute left-0 top-full m-0 mt-2 h-screen max-h-[500px] w-full overflow-hidden rounded-[16px] bg-background text-foreground shadow-xl"
           >
-            <div className="h-full w-full overflow-y-auto bg-foreground/20">
-              {searchResults.map((res, i) => {
-                const isSelected = i === highlightedIndex;
-                // Wrap each card in a div and assign a ref to that div.
-                return (
-                  <div
-                    key={res.id}
-                    ref={(el) => {
-                      itemRefs.current[i] = el;
-                    }}
-                    // Optionally add some styles to visually indicate selection.
-                    className={isSelected ? "bg-foreground/20" : ""}
-                  >
-                    {res.media_type === "user" ? (
-                      <UserSearchCard
-                        media={res}
-                        onClick={() => handleItemSelect(res)}
-                      />
-                    ) : res.media_type === "person" ? (
-                      <PersonSearchCard
-                        media={res}
-                        onClick={() => handleItemSelect(res)}
-                      />
-                    ) : (
-                      (res.media_type === "movie" ||
-                        res.media_type === "tv") && (
-                        <MediaSearchCard
-                          media={res}
-                          onClick={() => handleItemSelect(res)}
-                        />
-                      )
-                    )}
+            <div className="h-full w-full overflow-y-auto bg-foreground/10">
+              {loading && searchResults.length === 0 ? (
+                <div className="flex h-32 w-full items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-primary"></div>
+                    <p className="text-sm text-foreground/60">Searching...</p>
                   </div>
-                );
-              })}
+                </div>
+              ) : error ? (
+                <div className="flex h-32 w-full items-center justify-center">
+                  <div className="flex flex-col items-center gap-2 text-red-500">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
+                <div className="flex h-32 w-full items-center justify-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-sm font-medium text-foreground/80">No results found</p>
+                    <p className="text-xs text-foreground/50">Try a different search term</p>
+                  </div>
+                </div>
+              ) : searchQuery.length < 2 ? (
+                <div className="flex h-32 w-full items-center justify-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-sm text-foreground/60">Type at least 2 characters to search</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="sticky top-0 bg-background/80 px-4 py-2 backdrop-blur-sm">
+                    <p className="text-xs font-medium text-foreground/60">
+                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  {searchResults.map((res, i) => {
+                    const isSelected = i === highlightedIndex;
+                    return (
+                      <div
+                        key={`${res.media_type}-${res.id}`}
+                        ref={(el) => {
+                          itemRefs.current[i] = el;
+                        }}
+                        className={`transition-colors ${isSelected ? "bg-foreground/20" : "hover:bg-foreground/10"}`}
+                      >
+                        {res.media_type === "user" ? (
+                          <UserSearchCard
+                            media={res}
+                            onClick={() => handleItemSelect(res)}
+                          />
+                        ) : res.media_type === "person" ? (
+                          <PersonSearchCard
+                            media={res}
+                            onClick={() => handleItemSelect(res)}
+                          />
+                        ) : (
+                          (res.media_type === "movie" ||
+                            res.media_type === "tv") && (
+                            <MediaSearchCard
+                              media={res}
+                              onClick={() => handleItemSelect(res)}
+                            />
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
             </div>
           </dialog>
         )}

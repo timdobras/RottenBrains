@@ -21,18 +21,46 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
 }) => {
   const startTimeRef = useRef<number>(Date.now());
   const accumulatedTimeRef = useRef<number>(0);
+  const retryQueueRef = useRef<any[]>([]);
+  const isRetryingRef = useRef<boolean>(false);
+
+  const processRetryQueue = useCallback(async () => {
+    if (isRetryingRef.current || retryQueueRef.current.length === 0) return;
+
+    isRetryingRef.current = true;
+
+    while (retryQueueRef.current.length > 0) {
+      const payload = retryQueueRef.current[0];
+      try {
+        const response = await fetch("/api/saveWatchTime", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          retryQueueRef.current.shift();
+        } else {
+          break;
+        }
+      } catch (error) {
+        break;
+      }
+    }
+
+    isRetryingRef.current = false;
+  }, []);
 
   const sendWatchData = useCallback(() => {
     const currentTime = Date.now();
-    // Calculate how much time (in seconds) has elapsed since the last checkpoint
     const sessionTime = Math.floor((currentTime - startTimeRef.current) / 1000);
 
     if (sessionTime > 0) {
       accumulatedTimeRef.current += sessionTime;
     }
 
-    // Only send data if there's meaningful accumulated time
-    if (accumulatedTimeRef.current > 60) {
+    // Lowered threshold from 60s to 10s to capture shorter sessions
+    if (accumulatedTimeRef.current >= 10) {
       const totalMediaSeconds = media_duration * 60;
       const percentageWatched = Math.min(
         (accumulatedTimeRef.current / totalMediaSeconds) * 100,
@@ -49,10 +77,16 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
         percentage_watched: percentageWatched.toFixed(2),
       };
 
-      // Use sendBeacon to send data reliably during unload or visibility change
-      navigator.sendBeacon("/api/saveWatchTime", JSON.stringify(payload));
+      const sent = navigator.sendBeacon(
+        "/api/saveWatchTime",
+        JSON.stringify(payload),
+      );
 
-      // Reset after sending
+      if (!sent) {
+        retryQueueRef.current.push(payload);
+        processRetryQueue();
+      }
+
       accumulatedTimeRef.current = 0;
     }
 
@@ -64,48 +98,45 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
     season_number,
     episode_number,
     media_duration,
+    processRetryQueue,
   ]);
 
   const handleVisibilityChange = useCallback(() => {
     if (document.visibilityState === "hidden") {
-      // When the tab goes hidden, send data if we have any
       sendWatchData();
     } else if (document.visibilityState === "visible") {
-      // When the tab becomes visible again, reset startTime for a fresh session
       startTimeRef.current = Date.now();
     }
   }, [sendWatchData]);
 
+  const handlePageHide = useCallback(() => {
+    sendWatchData();
+  }, [sendWatchData]);
+
   useEffect(() => {
-    // Start tracking as soon as component mounts or media changes
     startTimeRef.current = Date.now();
     accumulatedTimeRef.current = 0;
 
-    // Handle tab visibility changes
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Handle page unload to send last chunk of data
     window.addEventListener("beforeunload", sendWatchData);
+    window.addEventListener("pagehide", handlePageHide);
 
-    // Also send data every 5 minutes (300000 ms)
-    const intervalId = setInterval(
-      () => {
-        sendWatchData();
-      },
-      5 * 60 * 1000,
-    );
+    // Reduced interval from 5 minutes to 2 minutes for more frequent saves
+    const intervalId = setInterval(() => {
+      sendWatchData();
+    }, 2 * 60 * 1000);
 
     return () => {
-      // Cleanup: remove event listeners
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", sendWatchData);
+      window.removeEventListener("pagehide", handlePageHide);
       clearInterval(intervalId);
 
-      // Send last data chunk if any before unmounting
       sendWatchData();
     };
   }, [
     handleVisibilityChange,
+    handlePageHide,
     sendWatchData,
     media_type,
     media_id,

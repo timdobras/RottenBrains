@@ -1,7 +1,12 @@
 "use client";
 import { useState } from "react";
 import { SearchIcon } from "@/components/ui/Icon";
-import SearchModal from "./SearchModal";
+import dynamic from "next/dynamic";
+
+// Dynamically import SearchModal to reduce initial bundle size
+const SearchModal = dynamic(() => import("./SearchModal"), {
+  ssr: false,
+});
 
 export default function NavSearchIconNew() {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,10 +26,9 @@ export default function NavSearchIconNew() {
         <p className="text-xs">Search</p>
       </button>
 
-      <SearchModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-      ></SearchModal>
+      {isOpen && (
+        <SearchModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      )}
     </>
   );
 }

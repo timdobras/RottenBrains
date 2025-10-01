@@ -155,7 +155,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                     </div>
                     <div className="gradient-explore absolute right-0 top-0 z-10 h-full w-full"></div>
                     <img
-                      src={`https://image.tmdb.org/t/p/original${media.backdrop_path}`}
+                      src={`https://image.tmdb.org/t/p/w1280${media.backdrop_path}`}
                       alt=""
                       className="h-full w-full bg-background object-cover object-center"
                     />

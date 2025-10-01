@@ -1,9 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
-
-interface PostSkeletonProps {
-  variants: any;
-}
 
 const PostSkeleton = () => {
   return (

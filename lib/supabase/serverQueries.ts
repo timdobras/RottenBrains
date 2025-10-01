@@ -175,6 +175,7 @@ export const upsertWatchHistory = async (
       season_number: normalizedSeasonNumber,
       episode_number: normalizedEpisodeNumber,
       created_at: updatedCreatedAt,
+      hidden_until: null, // Reset hidden_until when user watches again
     };
     console.log("Prepared watch history data for upsert:", watchHistoryData);
 
@@ -221,6 +222,53 @@ export const getWatchTime = async (
     return data;
   } catch (error) {
     console.log("Error in getWatchTime:", error);
+  }
+};
+
+/**
+ * Batch fetch watch times for multiple media items
+ * Returns a Map keyed by media_id with watch time percentages
+ */
+export const getBatchWatchTimes = async (
+  user_id: string,
+  media_items: Array<{
+    media_type: string;
+    media_id: number;
+    season_number?: number | null;
+    episode_number?: number | null;
+  }>
+): Promise<Map<number, number>> => {
+  const watchTimeMap = new Map<number, number>();
+
+  if (!user_id || media_items.length === 0) {
+    return watchTimeMap;
+  }
+
+  try {
+    const supabase = await getSupabaseClient();
+
+    // Fetch all watch times in parallel (still multiple queries, but concurrent)
+    const watchTimePromises = media_items.map(async (item) => {
+      const { data } = await supabase.rpc("get_percentage_watched", {
+        p_user_id: user_id,
+        p_media_type: item.media_type,
+        p_media_id: item.media_id,
+        p_season_number: item.season_number || null,
+        p_episode_number: item.episode_number || null,
+      });
+      return { media_id: item.media_id, watch_time: data || 0 };
+    });
+
+    const results = await Promise.all(watchTimePromises);
+
+    results.forEach((result) => {
+      watchTimeMap.set(result.media_id, result.watch_time);
+    });
+
+    return watchTimeMap;
+  } catch (error) {
+    console.log("Error in getBatchWatchTimes:", error);
+    return watchTimeMap;
   }
 };
 

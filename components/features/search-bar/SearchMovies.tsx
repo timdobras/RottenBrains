@@ -20,7 +20,7 @@ import {
 import SearchCard from "./SearchCard";
 import Link from "next/link";
 import SearchUserCard from "./SearchUserCard";
-import { debounce } from "lodash";
+import { debounce } from "@/lib/utils/debounce";
 import { useRouter } from "next/navigation";
 import { searchUsers } from "@/lib/client/searchUsers";
 

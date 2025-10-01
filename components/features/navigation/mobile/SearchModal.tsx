@@ -4,13 +4,15 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { searchMulti } from "@/lib/tmdb";
 import { searchUsers } from "@/lib/client/searchUsers";
-import { debounce } from "lodash";
+import { debounce, SearchCache } from "@/lib/utils/debounce";
 import UserSearchCard from "../../search-bar-new-new/UserSearchCard";
 import PersonSearchCard from "../../search-bar-new-new/PersonSearchCard";
 import MediaSearchCard from "../../search-bar-new-new/MediaSearchCard";
 import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/hooks/UserContext";
 import NavAdMobile from "../../ads/NavAdMobile";
+
+const searchCache = new SearchCache<any[]>(5);
 
 interface ModalProps {
   isOpen: boolean;
@@ -23,10 +25,13 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const router = useRouter();
 
@@ -122,12 +127,32 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
   const search = useMemo(
     () =>
       debounce(async (query: string) => {
-        if (!query || query === "") {
+        if (!query || query.trim().length < 2) {
           setSearchResults([]);
           setLoading(false);
+          setError(null);
           return;
         }
+
+        // Cancel previous request
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
+        // Check cache first
+        const cacheKey = `all:${query.toLowerCase()}`;
+        const cached = searchCache.get(cacheKey);
+        if (cached) {
+          setSearchResults(cached);
+          setLoading(false);
+          setError(null);
+          return;
+        }
+
         setLoading(true);
+        setError(null);
+
         try {
           const [resMedia, resUsers] = await Promise.allSettled([
             searchMulti(query),
@@ -137,27 +162,33 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
           let mediaItems: any[] = [];
           let userItems: any[] = [];
           if (resMedia.status === "fulfilled") {
-            mediaItems = resMedia.value.results;
+            mediaItems = resMedia.value.results.slice(0, 20);
           } else {
             console.error("searchMulti failed:", resMedia.reason);
           }
           if (resUsers.status === "fulfilled") {
             userItems =
-              resUsers.value?.map((u: any) => ({
+              resUsers.value?.slice(0, 5).map((u: any) => ({
                 ...u,
                 media_type: "user",
               })) ?? [];
           } else {
             console.error("searchUsers failed:", resUsers.reason);
           }
-          const resAll = [...(mediaItems ?? []), ...(userItems ?? [])];
+          const resAll = [...(userItems ?? []), ...(mediaItems ?? [])];
+
+          searchCache.set(cacheKey, resAll);
           setSearchResults(resAll);
           setLoading(false);
-        } catch (error) {
-          console.log(error);
-          setLoading(false);
+          setHighlightedIndex(0);
+        } catch (error: any) {
+          if (error.name !== "AbortError") {
+            console.error("Search error:", error);
+            setError("Failed to search. Please try again.");
+            setLoading(false);
+          }
         }
-      }),
+      }, 150),
     [],
   );
 
@@ -190,10 +221,10 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex h-12 w-full flex-shrink-0 flex-row gap-1 py-1">
+            <div className="flex h-14 w-full flex-shrink-0 flex-row gap-2 border-b border-foreground/10 px-2 py-2">
               <button
                 onClick={onClose}
-                className="flex aspect-square h-full items-center justify-center"
+                className="flex aspect-square h-full items-center justify-center rounded-full transition-colors hover:bg-foreground/10"
               >
                 <img
                   src="/assets/icons/arrow-back-outline.svg"
@@ -201,28 +232,76 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
                   className="invert-on-dark aspect-square h-6"
                 />
               </button>
-              <input
-                type="text"
-                className="mr-2 h-full w-full rounded-full bg-foreground/10 px-4 focus:outline-none"
-                placeholder={`Search...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <div className="relative flex-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  className="h-full w-full rounded-full bg-foreground/10 px-4 pr-10 transition-all focus:bg-foreground/15 focus:outline-none"
+                  placeholder="Search movies, TV, people, users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                />
+                {loading && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground/20 border-t-primary"></div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="h-full w-full overflow-y-auto">
-              {searchResults.length > 0 ? (
+              {loading && searchResults.length === 0 ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-foreground/20 border-t-primary"></div>
+                    <p className="text-sm text-foreground/60">Searching...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  <div className="flex flex-col items-center gap-2 text-red-500">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
+                <div className="flex h-full w-full items-center justify-center px-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-base font-medium text-foreground/80">No results found</p>
+                    <p className="text-center text-sm text-foreground/50">
+                      Try a different search term
+                    </p>
+                  </div>
+                </div>
+              ) : searchQuery.length < 2 ? (
+                <div className="flex h-full w-full flex-col items-center justify-center px-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <img
+                      src="/assets/icons/search.svg"
+                      alt=""
+                      className="invert-on-dark h-12 w-12 opacity-40"
+                    />
+                    <p className="text-lg font-medium text-foreground/80">Search for anything</p>
+                    <p className="text-center text-sm text-foreground/50">
+                      Movies, TV Shows, People, or Users
+                    </p>
+                  </div>
+                </div>
+              ) : (
                 <>
+                  <div className="sticky top-0 bg-background/95 px-4 py-3 backdrop-blur-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
+                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
                   {searchResults.map((res, i) => {
                     const isSelected = i === highlightedIndex;
-                    // Wrap each card in a div and assign a ref to that div.
                     return (
                       <div
-                        key={res.id}
+                        key={`${res.media_type}-${res.id}`}
                         ref={(el) => {
                           itemRefs.current[i] = el;
                         }}
-                        // Optionally add some styles to visually indicate selection.
-                        className={`${isSelected ? "bg-foreground/20" : ""} w-full`}
+                        className={`w-full transition-colors ${isSelected ? "bg-foreground/20" : ""}`}
                       >
                         {res.media_type === "user" ? (
                           <UserSearchCard
@@ -247,13 +326,6 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
                     );
                   })}
                 </>
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center">
-                  <p className="text-lg font-medium">Search for anything</p>
-                  <p className="text-xs text-foreground/50">
-                    Movies, TV, People, Users
-                  </p>
-                </div>
               )}
             </div>
           </motion.div>
