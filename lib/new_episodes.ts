@@ -1,16 +1,16 @@
-import { getLastEpisodeFromTMDB } from "@/lib/tmdb";
+import { getLastEpisodeFromTMDB } from '@/lib/tmdb';
 import {
   getAllUsers,
   getTvWatchListForUser,
   upsertNewEpisodeRecord,
-} from "./supabase/serverQueries";
+} from './supabase/serverQueries';
 
 export async function dailyNewEpisodesJob(): Promise<void> {
-  console.log("--- Starting dailyNewEpisodesJob ---");
+  console.log('--- Starting dailyNewEpisodesJob ---');
 
   const users = await getAllUsers();
   if (users.length === 0) {
-    console.log("No users found. Exiting job.");
+    console.log('No users found. Exiting job.');
     return;
   }
 
@@ -35,16 +35,10 @@ export async function dailyNewEpisodesJob(): Promise<void> {
 
       if (lastAir >= THIRTY_DAYS_AGO) {
         // This show has a new episode within the last 30 days
-        await upsertNewEpisodeRecord(
-          user.id,
-          tvId,
-          lastAirDate,
-          season_number,
-          episode_number,
-        );
+        await upsertNewEpisodeRecord(user.id, tvId, lastAirDate, season_number, episode_number);
       }
     }
   }
 
-  console.log("--- dailyNewEpisodesJob completed successfully ---");
+  console.log('--- dailyNewEpisodesJob completed successfully ---');
 }

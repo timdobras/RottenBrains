@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import React, { FC, useCallback, useEffect, useState } from "react";
-import { NotificationIcon } from "@/components/ui/Icon";
+import { usePathname } from 'next/navigation';
+import React, { FC, useCallback, useEffect, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { fetchUserNotifications } from "@/lib/supabase/clientQueries";
-import FollowCard from "./FollowCard";
-import LikeCard from "./LikeCard";
-import CommentCard from "./CommentCard";
-import ReplyCard from "./ReplyCard";
-import PostCard from "./PostCard";
-import { useInView } from "react-intersection-observer";
-import NotificationSkeleton from "./NotificationSkeleton";
-import { createClient } from "@/lib/supabase/client";
-import { usePathname } from "next/navigation";
-import NewEpisodeCard from "./NewEpisodeCard";
+} from '@/components/ui/dropdown-menu';
+import { NotificationIcon } from '@/components/ui/Icon';
+import { createClient } from '@/lib/supabase/client';
+import { fetchUserNotifications } from '@/lib/supabase/clientQueries';
+import CommentCard from './CommentCard';
+import FollowCard from './FollowCard';
+import LikeCard from './LikeCard';
+import NewEpisodeCard from './NewEpisodeCard';
+import NotificationSkeleton from './NotificationSkeleton';
+import PostCard from './PostCard';
+import ReplyCard from './ReplyCard';
 
 const supabase = createClient();
 
@@ -33,13 +33,13 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
   const [page, setPage] = useState<number>(0);
 
   const pathname = usePathname();
-  const [prevPath, setPrevPath] = useState("");
+  const [prevPath, setPrevPath] = useState('');
 
   // Unread count (shown on the badge)
   const [unreadCount, setUnreadCount] = useState<number>(0);
 
   // Intersection Observer for infinite scroll
-  const { ref, inView } = useInView({ threshold: 0.3, rootMargin: "200px" });
+  const { ref, inView } = useInView({ threshold: 0.3, rootMargin: '200px' });
 
   // -------------------------------
   // 1) Fetch initial unread count
@@ -49,13 +49,13 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
 
     const fetchUnreadCount = async () => {
       const { data, count, error } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact" })
-        .eq("recipient_id", user_id)
-        .eq("read", false);
+        .from('notifications')
+        .select('id', { count: 'exact' })
+        .eq('recipient_id', user_id)
+        .eq('read', false);
 
       if (error) {
-        console.error("Error fetching unread count:", error);
+        console.error('Error fetching unread count:', error);
         return;
       }
 
@@ -67,9 +67,6 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
   }, [user_id]);
 
   useEffect(() => {
-    if (prevPath && prevPath !== pathname) {
-      console.log("User navigated from", prevPath, "to", pathname);
-    }
     setPrevPath(pathname);
     setOpen(false);
   }, [pathname]);
@@ -84,16 +81,16 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
     const channel = supabase
       .channel(`user-notifications-${user_id}`)
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "*",
-          schema: "public",
-          table: "notifications",
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
           filter: `recipient_id=eq.${user_id}`,
         },
         (payload) => {
           // =============== INSERT EVENT ===============
-          if (payload.eventType === "INSERT") {
+          if (payload.eventType === 'INSERT') {
             const newNotification = payload.new;
             if (!newNotification.read) {
               // Increase unread count if we're below 9
@@ -114,7 +111,7 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
           }
 
           // =============== UPDATE EVENT ===============
-          else if (payload.eventType === "UPDATE") {
+          else if (payload.eventType === 'UPDATE') {
             // If a notification was read
             if (payload.old.read === false && payload.new.read === true) {
               setUnreadCount((prev) => Math.max(prev - 1, 0));
@@ -125,12 +122,12 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
                 prev.map((notif) =>
                   notif.notification_id === updatedNotification.notification_id
                     ? updatedNotification
-                    : notif,
-                ),
+                    : notif
+                )
               );
             }
           }
-        },
+        }
       )
       .subscribe();
 
@@ -157,7 +154,7 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
           setPage((prevPage) => prevPage + 1);
         }
       } catch (error) {
-        console.error("Error fetching notifications:", error);
+        console.error('Error fetching notifications:', error);
       } finally {
         setLoading(false);
       }
@@ -193,7 +190,7 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
           setPage(1);
         }
       } catch (error) {
-        console.error("Error fetching notifications:", error);
+        console.error('Error fetching notifications:', error);
       } finally {
         setLoading(false);
       }
@@ -202,21 +199,19 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
       if (unreadCount > 0) {
         try {
           const { error } = await supabase
-            .from("notifications")
+            .from('notifications')
             .update({ read: true })
-            .eq("recipient_id", user_id)
-            .eq("read", false);
+            .eq('recipient_id', user_id)
+            .eq('read', false);
 
           if (error) {
-            console.error("Error marking notifications as read:", error);
+            console.error('Error marking notifications as read:', error);
           } else {
             setUnreadCount(0);
-            setNotifications((prev) =>
-              prev.map((notif) => ({ ...notif, read: true })),
-            );
+            setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
           }
         } catch (err) {
-          console.error("Error marking notifications as read:", err);
+          console.error('Error marking notifications as read:', err);
         }
       }
     }
@@ -228,14 +223,10 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger className="relative h-auto">
-        <NotificationIcon
-          className="m-0 flex-shrink-0 fill-current p-0"
-          width={24}
-          height={24}
-        />
+        <NotificationIcon className="m-0 flex-shrink-0 fill-current p-0" width={24} height={24} />
         {unreadCount > 0 && (
           <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs text-white">
-            {unreadCount >= 9 ? "9+" : unreadCount}
+            {unreadCount >= 9 ? '9+' : unreadCount}
           </span>
         )}
       </DropdownMenuTrigger>
@@ -251,42 +242,27 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
           <div>
             {notifications.length > 0 ? (
               notifications.map((notification) => {
-                if (notification.notification_type === "follow") {
+                if (notification.notification_type === 'follow') {
                   return (
-                    <FollowCard
-                      key={notification.notification_id}
-                      notification={notification}
-                    />
+                    <FollowCard key={notification.notification_id} notification={notification} />
                   );
-                } else if (notification.notification_type === "like") {
+                } else if (notification.notification_type === 'like') {
                   return (
-                    <LikeCard
-                      key={notification.notification_id}
-                      notification={notification}
-                    />
+                    <LikeCard key={notification.notification_id} notification={notification} />
                   );
-                } else if (notification.notification_type === "comment") {
+                } else if (notification.notification_type === 'comment') {
                   return (
-                    <CommentCard
-                      key={notification.notification_id}
-                      notification={notification}
-                    />
+                    <CommentCard key={notification.notification_id} notification={notification} />
                   );
-                } else if (notification.notification_type === "reply") {
+                } else if (notification.notification_type === 'reply') {
                   return (
-                    <ReplyCard
-                      key={notification.notification_id}
-                      notification={notification}
-                    />
+                    <ReplyCard key={notification.notification_id} notification={notification} />
                   );
-                } else if (notification.notification_type === "new_post") {
+                } else if (notification.notification_type === 'new_post') {
                   return (
-                    <PostCard
-                      key={notification.notification_id}
-                      notification={notification}
-                    />
+                    <PostCard key={notification.notification_id} notification={notification} />
                   );
-                } else if (notification.notification_type === "new_episode") {
+                } else if (notification.notification_type === 'new_episode') {
                   return (
                     <NewEpisodeCard
                       key={notification.notification_id}

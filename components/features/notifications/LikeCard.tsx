@@ -1,8 +1,8 @@
-import Link from "next/link";
-import React, { FC } from "react";
-import FollowButton from "./FollowButton";
-import ImageWithFallback from "../media/ImageWithFallback";
-import { getRelativeTime } from "@/lib/utils";
+import Link from 'next/link';
+import React, { FC } from 'react';
+import { getRelativeTime } from '@/lib/utils';
+import ImageWithFallback from '../media/ImageWithFallback';
+import FollowButton from './FollowButton';
 
 interface FollowCardProps {
   notification: any;
@@ -15,10 +15,7 @@ const LikeCard: FC<FollowCardProps> = ({ notification }) => {
   const post_link = `/protected/user/${notification.post.creatorid}?post_id=${notification.post.id}`;
   return (
     <div className="flex w-full flex-row gap-4 p-4">
-      <Link
-        href={`/protected/user/${notification.triggered_by_user.id}`}
-        className="flex-shrink-0"
-      >
+      <Link href={`/protected/user/${notification.triggered_by_user.id}`} className="flex-shrink-0">
         <img
           src={notification.triggered_by_user.image_url}
           alt=""
@@ -32,7 +29,7 @@ const LikeCard: FC<FollowCardProps> = ({ notification }) => {
             className="text-primary"
           >
             {notification.triggered_by_user.username}
-          </Link>{" "}
+          </Link>{' '}
           liked your post:
         </p>
         <Link
@@ -44,7 +41,7 @@ const LikeCard: FC<FollowCardProps> = ({ notification }) => {
               {notification.media_data.title || notification.media_data.name}
             </p>
             <p className="line-clamp-3 text-sm text-foreground/50">
-              "{notification.post.review_user}"
+              &quot;{notification.post.review_user}&quot;
             </p>
           </div>
           <div className="aspect-[16/9] flex-shrink-0 overflow-hidden rounded-[8px] md:max-w-[200px]">
@@ -54,9 +51,7 @@ const LikeCard: FC<FollowCardProps> = ({ notification }) => {
             ></ImageWithFallback>
           </div>
         </Link>
-        <p className="text-sm text-foreground/50">
-          {getRelativeTime(notification.created_at)}
-        </p>
+        <p className="text-sm text-foreground/50">{getRelativeTime(notification.created_at)}</p>
       </div>
     </div>
   );

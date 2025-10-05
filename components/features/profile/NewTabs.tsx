@@ -1,11 +1,11 @@
-import { Tab } from "./Tab";
+import { Tab } from './Tab';
 
 const NewTabs = () => {
   const tabs = [
-    { name: "Home", link: "/protected/profile" },
-    { name: "Movies", link: "/protected/profile/movies" },
-    { name: "Shows", link: "/protected/profile/tv" },
-    { name: "History", link: "/protected/profile/history" },
+    { name: 'Home', link: '/protected/profile' },
+    { name: 'Movies', link: '/protected/profile/movies' },
+    { name: 'Shows', link: '/protected/profile/tv' },
+    { name: 'History', link: '/protected/profile/history' },
   ];
 
   return (

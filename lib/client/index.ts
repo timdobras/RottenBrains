@@ -1,8 +1,8 @@
-"use client";
-import { ExploreTabProps, MediaPageProps } from "@/types";
-import { useEffect, useState } from "react";
-import { fetchMediaData } from "./fetchMediaData";
-import { fetchExploreData } from "./fetchExploreData";
+'use client';
+import { useEffect, useState } from 'react';
+import { ExploreTabProps, MediaPageProps } from '@/types';
+import { fetchExploreData } from './fetchExploreData';
+import { fetchMediaData } from './fetchMediaData';
 
 export function getExploreData({ action }: ExploreTabProps) {
   const [data, setData] = useState<any>();
@@ -15,7 +15,7 @@ export function getExploreData({ action }: ExploreTabProps) {
         const result = await fetchExploreData(action);
         setData(result);
       } catch (err) {
-        console.error("Failed to fetch data", err);
+        console.error('Failed to fetch data', err);
       } finally {
         setLoading(false);
       }
@@ -38,7 +38,7 @@ export function getMediaData({ media_type, media_id }: MediaPageProps) {
         const result = await fetchMediaData(media_type, media_id);
         setData(result);
       } catch (err) {
-        console.error("Failed to fetch data", err);
+        console.error('Failed to fetch data', err);
       } finally {
         setLoading(false);
       }

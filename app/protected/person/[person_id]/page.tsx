@@ -1,10 +1,6 @@
-import {
-  getPersonCredits,
-  getPersonDetails,
-  getPersonImages,
-} from "@/lib/tmdb";
-import Link from "next/link";
-import React from "react";
+import Link from 'next/link';
+import React from 'react';
+import { getPersonCredits, getPersonDetails, getPersonImages } from '@/lib/tmdb';
 
 type Params = Promise<{ person_id: number }>;
 
@@ -45,9 +41,7 @@ const page = async ({ params }: { params: Params }) => {
               </div>
               <div className="aspect-[16/9] h-full overflow-auto rounded-[4px] drop-shadow-lg">
                 <div className="flex flex-row gap-4">
-                  <p className="w-[100px] text-xl font-bold text-foreground/50">
-                    Biography
-                  </p>
+                  <p className="w-[100px] text-xl font-bold text-foreground/50">Biography</p>
                   <p className="w-full">{person_details.biography}</p>
                 </div>
               </div>

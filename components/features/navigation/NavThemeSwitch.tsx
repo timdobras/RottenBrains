@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { useTheme } from "next-themes";
-import React from "react";
+import { useTheme } from 'next-themes';
+import React from 'react';
 
 export default function NavThemeSwitch() {
   const { theme, setTheme } = useTheme();
 
   // Cycle through the themes: light → dark → system → light …
   const toggleTheme = () => {
-    if (theme === "light") {
-      setTheme("dark");
-    } else if (theme === "dark") {
-      setTheme("system");
+    if (theme === 'light') {
+      setTheme('dark');
+    } else if (theme === 'dark') {
+      setTheme('system');
     } else {
       // This covers both when theme === "system" and any unexpected value.
-      setTheme("light");
+      setTheme('light');
     }
   };
 
   const getLabel = (currentTheme?: string) => {
-    if (currentTheme === "light") return "Light Theme";
-    if (currentTheme === "dark") return "Dark Theme";
-    if (currentTheme === "system") return "System Theme";
-    return "Change theme";
+    if (currentTheme === 'light') return 'Light Theme';
+    if (currentTheme === 'dark') return 'Dark Theme';
+    if (currentTheme === 'system') return 'System Theme';
+    return 'Change theme';
   };
 
   return (

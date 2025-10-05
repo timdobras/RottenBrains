@@ -1,16 +1,12 @@
-"use client";
+'use client';
 
-import Script from "next/script";
+import Script from 'next/script';
 
 export default function MobileBannerExo() {
   return (
     <>
       {/* Load the ad provider script */}
-      <Script
-        async
-        src="https://a.magsrv.com/ad-provider.js"
-        strategy="afterInteractive"
-      />
+      <Script async src="https://a.magsrv.com/ad-provider.js" strategy="afterInteractive" />
 
       {/* The ad <ins> element with fixed width/height */}
       <ins

@@ -1,5 +1,5 @@
-import Link from "next/link";
-import React from "react";
+import Link from 'next/link';
+import React from 'react';
 
 const SearchUserCard = ({ user }: any) => {
   return (
@@ -8,7 +8,7 @@ const SearchUserCard = ({ user }: any) => {
         <div>
           <img
             src={user.image_url}
-            alt={""}
+            alt={''}
             width={50}
             height={50}
             className="overflow-hidden rounded-full"

@@ -1,11 +1,11 @@
-import AuthButton from "@/components/features/auth/AuthButton";
-import React from "react";
-import ScrollButtons from "@/components/common/ScrollButtons";
-import MobileTopBarHome from "../../../../components/features/navigation/mobile/NavTop";
-import NewTabs from "../../../../components/features/profile/NewTabUser";
-import { getUserFromDB } from "@/lib/supabase/serverQueries";
-import FollowInfo from "@/components/features/profile/FollowInfo";
-import FollowButton from "@/components/features/profile/FollowButton";
+import React from 'react';
+import ScrollButtons from '@/components/common/ScrollButtons';
+import AuthButton from '@/components/features/auth/AuthButton';
+import FollowButton from '@/components/features/profile/FollowButton';
+import FollowInfo from '@/components/features/profile/FollowInfo';
+import { getUserFromDB } from '@/lib/supabase/serverQueries';
+import MobileTopBarHome from '../../../../components/features/navigation/mobile/NavTop';
+import NewTabs from '../../../../components/features/profile/NewTabUser';
 
 type Props = {
   children: React.ReactNode;
@@ -23,10 +23,10 @@ const ProfileLayout = async ({ children, params }: Props) => {
   const dateString = user.created_at;
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "long",
+    year: 'numeric',
+    month: 'long',
   };
-  const formatter = new Intl.DateTimeFormat("en-US", options);
+  const formatter = new Intl.DateTimeFormat('en-US', options);
   const formattedDate = formatter.format(date);
 
   return (
@@ -58,9 +58,7 @@ const ProfileLayout = async ({ children, params }: Props) => {
                 <div className="flex w-full flex-col gap-2 md:flex-row md:items-center">
                   <p className="lowercase">@{user.username}</p>
                   <FollowInfo user={user}></FollowInfo>
-                  <p className="text-sm text-foreground/50">
-                    Member since {formattedDate}
-                  </p>
+                  <p className="text-sm text-foreground/50">Member since {formattedDate}</p>
                 </div>
               </div>
             </div>

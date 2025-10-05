@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 
 const NativeAd = () => {
   const [adBlocked, setAdBlocked] = useState(false);
@@ -16,11 +16,10 @@ const NativeAd = () => {
     }, 3000);
 
     // Create the script element
-    const adScript = document.createElement("script");
+    const adScript = document.createElement('script');
     adScript.async = true;
-    adScript.setAttribute("data-cfasync", "false");
-    adScript.src =
-      "//pl25669917.profitablecpmrate.com/72f3e6514b457b5ab0dfaeaf7714bd49/invoke.js";
+    adScript.setAttribute('data-cfasync', 'false');
+    adScript.src = '//pl25669917.profitablecpmrate.com/72f3e6514b457b5ab0dfaeaf7714bd49/invoke.js';
 
     // Script loaded successfully
     adScript.onload = () => {
@@ -53,8 +52,7 @@ const NativeAd = () => {
     return (
       <div className="flex flex-col items-center justify-center gap-6">
         <div className="flex aspect-[1/1] w-full items-center justify-center border-[4px] border-foreground/60 p-4 text-center font-medium text-foreground">
-          Ads help keep Rotten-Brains free. Please help support us by disabling
-          your ad blocker.
+          Ads help keep Rotten-Brains free. Please help support us by disabling your ad blocker.
         </div>
         <div className="relative mb-4 h-[4px] w-full bg-foreground/60">
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform rounded-full bg-accent px-4 py-1 text-center font-medium">

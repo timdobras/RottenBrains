@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import Link from "next/link";
-import { Genre } from "@/components/features/home/GenreSelector";
-import movie_genres from "@/lib/constants/movie_genres.json";
-import tv_genres from "@/lib/constants/tv_genres.json";
-import { getGenreNameById } from "@/lib/utils";
+import React, { useState } from 'react';
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+import Link from 'next/link';
+import { Genre } from '@/components/features/home/GenreSelector';
+import movie_genres from '@/lib/constants/movie_genres.json';
+import tv_genres from '@/lib/constants/tv_genres.json';
+import { getGenreNameById } from '@/lib/utils';
 
 const TopMovieCarousel = ({ movies }: any) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -33,11 +33,11 @@ const TopMovieCarousel = ({ movies }: any) => {
 
   const movieGenres: Genre[] = movie_genres.genres.map((genre: any) => ({
     ...genre,
-    media_type: "movie",
+    media_type: 'movie',
   }));
   const tvGenres: Genre[] = tv_genres.genres.map((genre: any) => ({
     ...genre,
-    media_type: "tv",
+    media_type: 'tv',
   }));
 
   return (
@@ -46,7 +46,7 @@ const TopMovieCarousel = ({ movies }: any) => {
         {movies &&
           movies.slice(0, 5).map((media: any, index: number) => {
             const watchLink =
-              media.media_type === "movie"
+              media.media_type === 'movie'
                 ? `/protected/watch/${media.media_type}/${media.id}`
                 : `/protected/watch/${media.media_type}/${media.id}/1/1`;
 
@@ -74,9 +74,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                           {isDropdownOpen && (
                             <div className="backdrop-blur/xl custom-scrollbar absolute left-0 top-full z-50 mt-2 flex max-h-[60vh] w-max flex-col overflow-y-auto rounded-lg bg-background p-2 shadow-lg md:flex-row">
                               <div>
-                                <h3 className="border-b border-foreground/10 px-4 py-2">
-                                  Movies
-                                </h3>
+                                <h3 className="border-b border-foreground/10 px-4 py-2">Movies</h3>
                                 <ul className="grid grid-cols-2 gap-2 p-2 text-foreground">
                                   {movieGenres.map((genre: any) => (
                                     <Link
@@ -90,9 +88,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                                 </ul>
                               </div>
                               <div>
-                                <h3 className="border-b border-foreground/10 px-4 py-2">
-                                  TV
-                                </h3>
+                                <h3 className="border-b border-foreground/10 px-4 py-2">TV</h3>
                                 <ul className="grid grid-cols-2 gap-2 p-2 text-foreground">
                                   {tvGenres.map((genre: any) => (
                                     <Link

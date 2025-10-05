@@ -1,6 +1,6 @@
-import PostForm from "@/components/features/posts/PostForm";
-import GoBackArrow from "@/components/features/navigation/GoBackArrow";
-import React from "react";
+import React from 'react';
+import GoBackArrow from '@/components/features/navigation/GoBackArrow';
+import PostForm from '@/components/features/posts/PostForm';
 
 const page = () => {
   return (

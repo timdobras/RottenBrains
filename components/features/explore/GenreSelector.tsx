@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
-import movieGenres from "@/lib/constants/movie_genres.json";
-import tvGenres from "@/lib/constants/tv_genres.json";
-import Link from "next/link";
-import { useInView } from "react-intersection-observer";
-import { getFromGenres } from "@/lib/tmdb";
+import Link from 'next/link';
+import React, { useEffect, useRef, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
+import movieGenres from '@/lib/constants/movie_genres.json';
+import tvGenres from '@/lib/constants/tv_genres.json';
+import { getFromGenres } from '@/lib/tmdb';
 
 const GenreSelector: React.FC = () => {
-  const [selectedType, setSelectedType] = useState<"movie" | "tv">("movie");
+  const [selectedType, setSelectedType] = useState<'movie' | 'tv'>('movie');
   const [mediaGenre, setMediaGenre] = useState<any[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState<string>("14");
+  const [selectedGenre, setSelectedGenre] = useState<string>('14');
   const [loading, setLoading] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
@@ -32,7 +32,7 @@ const GenreSelector: React.FC = () => {
             setPage((prevPage) => prevPage + 1);
           }
         } catch (error) {
-          console.error("Error fetching posts:", error);
+          console.error('Error fetching posts:', error);
         } finally {
           setLoading(false);
         }
@@ -42,7 +42,7 @@ const GenreSelector: React.FC = () => {
     loadMore();
   }, [inView, hasMore, loading, page, selectedType, selectedGenre]);
 
-  const handleButtonClick = (type: "movie" | "tv") => {
+  const handleButtonClick = (type: 'movie' | 'tv') => {
     setSelectedType(type);
   };
 
@@ -52,37 +52,33 @@ const GenreSelector: React.FC = () => {
   };
 
   const handleScrollToTarget = () => {
-    targetRef.current?.scrollIntoView({ behavior: "smooth" });
+    targetRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const genres =
-    selectedType === "movie" ? movieGenres.genres : tvGenres.genres;
+  const genres = selectedType === 'movie' ? movieGenres.genres : tvGenres.genres;
   // Add selectedType to dependencies to fetch when type changes
 
   return (
-    <div
-      className="flex w-full flex-col justify-center gap-4 p-2"
-      ref={targetRef}
-    >
+    <div className="flex w-full flex-col justify-center gap-4 p-2" ref={targetRef}>
       {/* <button
 				onClick={handleScrollToTarget}
 				className="fixed bottom-[25px] right-[25px] bg-accent p-8 rounded-full min-h-10 min-w-10 hidden md:block"
 			></button> */}
       <div className="mt-4 flex flex-row justify-center gap-4">
         <button
-          key={"movie"}
-          onClick={() => handleButtonClick("movie")}
+          key={'movie'}
+          onClick={() => handleButtonClick('movie')}
           className={`rounded-[8px] p-2 px-6 text-xl hover:bg-accent/30 ${
-            selectedType === "movie" ? "bg-accent/30" : "bg-foreground/10"
+            selectedType === 'movie' ? 'bg-accent/30' : 'bg-foreground/10'
           }`}
         >
           Movie Genres
         </button>
         <button
-          key={"tv"}
-          onClick={() => handleButtonClick("tv")}
+          key={'tv'}
+          onClick={() => handleButtonClick('tv')}
           className={`rounded-[8px] p-2 px-6 text-xl hover:bg-accent/30 ${
-            selectedType === "tv" ? "bg-accent/30" : "bg-foreground/10"
+            selectedType === 'tv' ? 'bg-accent/30' : 'bg-foreground/10'
           }`}
         >
           TV Genres
@@ -95,9 +91,7 @@ const GenreSelector: React.FC = () => {
               <button
                 key={genre.id}
                 className={`rounded-[8px] p-2 px-6 hover:bg-accent/30 ${
-                  genre.id.toString() === selectedGenre
-                    ? "bg-accent/30"
-                    : "bg-foreground/10"
+                  genre.id.toString() === selectedGenre ? 'bg-accent/30' : 'bg-foreground/10'
                 }`}
                 onClick={() => handleGenreClick(genre.id.toString())}
               >
@@ -110,10 +104,7 @@ const GenreSelector: React.FC = () => {
       <div className="mx-auto grid w-full grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
         {mediaGenre && mediaGenre.length > 0 ? (
           mediaGenre.map((media: any) => (
-            <Link
-              href={`/protected/media/${selectedType}/${media.id}`}
-              key={media.id}
-            >
+            <Link href={`/protected/media/${selectedType}/${media.id}`} key={media.id}>
               <div className="animate-fade-in">
                 <img
                   src={`https://image.tmdb.org/t/p/w500${media.poster_path}`}

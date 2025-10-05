@@ -1,8 +1,8 @@
-import Follow from "@/components/features/notifications/FollowCard";
-import NotificationButton from "@/components/features/notifications/NotificationButton";
-import { fetchUserNotifications } from "@/lib/supabase/clientQueries";
-import { getCurrentUser } from "@/lib/supabase/serverQueries";
-import React from "react";
+import React from 'react';
+import Follow from '@/components/features/notifications/FollowCard';
+import NotificationButton from '@/components/features/notifications/NotificationButton';
+import { fetchUserNotifications } from '@/lib/supabase/clientQueries';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
 
 const page = async () => {
   const user = await getCurrentUser();

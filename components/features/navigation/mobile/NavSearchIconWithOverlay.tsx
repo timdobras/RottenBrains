@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { SearchIcon } from "@/components/ui/Icon";
-import React, { useState, useRef, useEffect } from "react";
-import SearchBar from "../../search-bar/SearchBar";
+import React, { useState, useRef, useEffect } from 'react';
+import { SearchIcon } from '@/components/ui/Icon';
+import SearchBar from '../../search-bar/SearchBar';
 
 const NavSearchIconWithOverlay: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -22,9 +22,7 @@ const NavSearchIconWithOverlay: React.FC = () => {
         aria-label="Open Search"
         className="flex flex-1 flex-col items-center justify-center gap-1 opacity-80"
       >
-        <div
-          className={`flex w-full flex-col items-center justify-center rounded-full`}
-        >
+        <div className={`flex w-full flex-col items-center justify-center rounded-full`}>
           <SearchIcon className="fill-current" width={20} height={20} />
         </div>
         <p className="text-xs">Search</p>

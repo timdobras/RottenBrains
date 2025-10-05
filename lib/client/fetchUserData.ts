@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { User } from "@supabase/supabase-js";
-import { createClient } from "../supabase/client";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
+import { createClient } from '../supabase/client';
 
 const supabase: SupabaseClient = createClient();
 
@@ -19,17 +19,17 @@ export default function fetchUserData() {
         const { data, error } = await supabase.auth.getUser();
 
         if (error) {
-          console.error("Error fetching user:", error.message);
+          console.error('Error fetching user:', error.message);
           return;
         }
 
         if (data && data.user) {
           setUser(data.user);
         } else {
-          console.log("No user found");
+          console.log('No user found');
         }
       } catch (error) {
-        console.error("Unexpected error fetching user:", error);
+        console.error('Unexpected error fetching user:', error);
       }
     }
 

@@ -9,7 +9,7 @@ export type IMedia = {
   poster_path: string;
   overview: string;
   release_date: string;
-  media_type: "movie" | "tv" | string;
+  media_type: 'movie' | 'tv' | string;
   first_air_date: string;
 };
 
@@ -18,7 +18,7 @@ export interface FilterProps {
 }
 
 export type IUser = {
-  id: number;
+  id: number; // Keep as number for now to match existing DB
   name: string;
   username: string;
   email: string;
@@ -27,8 +27,10 @@ export type IUser = {
   likes: Array<string>;
   saves: Array<string>;
   backdrop_url: string;
-  feed_genres: any[];
+  feed_genres: FeedGenre[];
   premium: boolean;
+  created_at?: string;
+  updated_at?: string;
 };
 export type IPost = {
   id: number;
@@ -49,21 +51,16 @@ export type INavLink = {
   label: string;
 };
 export type ExploreTabProps = {
-  action:
-    | "Now_in_cinemas"
-    | "Trending_TV"
-    | "Popular_Today"
-    | "Airing_Today"
-    | "Trending_Movies";
+  action: 'Now_in_cinemas' | 'Trending_TV' | 'Popular_Today' | 'Airing_Today' | 'Trending_Movies';
 };
 export type MediaPageProps = {
-  media_type: "movie" | "tv" | string;
+  media_type: 'movie' | 'tv' | string;
   media_id: number;
 };
 
 export interface FeedGenre {
   genre_code: string;
-  media_type: "movie" | "tv";
+  media_type: 'movie' | 'tv';
 }
 
 declare global {

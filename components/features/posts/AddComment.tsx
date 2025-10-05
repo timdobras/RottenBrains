@@ -1,14 +1,9 @@
-"use client";
-import { createClient } from "@/lib/supabase/client";
-import { useState } from "react";
+'use client';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
-const AddComment: React.FC<any> = ({
-  post,
-  user_id,
-  fetchComments,
-  parent_id,
-}) => {
-  const [content, setContent] = useState("");
+const AddComment: React.FC<any> = ({ post, user_id, fetchComments, parent_id }) => {
+  const [content, setContent] = useState('');
   const postId = post.id;
 
   const supabase = createClient();
@@ -17,16 +12,16 @@ const AddComment: React.FC<any> = ({
     e.preventDefault();
 
     if (!user_id) {
-      alert("You must be logged in to comment");
+      alert('You must be logged in to comment');
       return;
     }
 
     const { data, error } = await supabase
-      .from("comments")
+      .from('comments')
       .insert([{ post_id: postId, user_id: user_id, content, parent_id }])
       .select();
 
-    const { error: incrementError } = await supabase.rpc("increment_comments", {
+    const { error: incrementError } = await supabase.rpc('increment_comments', {
       post_id: postId,
     });
     if (incrementError) throw incrementError;
@@ -34,7 +29,7 @@ const AddComment: React.FC<any> = ({
     if (error) {
       console.error(error);
     } else {
-      setContent("");
+      setContent('');
       await fetchComments(); // Fetch comments after adding a new comment
     }
   };
@@ -49,10 +44,7 @@ const AddComment: React.FC<any> = ({
         className="mb-2 w-full appearance-none rounded-xl bg-foreground/30 p-2 focus:outline-none focus:ring-2 focus:ring-accent"
         placeholder="Add your comment..."
       />
-      <button
-        type="submit"
-        className="w-full rounded-md bg-accent py-2 text-white"
-      >
+      <button type="submit" className="w-full rounded-md bg-accent py-2 text-white">
         Add Comment
       </button>
     </form>

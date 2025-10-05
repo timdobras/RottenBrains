@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 
 type AdBannerProps = {
   dataAdSlot: string;
@@ -19,9 +19,7 @@ export default function AdBanner({
   useEffect(() => {
     // Attempt to push the ad
     try {
-      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push(
-        {},
-      );
+      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
     } catch (error) {
       // If it fails immediately, fallback.
       return;
@@ -50,7 +48,7 @@ export default function AdBanner({
       >
         <ins
           className="adsbygoogle mx-auto"
-          style={{ display: "block" }}
+          style={{ display: 'block' }}
           data-ad-client="ca-pub-4557341861686356"
           data-ad-slot={dataAdSlot}
           data-ad-format={dataAdFormat}

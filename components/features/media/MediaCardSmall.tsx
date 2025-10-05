@@ -1,14 +1,9 @@
-import { getEpisodeDetails, getMediaDetails } from "@/lib/tmdb";
-import MediaCardOverlay from "./MediaCardOverlay";
-import ImageWithFallback from "./ImageWithFallback";
-import MoreOptions from "@/components/features/media/MoreOptions";
-import { getWatchTime } from "@/lib/supabase/serverQueries";
-import {
-  formatEpisodeCode,
-  getImageUrl,
-  getRelativeTime,
-  transformRuntime,
-} from "@/lib/utils";
+import MoreOptions from '@/components/features/media/MoreOptions';
+import { getWatchTime } from '@/lib/supabase/serverQueries';
+import { getEpisodeDetails, getMediaDetails } from '@/lib/tmdb';
+import { formatEpisodeCode, getImageUrl, getRelativeTime, transformRuntime } from '@/lib/utils';
+import ImageWithFallback from './ImageWithFallback';
+import MediaCardOverlay from './MediaCardOverlay';
 
 type MediaCardSmallProps = {
   media_type: string;
@@ -43,55 +38,36 @@ const MediaCardSmall = async ({
 
   const fetchWatchTime = async () => {
     if (user_id) {
-      return getWatchTime(
-        user_id,
-        media_type,
-        media_id,
-        season_number,
-        episode_number,
-      );
+      return getWatchTime(user_id, media_type, media_id, season_number, episode_number);
     }
     return null;
   };
 
   // Fetch media and watch time in parallel
-  const [fetchedMedia, watchTime] = await Promise.all([
-    fetchMedia(),
-    fetchWatchTime(),
-  ]);
+  const [fetchedMedia, watchTime] = await Promise.all([fetchMedia(), fetchWatchTime()]);
 
   media = fetchedMedia;
   fetchedWatchTime = watchTime;
 
-  const {
-    runtime,
-    vote_average,
-    title,
-    name,
-    images,
-    air_date,
-    first_air_date,
-    release_date,
-  } = media;
+  const { runtime, vote_average, title, name, images, air_date, first_air_date, release_date } =
+    media;
 
   // Extract genre IDs
   const genreIds: bigint[] = media?.genres?.map((genre: any) => genre.id) || [];
 
-  const mediaTitle = title || name || "Unknown Title";
+  const mediaTitle = title || name || 'Unknown Title';
   const episodeCode =
-    media_type === "tv" && season_number && episode_number
+    media_type === 'tv' && season_number && episode_number
       ? ` | ${formatEpisodeCode(season_number, episode_number)}`
-      : "";
+      : '';
 
-  const relativeTime = getRelativeTime(
-    air_date || first_air_date || release_date,
-  );
+  const relativeTime = getRelativeTime(air_date || first_air_date || release_date);
 
   return (
     <article className="flex w-full flex-col gap-2 hover:border-accent md:flex-row">
       <div
         className={`relative w-full flex-shrink-0 overflow-hidden md:w-1/2 ${
-          rounded ? "rounded-[8px]" : "md:rounded-[8px]"
+          rounded ? 'rounded-[8px]' : 'md:rounded-[8px]'
         }`}
       >
         <MediaCardOverlay
@@ -103,7 +79,7 @@ const MediaCardSmall = async ({
         <ImageWithFallback
           imageUrl={getImageUrl(media, season_number, episode_number)}
           altText={mediaTitle}
-          quality={"w1280"}
+          quality={'w1280'}
         />
       </div>
       <div className="flex flex-col gap-1 md:w-full md:px-0">

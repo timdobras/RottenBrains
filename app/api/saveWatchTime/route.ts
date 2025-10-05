@@ -1,5 +1,5 @@
-import { upsertWatchHistory } from "@/lib/supabase/serverQueries";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { upsertWatchHistory } from '@/lib/supabase/serverQueries';
 
 interface WatchTimeData {
   time_spent: number;
@@ -22,18 +22,15 @@ export async function POST(req: NextRequest) {
       data.time_spent,
       data.percentage_watched,
       data.season_number ?? null,
-      data.episode_number ?? null,
+      data.episode_number ?? null
     );
 
     return NextResponse.json({
-      message: "Watch time saved successfully",
+      message: 'Watch time saved successfully',
       result,
     });
   } catch (error) {
-    console.error("Error saving watch time:", error);
-    return NextResponse.json(
-      { message: "Error saving watch time" },
-      { status: 500 },
-    );
+    console.error('Error saving watch time:', error);
+    return NextResponse.json({ message: 'Error saving watch time' }, { status: 500 });
   }
 }

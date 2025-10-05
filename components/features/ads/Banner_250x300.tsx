@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useUser } from "@/hooks/UserContext";
+import React, { useEffect, useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
 
 type AdConfig = {
   key: string;
@@ -16,8 +16,8 @@ type AdComponentProps = {
 
 const Banner_250x300: React.FC<AdComponentProps> = ({
   adConfig = {
-    key: "67937494aa86f72fe1e19a7a9a36b50a",
-    format: "iframe",
+    key: '67937494aa86f72fe1e19a7a9a36b50a',
+    format: 'iframe',
     height: 250,
     width: 300,
     params: {},
@@ -35,8 +35,8 @@ const Banner_250x300: React.FC<AdComponentProps> = ({
     }, 3000);
 
     // 1) Create a <script> that sets up atOptions dynamically
-    const atScript = document.createElement("script");
-    atScript.type = "text/javascript";
+    const atScript = document.createElement('script');
+    atScript.type = 'text/javascript';
     atScript.innerHTML = `
       atOptions = {
         'key' : '${adConfig.key}',
@@ -48,10 +48,9 @@ const Banner_250x300: React.FC<AdComponentProps> = ({
     `;
 
     // 2) Create a <script> that loads the ad
-    const invokeScript = document.createElement("script");
-    invokeScript.type = "text/javascript";
-    invokeScript.src =
-      "//www.highperformanceformat.com/" + adConfig.key + "/invoke.js";
+    const invokeScript = document.createElement('script');
+    invokeScript.type = 'text/javascript';
+    invokeScript.src = '//www.highperformanceformat.com/' + adConfig.key + '/invoke.js';
 
     invokeScript.onload = () => {
       scriptLoaded = true;
@@ -85,8 +84,7 @@ const Banner_250x300: React.FC<AdComponentProps> = ({
     return (
       <div className="flex flex-col items-center justify-center gap-6">
         <div className="flex h-[250px] w-[300px] items-center justify-center border-[4px] border-foreground/60 p-4 text-center font-medium text-foreground">
-          Ads help keep Rotten-Brains free. Please help support us by disabling
-          your ad blocker.
+          Ads help keep Rotten-Brains free. Please help support us by disabling your ad blocker.
         </div>
         <div className="relative mb-4 h-[4px] w-[728px] bg-foreground/60">
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform rounded-full bg-accent px-4 py-1 text-center font-medium">

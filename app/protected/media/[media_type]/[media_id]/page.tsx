@@ -1,17 +1,17 @@
-import GoBackArrow from "@/components/features/navigation/GoBackArrow";
-import { getMediaCredits, getMediaDetails, getVideos } from "@/lib/tmdb";
-import Link from "next/link";
-import MoreOptions from "@/components/features/media/MoreOptions";
-import ImageWithFallback from "@/components/features/media/ImageWithFallback";
-import { fetchMediaData } from "@/lib/client/fetchMediaData";
-import { getCurrentUser } from "@/lib/supabase/serverQueries";
-import { transformRuntime } from "@/lib/utils";
+import Link from 'next/link';
+import ImageWithFallback from '@/components/features/media/ImageWithFallback';
+import MoreOptions from '@/components/features/media/MoreOptions';
+import GoBackArrow from '@/components/features/navigation/GoBackArrow';
+import { fetchMediaData } from '@/lib/client/fetchMediaData';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getMediaCredits, getMediaDetails, getVideos } from '@/lib/tmdb';
+import { transformRuntime } from '@/lib/utils';
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "m";
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
   }
   return num.toString();
 }
@@ -24,16 +24,15 @@ export async function generateMetadata({ params }: any) {
   try {
     mediaData = await fetchMediaData(media_type, media_id);
   } catch (error) {
-    console.error("Error fetching media data:", error);
+    console.error('Error fetching media data:', error);
     mediaData = null;
   }
   const media = mediaData;
 
   if (!media) {
     return {
-      title: "No Media Found",
-      description:
-        "Connect with fellow enthusiasts and dive deep into your favorite media.",
+      title: 'No Media Found',
+      description: 'Connect with fellow enthusiasts and dive deep into your favorite media.',
     };
   }
 
@@ -46,9 +45,7 @@ export async function generateMetadata({ params }: any) {
 async function getTrailerOrFirstFive(media_type: string, media_id: number) {
   const mediaVideos = await getVideos(media_type, media_id);
 
-  const trailers = mediaVideos.results.filter(
-    (video: any) => video.type === "Trailer",
-  );
+  const trailers = mediaVideos.results.filter((video: any) => video.type === 'Trailer');
 
   if (trailers.length > 0) {
     return trailers;
@@ -69,12 +66,8 @@ async function separateCredits(media_type: string, media_id: number) {
   let actors: any[] | null = null;
 
   // Find director or creator
-  const director = mediaCredits.crew.find(
-    (member: any) => member.job === "Director",
-  );
-  const creator = mediaCredits.crew.find(
-    (member: any) => member.job === "Creator",
-  );
+  const director = mediaCredits.crew.find((member: any) => member.job === 'Director');
+  const creator = mediaCredits.crew.find((member: any) => member.job === 'Creator');
   if (director) {
     directorOrCreator = director;
   } else if (creator) {
@@ -82,9 +75,7 @@ async function separateCredits(media_type: string, media_id: number) {
   }
 
   // Find writers
-  const writersList = mediaCredits.crew.filter(
-    (member: any) => member.department === "Writing",
-  );
+  const writersList = mediaCredits.crew.filter((member: any) => member.department === 'Writing');
   if (writersList.length > 0) {
     writers = writersList.map((writer: any) => writer);
   }
@@ -110,7 +101,7 @@ export default async function mediaPage({ params }: { params: Params }) {
   try {
     mediaData = await getMediaDetails(media_type, media_id);
   } catch (error) {
-    console.error("Error fetching media data:", error);
+    console.error('Error fetching media data:', error);
     mediaData = null;
   }
   const media = mediaData;
@@ -127,7 +118,7 @@ export default async function mediaPage({ params }: { params: Params }) {
   const mediaCredits = await separateCredits(media_type, media_id);
 
   const watchLink =
-    media_type === "movie"
+    media_type === 'movie'
       ? `/protected/watch/${media_type}/${media.id}`
       : `/protected/watch/${media_type}/${media.id}/1/1`;
 
@@ -143,10 +134,7 @@ export default async function mediaPage({ params }: { params: Params }) {
         <p className="truncate">{media.title || media.name}</p>
       </div>
       <div className="relative h-auto w-screen md:w-auto">
-        <div
-          className="relative mt-10 flex h-auto w-screen md:mt-0 md:w-auto"
-          id="overview"
-        >
+        <div className="relative mt-10 flex h-auto w-screen md:mt-0 md:w-auto" id="overview">
           <div className="mx-auto flex h-full w-screen flex-col gap-2 px-2 md:w-auto md:gap-8">
             <div className="flex flex-col gap-4">
               <div className="flex w-full flex-row justify-between">
@@ -158,9 +146,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                   genre_ids={genreIds}
                 ></MoreOptions> */}
               </div>
-              {media.tagline && (
-                <p className="text-sm italic opacity-50">"{media.tagline}"</p>
-              )}
+              {media.tagline && <p className="text-sm italic opacity-50">&quot;{media.tagline}&quot;</p>}
               <div className="">
                 <div className="flex h-full flex-col justify-between gap-2 md:flex-row md:items-center">
                   <div className="flex flex-row items-center gap-4 text-sm opacity-50">
@@ -168,7 +154,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                       {(media.release_date && media.release_date.slice(0, 4)) ||
                         media.first_air_date.slice(0, 4)}
                     </p>
-                    {media_type === "tv" && (
+                    {media_type === 'tv' && (
                       <>
                         <div className="h-2 w-2 rounded-full bg-foreground"></div>
                         <p>TV-{media.number_of_seasons}</p>
@@ -176,7 +162,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                     )}
                     <div className="h-2 w-2 rounded-full bg-foreground"></div>
                     <p>
-                      {media_type === "movie"
+                      {media_type === 'movie'
                         ? transformRuntime(media.runtime)
                         : transformRuntime(media.episode_run_time)}
                     </p>
@@ -206,9 +192,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                         loading="lazy"
                       />
                       <p className="text-sm text-foreground/50">
-                        <span className="text-foreground/100">
-                          {media.vote_average.toFixed(1)}
-                        </span>
+                        <span className="text-foreground/100">{media.vote_average.toFixed(1)}</span>
                         /10 <span>({formatNumber(media.vote_count)})</span>
                       </p>
                     </div>
@@ -240,7 +224,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                   <ImageWithFallback
                     imageUrl={media.backdrop_path}
                     altText={media.title || media.name}
-                    quality={"original"}
+                    quality={'original'}
                   />
                 </div>
               </div>
@@ -248,74 +232,59 @@ export default async function mediaPage({ params }: { params: Params }) {
             <div className="flex w-full flex-row gap-4 px-2 md:w-auto">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-row items-center gap-4">
-                  <p className="w-[100px] font-bold text-foreground/50">
-                    Genre
-                  </p>
+                  <p className="w-[100px] font-bold text-foreground/50">Genre</p>
                   <div className="flex w-[60vw] flex-row flex-wrap gap-2 text-sm md:w-[300px] xl:w-[600px]">
                     {mediaData.genres.map((genre: any) => (
-                      <div className="flex items-center rounded-[4px] bg-foreground/20 px-4 py-1 text-center">
+                      <div
+                        key={genre.id}
+                        className="flex items-center rounded-[4px] bg-foreground/20 px-4 py-1 text-center"
+                      >
                         {genre.name}
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="flex flex-row gap-4">
-                  <p className="w-[100px] text-wrap font-bold text-foreground/50">
-                    Plot
-                  </p>
-                  <p className="w-[60vw] text-sm md:w-[300px] xl:w-[600px]">
-                    {mediaData.overview}
-                  </p>
+                  <p className="w-[100px] text-wrap font-bold text-foreground/50">Plot</p>
+                  <p className="w-[60vw] text-sm md:w-[300px] xl:w-[600px]">{mediaData.overview}</p>
                 </div>
 
                 <div className="flex flex-row gap-4">
                   <p className="w-[100px] font-bold text-foreground/50">
-                    {media_type === "movie" ? "Director" : "Creator"}
+                    {media_type === 'movie' ? 'Director' : 'Creator'}
                   </p>
                   <div className="w-[60vw] text-sm md:w-[300px] xl:w-[600px]">
-                    {media_type === "movie"
+                    {media_type === 'movie'
                       ? mediaCredits.directorOrCreator?.name
                       : mediaData.created_by[0]?.name}
                   </div>
                 </div>
 
                 <div className="flex flex-row gap-4">
-                  <p className="w-[100px] font-bold text-foreground/50">
-                    Writers
-                  </p>
+                  <p className="w-[100px] font-bold text-foreground/50">Writers</p>
                   <span className="w-[60vw] md:w-[300px] xl:w-[600px]">
                     <div className="flex flex-row flex-wrap text-sm">
                       {mediaCredits.writers
-                        ? mediaCredits.writers
-                            .slice(0, 5)
-                            .map((writer, index) => (
-                              <Link
-                                href={`/protected/person/${writer.id}`}
-                                key={index}
-                              >
-                                {writer.name},{" "}
-                              </Link>
-                            ))
-                        : "N/A"}
+                        ? mediaCredits.writers.slice(0, 5).map((writer, index) => (
+                            <Link href={`/protected/person/${writer.id}`} key={index}>
+                              {writer.name},{' '}
+                            </Link>
+                          ))
+                        : 'N/A'}
                     </div>
                   </span>
                 </div>
 
                 <div className="flex flex-row gap-4">
-                  <p className="w-[100px] font-bold text-foreground/50">
-                    Stars
-                  </p>
+                  <p className="w-[100px] font-bold text-foreground/50">Stars</p>
                   <div className="w-[60vw] text-sm md:w-[300px] xl:w-[600px]">
                     {mediaCredits.actors
                       ? mediaCredits.actors.slice(0, 5).map((actor, index) => (
-                          <Link
-                            href={`/protected/person/${actor.id}`}
-                            key={index}
-                          >
-                            {actor.name},{" "}
+                          <Link href={`/protected/person/${actor.id}`} key={index}>
+                            {actor.name},{' '}
                           </Link>
                         ))
-                      : "N/A"}
+                      : 'N/A'}
                   </div>
                 </div>
               </div>

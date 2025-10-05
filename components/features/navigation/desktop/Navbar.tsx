@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useUser } from "@/hooks/UserContext";
-import useLocalStorage from "@/hooks/useLocalStorage";
-import { useSidebar } from "@/hooks/SidebarContext";
-import NotificationButton from "../../notifications/NotificationButton";
-import ProfilePictureNew from "./ProfilePictureNew";
-import SearchBar from "../../search-bar-new-new/SearchBar";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useSidebar } from '@/hooks/SidebarContext';
+import useLocalStorage from '@/hooks/useLocalStorage';
+import { useUser } from '@/hooks/UserContext';
+import NotificationButton from '../../notifications/NotificationButton';
+import SearchBar from '../../search-bar-new-new/SearchBar';
+import ProfilePictureNew from './ProfilePictureNew';
 
 const Navbar = ({ children }: any) => {
   const pathname = usePathname();
@@ -29,9 +29,7 @@ const Navbar = ({ children }: any) => {
   return (
     <nav
       className={`fixed top-0 z-30 hidden h-20 px-4 py-4 transition-all duration-300 ${
-        isSidebarOpen
-          ? "left-52 w-[calc(100vw-208px)]"
-          : "left-24 w-[calc(100vw-96px)]"
+        isSidebarOpen ? 'left-52 w-[calc(100vw-208px)]' : 'left-24 w-[calc(100vw-96px)]'
       } justify-center bg-background md:flex`}
     >
       <div className="flex w-full flex-col items-center">
@@ -50,9 +48,7 @@ const Navbar = ({ children }: any) => {
                 <Link
                   href="/protected/create-post"
                   className={`flex aspect-square h-full items-center justify-center rounded-full bg-foreground/10 ${
-                    pathname.includes("create-post")
-                      ? "text-primary"
-                      : "text-foreground"
+                    pathname.includes('create-post') ? 'text-primary' : 'text-foreground'
                   }`}
                 >
                   <svg

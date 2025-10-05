@@ -1,6 +1,6 @@
-import React from "react";
-import { SearchCardProps } from "./MediaSearchCard";
-import Link from "next/link";
+import Link from 'next/link';
+import React from 'react';
+import { SearchCardProps } from './MediaSearchCard';
 
 const UserSearchCard = ({ media: user, onClick }: SearchCardProps) => {
   return (
@@ -8,7 +8,7 @@ const UserSearchCard = ({ media: user, onClick }: SearchCardProps) => {
       onClick={onClick}
       className={`flex h-32 w-full cursor-pointer flex-row gap-4 p-4 hover:bg-foreground/10`}
     >
-      {user.image_url && user.image_url !== "" ? (
+      {user.image_url && user.image_url !== '' ? (
         <img
           src={user.image_url}
           alt=""

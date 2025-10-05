@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useCallback } from "react";
-import { useInView } from "react-intersection-observer";
-import { format, isToday, isYesterday } from "date-fns";
-import { useUser } from "@/hooks/UserContext";
-import MediaCardClient from "../media/MediaCardClient";
-import { getWatchHistoryForUser } from "@/lib/supabase/clientQueries";
+import { format, isToday, isYesterday } from 'date-fns';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { useUser } from '@/hooks/UserContext';
+import { getWatchHistoryForUser } from '@/lib/supabase/clientQueries';
+import MediaCardClient from '../media/MediaCardClient';
 
 const WatchHistoryWithInfiniteScroll = () => {
   const { user } = useUser();
@@ -34,11 +34,7 @@ const WatchHistoryWithInfiniteScroll = () => {
       const offset = page * limit;
       // Make sure getWatchHistoryForUser is client-compatible
       // (i.e., it can be called from client side).
-      const newHistory = await getWatchHistoryForUser(
-        user.id.toString(),
-        limit,
-        offset,
-      );
+      const newHistory = await getWatchHistoryForUser(user.id.toString(), limit, offset);
 
       if (!newHistory || newHistory.length === 0) {
         setHasMore(false);
@@ -47,7 +43,7 @@ const WatchHistoryWithInfiniteScroll = () => {
         setPage((prev) => prev + 1);
       }
     } catch (error) {
-      console.error("Error fetching watch history:", error);
+      console.error('Error fetching watch history:', error);
       setHasMore(false);
     } finally {
       setLoading(false);
@@ -77,28 +73,25 @@ const WatchHistoryWithInfiniteScroll = () => {
   // ----------------------------
   // Group Watch History by Date
   // ----------------------------
-  const groupedByDate = watchHistory.reduce<Record<string, any[]>>(
-    (acc, item) => {
-      const watchedDate = new Date(item.created_at);
-      const dateKey = format(watchedDate, "yyyy-MM-dd");
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
-      }
-      acc[dateKey].push(item);
-      return acc;
-    },
-    {},
-  );
+  const groupedByDate = watchHistory.reduce<Record<string, any[]>>((acc, item) => {
+    const watchedDate = new Date(item.created_at);
+    const dateKey = format(watchedDate, 'yyyy-MM-dd');
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(item);
+    return acc;
+  }, {});
 
   // Sort dates descending
   const sortedDates = Object.keys(groupedByDate).sort(
-    (a, b) => new Date(b).getTime() - new Date(a).getTime(),
+    (a, b) => new Date(b).getTime() - new Date(a).getTime()
   );
 
   // Helper to label the date
   const getDateLabel = (dateString: string) => {
     const d = new Date(dateString);
-    const formattedDate = format(d, "dd MMM yyyy");
+    const formattedDate = format(d, 'dd MMM yyyy');
     if (isToday(d)) return `Today - ${formattedDate}`;
     if (isYesterday(d)) return `Yesterday - ${formattedDate}`;
     return formattedDate;
@@ -129,19 +122,15 @@ const WatchHistoryWithInfiniteScroll = () => {
             <div className="mb-4 flex flex-row flex-wrap gap-4 border-l-2 border-foreground/20 pb-4 pl-4">
               {items.map((media) => {
                 // Convert -1 to null, if that’s how your DB denotes "no episode or season"
-                const season_number =
-                  media.season_number === -1 ? null : media.season_number;
-                const episode_number =
-                  media.episode_number === -1 ? null : media.episode_number;
+                const season_number = media.season_number === -1 ? null : media.season_number;
+                const episode_number = media.episode_number === -1 ? null : media.episode_number;
 
                 return (
                   <MediaCardClient
                     key={media.id /* or media.media_id if needed */}
                     user_id={user.id.toString()}
                     media_type={media.media_type}
-                    media_id={
-                      media.media_id /* or media.media_id if that's TMDB ID */
-                    }
+                    media_id={media.media_id /* or media.media_id if that's TMDB ID */}
                     season_number={season_number}
                     episode_number={episode_number}
                     rounded

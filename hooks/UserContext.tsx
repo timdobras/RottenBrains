@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { createClient } from "@/lib/supabase/client";
-import { IUser } from "@/types";
-import { useRouter } from "next/navigation";
+import { createClient } from '@/lib/supabase/client';
+import { IUser } from '@/types';
+import { useRouter } from 'next/navigation';
 import {
   createContext,
   useContext,
@@ -10,28 +10,55 @@ import {
   useState,
   ReactNode,
   useMemo,
-} from "react";
+  useCallback,
+} from 'react';
+import { logger } from '@/lib/logger';
 
 interface UserContextType {
-  user: any | null;
+  user: IUser | null;
   loading: boolean;
   refreshUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const UserProvider = ({
-  children,
-  initialUser,
-}: {
-  children: ReactNode;
-  initialUser?: any;
-}) => {
-  const [user, setUser] = useState<any | null>(initialUser || null);
+const UserProvider = ({ children, initialUser }: { children: ReactNode; initialUser?: IUser }) => {
+  const [user, setUser] = useState<IUser | null>(initialUser || null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   const router = useRouter();
+
+  // Memoize refreshUser to prevent unnecessary re-renders
+  const refreshUser = useCallback(async () => {
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        setUser(null);
+        return;
+      }
+
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (error) {
+        logger.error('Error fetching user data:', error);
+        setUser(null);
+        return;
+      }
+
+      setUser(userData as IUser);
+    } catch (error) {
+      logger.error('Error in refreshUser:', error);
+      setUser(null);
+    }
+  }, [supabase]);
 
   useEffect(() => {
     // Set initial loading state based on whether we have initial user
@@ -42,17 +69,23 @@ const UserProvider = ({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("-----CONTEXT RELOAD-----");
+      logger.debug('Auth state changed:', event);
+
       if (session?.user) {
         // Only fetch user data if user ID changed
-        if (!user || user.id !== session.user.id) {
-          const { data: userData } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", session.user.id)
+        if (!user || String(user.id) !== session.user.id) {
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
             .single();
 
-          setUser(userData || null);
+          if (error) {
+            logger.error('Error fetching user on auth change:', error);
+            setUser(null);
+          } else {
+            setUser((userData as IUser) || null);
+          }
         }
       } else {
         setUser(null);
@@ -61,46 +94,21 @@ const UserProvider = ({
     });
 
     return () => subscription.unsubscribe();
-  }, []); // Remove 'user' from dependencies to prevent unnecessary refetches
-
-  // Inside UserProvider
-  const refreshUser = async () => {
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-    if (!authUser) {
-      setUser(null);
-      return;
-    }
-
-    const { data: userData } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", authUser.id)
-      .single();
-
-    setUser(userData);
-  };
-
-  const resetUser = () => setUser(null);
+  }, [supabase, initialUser, user, refreshUser]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
     () => ({ user, loading, refreshUser }),
-    [user, loading]
+    [user, loading, refreshUser]
   );
 
-  return (
-    <UserContext.Provider value={contextValue}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
 };
 
 export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error("useUser must be used within a UserProvider");
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };

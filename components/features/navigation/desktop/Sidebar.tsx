@@ -1,6 +1,10 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
+import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import { useSidebar } from '@/hooks/SidebarContext';
+import useLocalStorage from '@/hooks/useLocalStorage';
+import { useUser } from '@/hooks/UserContext';
 import {
   ExploreIcon,
   HistoryIcon,
@@ -21,12 +25,8 @@ import {
   CookiesIcon,
   LegalIcon,
   InfoIcon,
-} from "../../../ui/Icon";
-import useLocalStorage from "@/hooks/useLocalStorage";
-import { useSidebar } from "@/hooks/SidebarContext";
-import NavLink from "./NavLink";
-import { useUser } from "@/hooks/UserContext";
-import Link from "next/link";
+} from '../../../ui/Icon';
+import NavLink from './NavLink';
 
 const Sidebar = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar(); // Client-only state from context
@@ -46,13 +46,13 @@ const Sidebar = () => {
   return (
     <aside
       className={`fixed left-0 top-0 z-30 hidden h-full min-h-screen bg-background px-2 transition-all duration-300 md:flex ${
-        isSidebarOpen ? "w-52" : "w-24"
+        isSidebarOpen ? 'w-52' : 'w-24'
       }`}
     >
       {isSidebarOpen ? (
         <ul className="flex h-full w-full flex-col justify-start">
           <div className="my-8 flex w-full flex-row items-center gap-4 px-4">
-            <Link href={"/"} className="flex flex-row items-center gap-4">
+            <Link href={'/'} className="flex flex-row items-center gap-4">
               <img
                 src="/assets/images/logo_text_new.svg"
                 alt="text-logo"
@@ -72,33 +72,12 @@ const Sidebar = () => {
               />
             </button> */}
           </div>
-          <NavLink
-            href="/"
-            icon={HomeIcon}
-            icon_fill={HomeIconFill}
-            label="Home"
-          />
-          <NavLink
-            href="/protected/explore"
-            icon={ExploreIcon}
-            label="Explore"
-          />
+          <NavLink href="/" icon={HomeIcon} icon_fill={HomeIconFill} label="Home" />
+          <NavLink href="/protected/explore" icon={ExploreIcon} label="Explore" />
           <div className="mx-auto my-2 h-[1px] w-[90%] bg-foreground/20"></div>
-          <NavLink
-            href="/protected/profile"
-            icon={ProfileIcon}
-            label="Your profile"
-          />
-          <NavLink
-            href="/protected/watch-list"
-            icon={WatchListIcon}
-            label="Library"
-          />
-          <NavLink
-            href="/protected/watch-history"
-            icon={HistoryIcon}
-            label="History"
-          />
+          <NavLink href="/protected/profile" icon={ProfileIcon} label="Your profile" />
+          <NavLink href="/protected/watch-list" icon={WatchListIcon} label="Library" />
+          <NavLink href="/protected/watch-history" icon={HistoryIcon} label="History" />
           {/* <div className="mx-auto my-2 h-[1px] w-[90%] bg-foreground/20"></div> */}
           {/* <NavLink href="/premium" icon={PremiumIcon} label="Premium" />
           <NavLink href="/donations" icon={DonationsIcon} label="Donations" /> */}
@@ -119,10 +98,7 @@ const Sidebar = () => {
       ) : (
         <ul className="flex h-full flex-col justify-start rounded-[8px] bg-foreground/10 p-2">
           <div className="my-8 flex w-full flex-row items-center justify-center">
-            <Link
-              href={"/"}
-              className="flex flex-shrink-0 flex-row items-center gap-4"
-            >
+            <Link href={'/'} className="flex flex-shrink-0 flex-row items-center gap-4">
               <img
                 src="/assets/images/logo_new_black.svg"
                 alt="text-logo"

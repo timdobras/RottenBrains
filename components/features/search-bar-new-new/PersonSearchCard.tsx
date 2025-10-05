@@ -1,6 +1,6 @@
-import React from "react";
-import { SearchCardProps } from "./MediaSearchCard";
-import Link from "next/link";
+import Link from 'next/link';
+import React from 'react';
+import { SearchCardProps } from './MediaSearchCard';
 
 const PersonSearchCard = ({ media: person, onClick }: SearchCardProps) => {
   return (
@@ -8,7 +8,7 @@ const PersonSearchCard = ({ media: person, onClick }: SearchCardProps) => {
       onClick={onClick}
       className={`flex h-32 w-full cursor-pointer flex-row gap-4 p-4 hover:bg-foreground/10`}
     >
-      {person.profile_path && person.profile_path !== "" ? (
+      {person.profile_path && person.profile_path !== '' ? (
         <img
           src={`https://image.tmdb.org/t/p/w200${person.profile_path}`}
           alt=""

@@ -1,11 +1,6 @@
-import { getWatchTime } from "@/lib/supabase/serverQueries";
-import { getEpisodeDetails } from "@/lib/tmdb";
-import {
-  formatEpisodeCode,
-  getImageUrl,
-  getRelativeTime,
-  transformRuntime,
-} from "@/lib/utils";
+import { getWatchTime } from '@/lib/supabase/serverQueries';
+import { getEpisodeDetails } from '@/lib/tmdb';
+import { formatEpisodeCode, getImageUrl, getRelativeTime, transformRuntime } from '@/lib/utils';
 
 type EpisodeCardProps = {
   media_id: number;
@@ -32,22 +27,12 @@ const EpisodeCard = async ({
   user_id,
 }: EpisodeCardProps) => {
   // Fetch episode details
-  const episode: Episode = await getEpisodeDetails(
-    media_id,
-    season_number,
-    episode_number,
-  );
+  const episode: Episode = await getEpisodeDetails(media_id, season_number, episode_number);
 
   // Fetch watch time if user is authenticated
   let watchTime = 0;
   if (user_id) {
-    watchTime = await getWatchTime(
-      user_id,
-      "tv",
-      media_id,
-      season_number,
-      episode_number,
-    );
+    watchTime = await getWatchTime(user_id, 'tv', media_id, season_number, episode_number);
   }
 
   return (
@@ -81,9 +66,7 @@ const EpisodeCard = async ({
         <h3 className="">
           {episode.name} | {formatEpisodeCode(season_number, episode_number)}
         </h3>
-        <p className="text-sm text-foreground/50 md:text-sm">
-          {getRelativeTime(episode.air_date)}
-        </p>
+        <p className="text-sm text-foreground/50 md:text-sm">{getRelativeTime(episode.air_date)}</p>
       </div>
     </div>
   );

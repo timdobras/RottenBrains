@@ -1,12 +1,12 @@
-import { createClient } from "../supabase/client";
+import { createClient } from '../supabase/client';
 
 export const searchUsers = async (searchQuery: string) => {
   const supabase = createClient();
   try {
     // Search both username and display_name for better results
     const { data, error } = await supabase
-      .from("users")
-      .select("*")
+      .from('users')
+      .select('*')
       .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
       .limit(10);
 
@@ -16,10 +16,10 @@ export const searchUsers = async (searchQuery: string) => {
 
     // Rank results: exact matches first, then starts-with, then contains
     const ranked = data?.sort((a, b) => {
-      const aUsername = a.username?.toLowerCase() || "";
-      const bUsername = b.username?.toLowerCase() || "";
-      const aDisplayName = a.display_name?.toLowerCase() || "";
-      const bDisplayName = b.display_name?.toLowerCase() || "";
+      const aUsername = a.username?.toLowerCase() || '';
+      const bUsername = b.username?.toLowerCase() || '';
+      const aDisplayName = a.display_name?.toLowerCase() || '';
+      const bDisplayName = b.display_name?.toLowerCase() || '';
       const query = searchQuery.toLowerCase();
 
       // Exact match
@@ -35,7 +35,7 @@ export const searchUsers = async (searchQuery: string) => {
 
     return ranked;
   } catch (error) {
-    console.error("Error in searchUsers:", error);
+    console.error('Error in searchUsers:', error);
     return null;
   }
 };

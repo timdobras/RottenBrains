@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import ShareButton from "./ShareButton";
-import ToggleClamp from "../posts/ToggleClamp";
-import { motion, AnimatePresence } from "framer-motion";
-import { formatEpisodeCode, getRelativeTime } from "@/lib/utils";
-import AdBanner from "../ads/GoogleDisplayAd";
-import { useUser } from "@/hooks/UserContext";
-import ProviderDropdown from "./ProviderDropdown";
-import MobileBannerExo from "../ads/MobileBannerExo";
-import VideoAd from "../ads/Video";
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import React, { useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
+import { formatEpisodeCode, getRelativeTime } from '@/lib/utils';
+import AdBanner from '../ads/GoogleDisplayAd';
+import MobileBannerExo from '../ads/MobileBannerExo';
+import VideoAd from '../ads/Video';
+import ToggleClamp from '../posts/ToggleClamp';
+import ProviderDropdown from './ProviderDropdown';
+import ShareButton from './ShareButton';
 
 const cardVariants = {
-  hidden: { y: "100%" }, // Start off-screen at the bottom
+  hidden: { y: '100%' }, // Start off-screen at the bottom
   visible: { y: 0, transition: { duration: 0.2 } }, // Slide to the original position
-  exit: { y: "100%", transition: { duration: 0.3 } }, // Slide back off-screen
+  exit: { y: '100%', transition: { duration: 0.3 } }, // Slide back off-screen
 };
 
 interface Genre {
@@ -58,16 +58,15 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
   const [showDetails, setShowDetails] = useState(false);
 
   const media_release_date =
-    media_type === "movie"
+    media_type === 'movie'
       ? media.release_date
         ? media.release_date.slice(0, 4)
-        : "0"
+        : '0'
       : episode?.air_date
         ? episode.air_date
-        : "0";
+        : '0';
 
-  const media_overview =
-    media_type === "movie" ? media.overview : episode?.overview;
+  const media_overview = media_type === 'movie' ? media.overview : episode?.overview;
 
   const { user } = useUser();
 
@@ -76,21 +75,16 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
       <section className="relative mx-auto flex w-full p-4 md:hidden md:p-0">
         {/* Initially displayed title and date */}
         <div className="flex flex-col gap-6">
-          <div
-            className="flex cursor-pointer flex-col gap-2"
-            onClick={() => setShowDetails(true)}
-          >
+          <div className="flex cursor-pointer flex-col gap-2" onClick={() => setShowDetails(true)}>
             <h2 className="text-lg font-semibold">
               {episode && season_number && episode_number
                 ? `${episode.name} | ${
-                    formatEpisodeCode
-                      ? formatEpisodeCode(season_number, episode_number)
-                      : ""
+                    formatEpisodeCode ? formatEpisodeCode(season_number, episode_number) : ''
                   } | ${media.name || media.title}`
                 : `${media.title || media.name}`}
             </h2>
             <p className="text-xs text-foreground/60">
-              {getRelativeTime(media_release_date)}{" "}
+              {getRelativeTime(media_release_date)}{' '}
               <span className="ml-2 font-medium text-foreground">...more</span>
             </p>
           </div>
@@ -137,9 +131,7 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
                 <h2 className="font-medium">
                   {episode && season_number && episode_number
                     ? `${episode.name} | ${
-                        formatEpisodeCode
-                          ? formatEpisodeCode(season_number, episode_number)
-                          : ""
+                        formatEpisodeCode ? formatEpisodeCode(season_number, episode_number) : ''
                       } | ${media.name || media.title}`
                     : `${media.title || media.name}`}
                 </h2>
@@ -153,9 +145,7 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
                     {getRelativeTime(media_release_date)}
                   </p>
                 </div>
-                {media_overview && (
-                  <ToggleClamp text={media_overview}></ToggleClamp>
-                )}
+                {media_overview && <ToggleClamp text={media_overview}></ToggleClamp>}
                 <Link
                   href={`/protected/media/${media_type}/${media_id}`}
                   className="flex h-32 w-full flex-row items-center gap-4 overflow-hidden rounded-[8px] bg-foreground/10"
@@ -178,7 +168,7 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
                       ))}
                     </div>
                     <p className="text-sm text-foreground/50">
-                      {media_type === "movie"
+                      {media_type === 'movie'
                         ? media.release_date
                           ? media.release_date.slice(0, 4)
                           : 0
@@ -198,15 +188,11 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
           <h2 className="font-semibold md:text-lg">
             {episode && season_number && episode_number
               ? `${episode.name} | ${
-                  formatEpisodeCode
-                    ? formatEpisodeCode(season_number, episode_number)
-                    : ""
+                  formatEpisodeCode ? formatEpisodeCode(season_number, episode_number) : ''
                 } | ${media.name || media.title}`
               : `${media.title || media.name}`}
           </h2>
-          <p className="text-xs text-foreground/50">
-            {getRelativeTime(media_release_date)}
-          </p>
+          <p className="text-xs text-foreground/50">{getRelativeTime(media_release_date)}</p>
         </div>
 
         <div className="flex flex-shrink-0 flex-row gap-2 overflow-x-auto text-sm">
@@ -227,9 +213,7 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
           </Link>
           <ShareButton />
         </div>
-        <p className="line-clamp-2 text-sm text-foreground/50">
-          {media_overview}
-        </p>
+        <p className="line-clamp-2 text-sm text-foreground/50">{media_overview}</p>
         <Link
           href={`/protected/media/${media_type}/${media_id}`}
           className="flex h-32 w-full flex-row items-center gap-4 overflow-hidden rounded-[8px] bg-foreground/10"
@@ -252,7 +236,7 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
               ))}
             </div>
             <p className="text-sm text-foreground/50">
-              {media_type === "movie"
+              {media_type === 'movie'
                 ? media.release_date
                   ? media.release_date.slice(0, 4)
                   : 0

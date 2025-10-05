@@ -1,7 +1,7 @@
-import React from "react";
-import Link from "next/link";
-import ImageWithFallback from "../media/ImageWithFallback";
-import { getImageUrlFromMediaDetails } from "@/lib/server/helperFunctions";
+import Link from 'next/link';
+import React from 'react';
+import { getImageUrlFromMediaDetails } from '@/lib/server/helperFunctions';
+import ImageWithFallback from '../media/ImageWithFallback';
 
 interface Post {
   vote_user: number;
@@ -15,13 +15,9 @@ interface PostMediaProps {
 }
 
 const PostMedia = ({ media, post, quality }: PostMediaProps) => {
-  console.log(media);
   return (
     <div className="relative w-full">
-      <Link
-        href={`/protected/media/${media.media_type}/${media.media_id}`}
-        className="w-full"
-      >
+      <Link href={`/protected/media/${media.media_type}/${media.media_id}`} className="w-full">
         <ImageWithFallback
           imageUrl={getImageUrlFromMediaDetails(media)}
           altText={post.post_id}
@@ -29,9 +25,7 @@ const PostMedia = ({ media, post, quality }: PostMediaProps) => {
         />
       </Link>
       <div className="absolute bottom-2 right-2">
-        <p className="rounded-[4px] bg-secondary px-2 py-1 text-xs text-white">
-          {post.vote_user}
-        </p>
+        <p className="rounded-[4px] bg-secondary px-2 py-1 text-xs text-white">{post.vote_user}</p>
       </div>
     </div>
   );

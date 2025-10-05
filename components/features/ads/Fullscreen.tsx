@@ -1,16 +1,12 @@
-"use client";
+'use client';
 
-import Script from "next/script";
+import Script from 'next/script';
 
 export default function MobileBannerPem() {
   return (
     <>
       {/* Load the ad provider script */}
-      <Script
-        async
-        src="https://a.pemsrv.com/ad-provider.js"
-        strategy="afterInteractive"
-      />
+      <Script async src="https://a.pemsrv.com/ad-provider.js" strategy="afterInteractive" />
 
       {/* The ad <ins> element without fixed size */}
       <ins

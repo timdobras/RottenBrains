@@ -1,26 +1,22 @@
-import Link from "next/link";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { SubmitButton } from "../../../components/features/auth/SubmitButton";
-import { OAuthButton } from "@/components/features/auth/OAuthSignIn";
-import { createClient } from "@/lib/supabase/server";
+import { headers } from 'next/headers';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { OAuthButton } from '@/components/features/auth/OAuthSignIn';
+import { createClient } from '@/lib/supabase/server';
+import { SubmitButton } from '../../../components/features/auth/SubmitButton';
 
 type Params = Promise<{ message: string }>;
 
-export default async function Register({
-  searchParams,
-}: {
-  searchParams: Params;
-}) {
+export default async function Register({ searchParams }: { searchParams: Params }) {
   const { message } = await searchParams;
   const signUp = async (formData: FormData) => {
-    "use server";
+    'use server';
     const headersList = await headers();
-    const origin = headersList.get("origin");
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const username = formData.get("username") as string;
-    const name = formData.get("name") as string;
+    const origin = headersList.get('origin');
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const username = formData.get('username') as string;
+    const name = formData.get('name') as string;
     const supabase = await createClient();
 
     const { data, error } = await supabase.auth.signUp({
@@ -32,20 +28,20 @@ export default async function Register({
     });
 
     if (error) {
-      console.log(error);
-      return redirect("/register?message=Could not authenticate user");
+      console.error(error);
+      return redirect('/register?message=Could not authenticate user');
     }
 
     // If sign-up is successful, insert the user's additional information into another table
     if (data.user) {
       const initials = name
-        .split(" ")
+        .split(' ')
         .map((word) => word[0])
-        .join("");
+        .join('');
       const avatarUrl = `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff&size=128`;
       // Make sure that the sign-up returned a valid user
       const { error: insertError } = await supabase
-        .from("users") // Replace 'profiles' with your actual table name
+        .from('users') // Replace 'profiles' with your actual table name
         .insert([
           {
             id: data.user.id, // Use the user's unique ID from the sign-up
@@ -59,12 +55,12 @@ export default async function Register({
 
       // Handle errors during the insertion process
       if (insertError) {
-        console.log("Error inserting user profile:", insertError.message);
-        return redirect("/register?message=Could not create user profile");
+        console.error('Error inserting user profile:', insertError.message);
+        return redirect('/register?message=Could not create user profile');
       }
     }
 
-    return redirect("/login");
+    return redirect('/login');
   };
 
   return (
@@ -86,7 +82,7 @@ export default async function Register({
           className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1"
         >
           <polyline points="15 18 9 12 15 6" />
-        </svg>{" "}
+        </svg>{' '}
         Back
       </Link>
 
@@ -136,13 +132,11 @@ export default async function Register({
           Sign Up
         </SubmitButton>
         <OAuthButton></OAuthButton>
-        <p className="mt-4 bg-foreground/10 p-4 text-center text-foreground">
-          {message}
-        </p>
+        <p className="mt-4 bg-foreground/10 p-4 text-center text-foreground">{message}</p>
         <p className="self-center text-gray-400">
           Already have an account?
           <a href="/login" className="text-accent">
-            {" "}
+            {' '}
             Sign In
           </a>
         </p>

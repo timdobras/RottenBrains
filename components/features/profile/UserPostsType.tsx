@@ -1,9 +1,9 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useInView } from "react-intersection-observer";
-import { useUser } from "@/hooks/UserContext";
-import HomePostCardUI from "@/components/features/posts/HomePostCardUI";
-import { fetchPostsDataForUserByType } from "@/lib/client/fetchPostData";
+'use client';
+import { useEffect, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
+import HomePostCardUI from '@/components/features/posts/HomePostCardUI';
+import { useUser } from '@/hooks/UserContext';
+import { fetchPostsDataForUserByType } from '@/lib/client/fetchPostData';
 
 interface UserPostsProps {
   userId: string;
@@ -36,7 +36,7 @@ const UserPostsType: React.FC<UserPostsProps> = ({
             userId,
             media_type,
             postPage,
-            currentUser?.id.toString(),
+            currentUser?.id.toString()
           );
           if (res.length === 0) {
             setHasMorePosts(false);
@@ -48,7 +48,7 @@ const UserPostsType: React.FC<UserPostsProps> = ({
             }
           }
         } catch (error) {
-          console.error("Error fetching posts:", error);
+          console.error('Error fetching posts:', error);
         } finally {
           setLoadingPosts(false);
         }
@@ -71,21 +71,16 @@ const UserPostsType: React.FC<UserPostsProps> = ({
     <div
       className="grid w-full gap-4 p-4 md:p-0"
       style={{
-        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
       }}
     >
       {userPosts.map((post) => (
         <div key={post.id} className="w-full">
-          <HomePostCardUI
-            post_media_data={post}
-            user_id={currentUser?.id.toString()}
-          />
+          <HomePostCardUI post_media_data={post} user_id={currentUser?.id.toString()} />
         </div>
       ))}
       {loadingPosts && <div></div>}
-      {!loadingPosts && hasMorePosts && (
-        <div ref={refPosts} className="h-[100px] w-[100px]"></div>
-      )}
+      {!loadingPosts && hasMorePosts && <div ref={refPosts} className="h-[100px] w-[100px]"></div>}
       {!hasMorePosts && (
         <div className="flex w-full flex-col items-center justify-center gap-4 rounded-[8px] bg-foreground/10 p-4">
           <img

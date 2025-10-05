@@ -1,9 +1,9 @@
 // components/features/media/HomeMediaCardServer.tsx
-import React from "react";
-import { getMediaDetails, getEpisodeDetails } from "@/lib/tmdb";
-import { getWatchTime } from "@/lib/supabase/serverQueries";
-import HomeMediaCardSkeleton from "@/components/features/media/MediaCardSkeleton";
-import MediaCardUI from "@/components/features/media/MediaCardUI";
+import React from 'react';
+import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
+import MediaCardUI from '@/components/features/media/MediaCardUI';
+import { getWatchTime } from '@/lib/supabase/serverQueries';
+import { getMediaDetails, getEpisodeDetails } from '@/lib/tmdb';
 
 interface MediaCardServerProps {
   media_type: string;
@@ -27,7 +27,7 @@ const MediaCardServer: React.FC<MediaCardServerProps> = async ({
   try {
     // 1) fetch the TMDB data
     const media =
-      media_type === "movie"
+      media_type === 'movie'
         ? await getMediaDetails(media_type, media_id)
         : season_number && episode_number
           ? await getEpisodeDetails(media_id, season_number, episode_number)
@@ -35,13 +35,7 @@ const MediaCardServer: React.FC<MediaCardServerProps> = async ({
 
     // 2) fetch the (optional) watch-time
     const watchTime = user_id
-      ? await getWatchTime(
-          user_id,
-          media_type,
-          media_id,
-          season_number,
-          episode_number,
-        )
+      ? await getWatchTime(user_id, media_type, media_id, season_number, episode_number)
       : 0;
 
     // 3) hand everything off to the pure-UI component

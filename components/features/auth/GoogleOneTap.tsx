@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import Script from "next/script";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { CredentialResponse } from "google-one-tap";
+import { CredentialResponse } from 'google-one-tap';
+import { useRouter } from 'next/navigation';
+import Script from 'next/script';
+import { useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 declare global {
   interface Window {
@@ -29,14 +29,9 @@ async function generateNoncePair(): Promise<[string, string]> {
 
   // hash the nonce
   const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest(
-    "SHA-256",
-    encoder.encode(nonce),
-  );
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(nonce));
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashedNonce = hashArray
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const hashedNonce = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
   return [nonce, hashedNonce];
 }
@@ -52,34 +47,32 @@ export default function OneTapComponent() {
       // Check if user is already logged in
       const { data: sessionData, error } = await supabase.auth.getSession();
       if (error) {
-        console.error("Error fetching session:", error);
+        console.error('Error fetching session:', error);
         return;
       }
       if (sessionData.session) {
         // Already signed in, redirect or do nothing
-        router.push("/");
+        router.push('/');
         return;
       }
 
       // The global "google" object is loaded by <Script> below
       /* global google */
-      // @ts-expect-error
+      // @ts-expect-error - Google Identity Services SDK adds global google object
       google.accounts.id.initialize({
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
         callback: async (response: CredentialResponse) => {
           try {
-            const { data, error: signInError } =
-              await supabase.auth.signInWithIdToken({
-                provider: "google",
-                token: response.credential as string,
-                nonce,
-              });
+            const { data, error: signInError } = await supabase.auth.signInWithIdToken({
+              provider: 'google',
+              token: response.credential as string,
+              nonce,
+            });
 
             if (signInError) throw signInError;
-            console.log("Sign in successful. Data:", data);
-            router.push("/");
+            router.push('/');
           } catch (err) {
-            console.error("Error signing in with Google One Tap:", err);
+            console.error('Error signing in with Google One Tap:', err);
           }
         },
         nonce: hashedNonce,
@@ -87,7 +80,7 @@ export default function OneTapComponent() {
       });
 
       // Prompt the One Tap UI
-      // @ts-expect-error
+      // @ts-expect-error - Google Identity Services SDK adds global google object
       google.accounts.id.prompt();
     };
 
@@ -98,10 +91,7 @@ export default function OneTapComponent() {
   return (
     <>
       {/* Loads the google.accounts.id object */}
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        strategy="beforeInteractive"
-      />
+      <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
       {/* A container if needed, but not strictly required */}
       <div id="oneTap" className="fixed right-0 top-0 z-[100]" />
     </>

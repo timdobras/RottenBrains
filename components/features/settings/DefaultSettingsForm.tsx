@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useToast } from "@/components/ui/use-toast";
-import { useState, useEffect } from "react";
-import { iframeLinks } from "@/lib/constants/links";
+import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { iframeLinks } from '@/lib/constants/links';
 
 interface FormData {
   video_provider: string;
@@ -10,13 +10,13 @@ interface FormData {
 
 const DefaultSettingsForm = () => {
   const [formData, setFormData] = useState<FormData>({
-    video_provider: iframeLinks[0]?.name || "", // Default to first link
+    video_provider: iframeLinks[0]?.name || '', // Default to first link
   });
 
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedProvider = localStorage.getItem("video_provider");
+    const storedProvider = localStorage.getItem('video_provider');
     if (storedProvider) {
       setFormData({ video_provider: storedProvider });
     }
@@ -24,14 +24,12 @@ const DefaultSettingsForm = () => {
 
   const handleProviderSelection = (providerName: string) => {
     setFormData({ video_provider: providerName });
-    localStorage.setItem("video_provider", providerName);
+    localStorage.setItem('video_provider', providerName);
 
-    const selectedProvider = iframeLinks.find(
-      (link) => link.name === providerName,
-    );
+    const selectedProvider = iframeLinks.find((link) => link.name === providerName);
 
     toast({
-      title: "Provider Changed",
+      title: 'Provider Changed',
       description: `${selectedProvider?.name} has been set as your default video provider.`,
     });
   };
@@ -46,9 +44,7 @@ const DefaultSettingsForm = () => {
               key={provider.name}
               onClick={() => handleProviderSelection(provider.name)}
               className={`cursor-pointer rounded-[4px] border px-4 py-2 ${
-                formData.video_provider === provider.name
-                  ? "border-accent"
-                  : "border-foreground/10"
+                formData.video_provider === provider.name ? 'border-accent' : 'border-foreground/10'
               }`}
             >
               {provider.name}

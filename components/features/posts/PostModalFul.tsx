@@ -1,11 +1,11 @@
-import React from "react";
-import PostModal from "../profile/PostModal";
-import CommentSection from "../profile/CommentSection";
-import ImageWithFallback from "../media/ImageWithFallback";
-import Link from "next/link";
-import ProfilePicture from "@/components/ui/ProfilePicture";
-import { getImageUrlFromMediaDetails } from "@/lib/server/helperFunctions";
-import { getRelativeTime } from "@/lib/utils";
+import Link from 'next/link';
+import React from 'react';
+import ProfilePicture from '@/components/ui/ProfilePicture';
+import { getImageUrlFromMediaDetails } from '@/lib/server/helperFunctions';
+import { getRelativeTime } from '@/lib/utils';
+import ImageWithFallback from '../media/ImageWithFallback';
+import CommentSection from '../profile/CommentSection';
+import PostModal from '../profile/PostModal';
 
 interface PostModalFullProps {
   post_media_data: any;
@@ -44,7 +44,7 @@ const PostModalFull = ({ post_media_data, user_id }: PostModalFullProps) => {
                 <ImageWithFallback
                   imageUrl={getImageUrlFromMediaDetails(media_data)}
                   altText={post_data.post.post_id}
-                  quality={"original"}
+                  quality={'original'}
                 />
               </Link>
               <div className="absolute bottom-2 right-2">

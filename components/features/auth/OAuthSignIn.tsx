@@ -1,9 +1,9 @@
 // app/components/OAuthButton.tsx
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Provider } from "@supabase/supabase-js";
-import { oAuthSignIn } from "@/lib/server/OAuthSignIn";
+import { Provider } from '@supabase/supabase-js';
+import { useState } from 'react';
+import { oAuthSignIn } from '@/lib/server/OAuthSignIn';
 
 type OAuthProvider = {
   name: Provider;
@@ -15,11 +15,11 @@ export function OAuthButton() {
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
 
   const oAuthProviders: OAuthProvider[] = [
-    { name: "google", displayName: "Google", icon: "/assets/icons/google.svg" },
+    { name: 'google', displayName: 'Google', icon: '/assets/icons/google.svg' },
     {
-      name: "discord",
-      displayName: "Discord",
-      icon: "/assets/icons/discord.svg",
+      name: 'discord',
+      displayName: 'Discord',
+      icon: '/assets/icons/discord.svg',
     },
   ];
 
@@ -30,7 +30,7 @@ export function OAuthButton() {
       await oAuthSignIn(provider);
       // The code below may not be reached because the user is redirected.
     } catch (error) {
-      console.error("Error during OAuth sign‑in:", error);
+      console.error('Error during OAuth sign‑in:', error);
     } finally {
       setLoadingProvider(null);
     }
@@ -56,7 +56,7 @@ export function OAuthButton() {
           )}
           <span>
             {loadingProvider === provider.name
-              ? "Redirecting..."
+              ? 'Redirecting...'
               : `Login with ${provider.displayName}`}
           </span>
         </button>

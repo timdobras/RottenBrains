@@ -1,17 +1,13 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import AddComment from "./AddComment";
-import { getCommentReplies } from "@/lib/supabase/clientQueries";
-import { getRelativeTime } from "@/lib/utils";
+'use client';
+import React, { useEffect, useState } from 'react';
+import { getCommentReplies } from '@/lib/supabase/clientQueries';
+import { getRelativeTime } from '@/lib/utils';
+import AddComment from './AddComment';
 
 const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
   const [reply, setReply] = useState(false);
   const [replies, setReplies] = useState<any[]>([]);
   const creator = comment.users;
-
-  if (!creator) {
-    return <p>loading...</p>;
-  }
 
   useEffect(() => {
     const fetchReplies = async () => {
@@ -19,12 +15,16 @@ const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
         const fetchedReplies = await getCommentReplies(comment.id);
         setReplies(fetchedReplies);
       } catch (error) {
-        console.error("Error fetching replies:", error);
+        console.warn('Error fetching replies:', error);
       }
     };
 
     fetchReplies();
   }, [replies]);
+
+  if (!creator) {
+    return <p>loading...</p>;
+  }
 
   const handleReplyButton = async () => {
     setReply(!reply);
@@ -35,7 +35,7 @@ const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
         const fetchedReplies = await getCommentReplies(comment.id);
         setReplies(fetchedReplies);
       } catch (error) {
-        console.error("Error fetching replies:", error);
+        console.warn('Error fetching replies:', error);
       }
     }
   };
@@ -80,6 +80,7 @@ const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
                 {replies.map((reply: any) => {
                   return (
                     <CommentCard
+                      key={reply.id}
                       comment={reply}
                       post={post}
                       user_id={user_id}

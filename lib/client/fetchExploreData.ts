@@ -4,7 +4,7 @@ import {
   getPopular,
   getTrendingMovies,
   getTrendingTV,
-} from "../tmdb/index";
+} from '../tmdb/index';
 
 export async function fetchExploreData(action: string) {
   const actionFunctionMapping: {

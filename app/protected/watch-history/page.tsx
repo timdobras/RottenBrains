@@ -1,13 +1,13 @@
-import React from "react";
-import { redirect } from "next/navigation";
-import WatchHistoryWithInfiniteScroll from "@/components/features/watch-history/InfiniteScroll";
-import { getCurrentUser } from "@/lib/supabase/serverQueries";
+import { redirect } from 'next/navigation';
+import React from 'react';
+import WatchHistoryWithInfiniteScroll from '@/components/features/watch-history/InfiniteScroll';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
 
 const page = async () => {
   // Fetch the user and watch history
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect('/login');
   }
 
   return (

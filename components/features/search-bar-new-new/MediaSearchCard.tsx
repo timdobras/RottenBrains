@@ -1,6 +1,6 @@
-import { getGenreNameById, getHrefFromMedia } from "@/lib/utils";
-import Link from "next/link";
-import React from "react";
+import Link from 'next/link';
+import React from 'react';
+import { getGenreNameById, getHrefFromMedia } from '@/lib/utils';
 
 export type SearchCardProps = {
   media: any;
@@ -13,7 +13,7 @@ const MediaSearchCard = ({ media, onClick }: SearchCardProps) => {
       onClick={onClick}
       className={`flex h-auto w-full cursor-pointer flex-row gap-4 p-4 hover:bg-foreground/10 md:h-32`}
     >
-      {media.poster_path && media.poster_path !== "" ? (
+      {media.poster_path && media.poster_path !== '' ? (
         <img
           src={`https://image.tmdb.org/t/p/w200${media.poster_path}`}
           alt=""
@@ -24,9 +24,7 @@ const MediaSearchCard = ({ media, onClick }: SearchCardProps) => {
       )}
       <div className="flex h-full w-full flex-col justify-between gap-2 md:gap-0">
         <p className="line-clamp-1 font-medium">{media.title || media.name}</p>
-        <p className="line-clamp-1 text-sm text-foreground/50">
-          {media.overview}
-        </p>
+        <p className="line-clamp-1 text-sm text-foreground/50">{media.overview}</p>
         <div className="flex flex-row flex-wrap gap-2">
           {media.genre_ids.map((id: number) => {
             const genre_name = getGenreNameById(id);

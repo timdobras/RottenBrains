@@ -1,13 +1,9 @@
-"use client";
-import { IUser } from "@/types";
-import React, { useState, useEffect } from "react";
-import Modal from "./Modal";
-import {
-  getFollowers,
-  getFollowing,
-  getPostCount,
-} from "@/lib/supabase/clientQueries";
-import SearchUserCard from "../search-bar/SearchUserCard";
+'use client';
+import React, { useState, useEffect } from 'react';
+import { getFollowers, getFollowing, getPostCount } from '@/lib/supabase/clientQueries';
+import { IUser } from '@/types';
+import SearchUserCard from '../search-bar/SearchUserCard';
+import Modal from './Modal';
 
 const FollowInfo = ({ user }: any) => {
   const [followers, setFollowers] = useState([]);
@@ -32,7 +28,7 @@ const FollowInfo = ({ user }: any) => {
         const { post_count } = await getPostCount(user.id);
         setPostCount(post_count);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error('Error fetching data:', error);
       }
     };
 

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 interface RemoveFromContinueWatchingProps {
   user_id: string;
@@ -30,10 +30,10 @@ export default function RemoveFromContinueWatching({
     setIsRemoving(true);
 
     try {
-      const response = await fetch("/api/hideFromContinueWatching", {
-        method: "POST",
+      const response = await fetch('/api/hideFromContinueWatching', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           user_id,
@@ -48,11 +48,11 @@ export default function RemoveFromContinueWatching({
         // Refresh the page to update the continue watching section
         router.refresh();
       } else {
-        console.error("Failed to remove from continue watching");
+        console.error('Failed to remove from continue watching');
         setIsRemoving(false);
       }
     } catch (error) {
-      console.error("Error removing from continue watching:", error);
+      console.error('Error removing from continue watching:', error);
       setIsRemoving(false);
     }
   };

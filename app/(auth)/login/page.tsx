@@ -1,17 +1,13 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { SubmitButton } from "../../../components/features/auth/SubmitButton";
-import { OAuthButton } from "@/components/features/auth/OAuthSignIn";
-import { createClient } from "@/lib/supabase/server";
-import { login, signup } from "./actions";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { OAuthButton } from '@/components/features/auth/OAuthSignIn';
+import { createClient } from '@/lib/supabase/server';
+import { SubmitButton } from '../../../components/features/auth/SubmitButton';
+import { login, signup } from './actions';
 
 type Params = Promise<{ message: string }>;
 
-export default async function Login({
-  searchParams,
-}: {
-  searchParams: Params;
-}) {
+export default async function Login({ searchParams }: { searchParams: Params }) {
   const { message } = await searchParams;
 
   return (
@@ -45,13 +41,11 @@ export default async function Login({
           Sign In
         </SubmitButton>
         <OAuthButton></OAuthButton>
-        <p className="mt-4 bg-foreground/10 p-4 text-center text-foreground">
-          {message}
-        </p>
+        <p className="mt-4 bg-foreground/10 p-4 text-center text-foreground">{message}</p>
         <p className="self-center text-gray-400">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-accent">
-            {" "}
+            {' '}
             Sign Up
           </Link>
         </p>

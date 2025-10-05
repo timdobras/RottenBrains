@@ -1,8 +1,8 @@
 // WatchListCard.tsx (or .jsx)
 
-import React from "react";
-import ImageWithFallback from "@/components/features/media/ImageWithFallback";
-import Link from "next/link";
+import Link from 'next/link';
+import React from 'react';
+import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 
 interface WatchListCardProps {
   label: string; // e.g., "Watched", "Watching", "Planned"
@@ -11,12 +11,7 @@ interface WatchListCardProps {
   imageUrl?: string; // the full path or partial path to the image
 }
 
-const WatchListCard: React.FC<WatchListCardProps> = ({
-  label,
-  color,
-  mediaId,
-  imageUrl,
-}) => {
+const WatchListCard: React.FC<WatchListCardProps> = ({ label, color, mediaId, imageUrl }) => {
   return (
     <Link
       href={`/protected/watch-list/${label.toLowerCase()}`}

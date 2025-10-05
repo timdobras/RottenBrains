@@ -1,18 +1,18 @@
-"use client";
-import { useUser } from "@/hooks/UserContext";
-import React, { useEffect, useState } from "react";
+'use client';
+import Link from 'next/link';
+import { redirect, usePathname, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import Link from "next/link";
-import { signOut } from "@/lib/supabase/clientQueries";
-import { redirect, usePathname, useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
-import NavThemeSwitch from "../NavThemeSwitch";
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/components/ui/use-toast';
+import { useUser } from '@/hooks/UserContext';
+import { signOut } from '@/lib/supabase/clientQueries';
+import NavThemeSwitch from '../NavThemeSwitch';
 
 interface ProfilePictureNewProps {
   /**
@@ -23,9 +23,7 @@ interface ProfilePictureNewProps {
   imageSize?: string;
 }
 
-const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({
-  imageSize = "h-8",
-}) => {
+const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8' }) => {
   const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
@@ -33,11 +31,11 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({
   const [open, setOpen] = useState(false);
 
   const pathname = usePathname();
-  const [prevPath, setPrevPath] = useState("");
+  const [prevPath, setPrevPath] = useState('');
 
   useEffect(() => {
     if (prevPath && prevPath !== pathname) {
-      console.log("User navigated from", prevPath, "to", pathname);
+      console.log('User navigated from', prevPath, 'to', pathname);
     }
     setPrevPath(pathname);
     setOpen(false);
@@ -51,7 +49,7 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({
     await signOut();
     router.refresh();
     toast({
-      title: "Successfully signed out",
+      title: 'Successfully signed out',
     });
   };
 
@@ -66,9 +64,7 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({
           />
           <div className="flex flex-col">
             <p className="text-start text-sm">{user.name}</p>
-            <p className="text-start text-xs text-foreground/50">
-              @{user.username}
-            </p>
+            <p className="text-start text-xs text-foreground/50">@{user.username}</p>
           </div>
         </div>
       </DropdownMenuTrigger>
@@ -77,10 +73,7 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({
         align="end"
       >
         <div className="flex h-full w-full flex-col gap-2 bg-foreground/10 pb-4">
-          <Link
-            href={"/protected/profile"}
-            className="flex w-full flex-row gap-2 p-4"
-          >
+          <Link href={'/protected/profile'} className="flex w-full flex-row gap-2 p-4">
             <img
               src={user.image_url}
               alt="User Avatar"
@@ -89,9 +82,7 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({
             <div className="flex flex-col">
               <p className="truncate text-lg font-normal">{user.name}</p>
               <p className="truncate font-normal lowercase">@{user.username}</p>
-              <p className="mt-2 truncate text-sm font-normal text-primary">
-                View your profile
-              </p>
+              <p className="mt-2 truncate text-sm font-normal text-primary">View your profile</p>
             </div>
           </Link>
           <div className="h-[1px] w-full bg-foreground/20"></div>
@@ -110,11 +101,7 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({
             className="flex w-full flex-row items-center gap-4 px-4 py-2 hover:bg-foreground/20"
             onClick={handleSignOut}
           >
-            <img
-              src="/assets/icons/logout.svg"
-              alt="Settings Icon"
-              className="invert-on-dark"
-            />
+            <img src="/assets/icons/logout.svg" alt="Settings Icon" className="invert-on-dark" />
             <p>Sign out</p>
           </button>
           <div className="h-[1px] w-full bg-foreground/20"></div>

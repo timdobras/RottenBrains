@@ -1,18 +1,14 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 interface MyRedirectModalProps {
   userId: string; // The user ID to redirect to
   isOpen: boolean; // Whether the modal is visible
   children?: React.ReactNode;
 }
-export default function PostModal({
-  userId,
-  isOpen,
-  children,
-}: MyRedirectModalProps) {
+export default function PostModal({ userId, isOpen, children }: MyRedirectModalProps) {
   const router = useRouter();
 
   if (!isOpen) return null;
@@ -22,11 +18,11 @@ export default function PostModal({
   };
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     }
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     };
   }, [isOpen]);
 

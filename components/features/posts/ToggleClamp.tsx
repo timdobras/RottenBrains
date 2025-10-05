@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 
 interface ToggleClampProps {
   text: string;
@@ -15,7 +15,7 @@ const ToggleClamp: React.FC<ToggleClampProps> = ({ text }) => {
 
   return (
     <div
-      className={`cursor-pointer text-sm opacity-60 ${isExpanded ? "" : "line-clamp-4"} transition-all`}
+      className={`cursor-pointer text-sm opacity-60 ${isExpanded ? '' : 'line-clamp-4'} transition-all`}
       onClick={toggleClamp}
     >
       {text}

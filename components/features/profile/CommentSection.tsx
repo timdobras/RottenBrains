@@ -1,20 +1,17 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import CommentCard from "./CommentCardModal";
-import { useUser } from "@/hooks/UserContext";
-import AddComment from "./AddCommentModal";
-import { likePost, removeLike } from "@/lib/client/updatePostData";
-import { motion, AnimatePresence, AnimateSharedLayout } from "framer-motion";
-import {
-  getCommentsByPostId,
-  getRepliesByCommentId,
-} from "@/lib/supabase/serverQueries";
+import { motion, AnimatePresence, AnimateSharedLayout } from 'framer-motion';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
+import { likePost, removeLike } from '@/lib/client/updatePostData';
+import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/supabase/serverQueries';
+import AddComment from './AddCommentModal';
+import CommentCard from './CommentCardModal';
 
 const cardVariants = {
-  hidden: { y: "100%" },
+  hidden: { y: '100%' },
   visible: { y: 0, transition: { duration: 0.2 } },
-  exit: { y: "100%", transition: { duration: 0.3 } },
+  exit: { y: '100%', transition: { duration: 0.3 } },
 };
 
 const CommentSection = ({ post_data, current_user }: any) => {
@@ -48,7 +45,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
         loading: false,
       }));
     } catch (error) {
-      console.error("Error fetching comments:", error);
+      console.error('Error fetching comments:', error);
       setState((prevState) => ({
         ...prevState,
         loading: false,
@@ -77,7 +74,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
         };
       });
     } catch (error) {
-      console.error("Error fetching replies:", error);
+      console.error('Error fetching replies:', error);
     }
   };
 
@@ -96,40 +93,40 @@ const CommentSection = ({ post_data, current_user }: any) => {
 
     const viewport = window.visualViewport;
     if (viewport) {
-      viewport.addEventListener("resize", handleViewportChange);
-      viewport.addEventListener("scroll", handleViewportChange);
+      viewport.addEventListener('resize', handleViewportChange);
+      viewport.addEventListener('scroll', handleViewportChange);
       handleViewportChange(); // Initial calculation
     }
     return () => {
       if (viewport) {
-        viewport.removeEventListener("resize", handleViewportChange);
-        viewport.removeEventListener("scroll", handleViewportChange);
+        viewport.removeEventListener('resize', handleViewportChange);
+        viewport.removeEventListener('scroll', handleViewportChange);
       }
       // Unlock body scroll
-      document.body.classList.remove("overflow-hidden");
+      document.body.classList.remove('overflow-hidden');
     };
   }, [state.show_comments]);
 
   useEffect(() => {
     if (state.show_comments) {
-      document.documentElement.style.overflow = "hidden"; // Prevent scrolling
-      document.documentElement.style.position = "fixed"; // Keep position fixed
-      document.documentElement.style.width = "100%"; // Ensure full width
-      document.body.style.overflow = "hidden"; // Prevent scrolling
-      document.body.style.position = "fixed"; // Prevent body scroll
-      document.body.style.width = "100%";
+      document.documentElement.style.overflow = 'hidden'; // Prevent scrolling
+      document.documentElement.style.position = 'fixed'; // Keep position fixed
+      document.documentElement.style.width = '100%'; // Ensure full width
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+      document.body.style.position = 'fixed'; // Prevent body scroll
+      document.body.style.width = '100%';
     } else {
-      document.documentElement.style.overflow = "";
-      document.documentElement.style.position = "";
-      document.body.style.overflow = "";
-      document.body.style.position = "";
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.position = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
     }
 
     return () => {
-      document.documentElement.style.overflow = "";
-      document.documentElement.style.position = "";
-      document.body.style.overflow = "";
-      document.body.style.position = "";
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.position = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
     };
   }, [state.show_comments]);
 
@@ -159,7 +156,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
           likes: state.likes,
           animate: false,
         }));
-        console.error("Error toggling like:", error);
+        console.error('Error toggling like:', error);
       }
     }
   }, [state.liked, state.likes, user_id, postId]);
@@ -197,9 +194,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center">
             <p className="text-lg font-medium">No comments yet</p>
-            <p className="text-xs text-foreground/50">
-              Start the conversation.
-            </p>
+            <p className="text-xs text-foreground/50">Start the conversation.</p>
           </div>
         )}
       </div>
@@ -207,7 +202,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
       <div className="w-full">
         <div className="flex w-full flex-row items-center gap-4 border-t border-foreground/10 bg-background p-4 md:p-2">
           <div className="flex flex-row gap-2">
-            <button onClick={handleLike} className={state.animate ? "pop" : ""}>
+            <button onClick={handleLike} className={state.animate ? 'pop' : ''}>
               {state.liked ? (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -215,21 +210,17 @@ const CommentSection = ({ post_data, current_user }: any) => {
                   viewBox="0 -960 960 960"
                   width="24px"
                   fill="0000000"
-                  className={`heart-icon ${
-                    state.animate ? "pop" : ""
-                  } fill-accent`}
+                  className={`heart-icon ${state.animate ? 'pop' : ''} fill-accent`}
                 >
                   <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
                 </svg>
               ) : (
                 <img
-                  src={"/assets/icons/heart-outline.svg"}
+                  src={'/assets/icons/heart-outline.svg'}
                   alt="Not Liked"
                   width="24px"
                   height="24px"
-                  className={`heart-icon invert-on-dark ${
-                    state.animate ? "pop" : ""
-                  }`}
+                  className={`heart-icon invert-on-dark ${state.animate ? 'pop' : ''}`}
                 />
               )}
             </button>
@@ -314,9 +305,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center">
                   <p className="text-lg font-medium">No comments yet</p>
-                  <p className="text-xs text-foreground/50">
-                    Start the conversation.
-                  </p>
+                  <p className="text-xs text-foreground/50">Start the conversation.</p>
                 </div>
               )}
               <div className="w-full">

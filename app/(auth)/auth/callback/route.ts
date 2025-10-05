@@ -1,13 +1,13 @@
 // Example: app/api/auth/callback/route.ts
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
+  const code = searchParams.get('code');
   // if "next" is provided, use it; otherwise default to home
-  const next = searchParams.get("next") ?? "/";
+  const next = searchParams.get('next') ?? '/';
 
   const cookieStore = await cookies();
 
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       // Forward cookies
       for (const { name, value } of cookieStore.getAll()) {
         response.cookies.set(name, value, {
-          path: "/",
+          path: '/',
           maxAge: 60 * 60 * 24 * 30,
         });
       }

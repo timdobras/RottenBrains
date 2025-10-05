@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
-import React from "react";
+import { redirect } from 'next/navigation';
+import React from 'react';
 
 const page = () => {
-  return redirect("/");
+  return redirect('/');
 };
 
 export default page;

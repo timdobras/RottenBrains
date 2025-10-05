@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import UserWatchHistory from "@/components/features/profile/UserWatchHistory";
-import { useUser } from "@/hooks/UserContext";
+import UserWatchHistory from '@/components/features/profile/UserWatchHistory';
+import { useUser } from '@/hooks/UserContext';
 
 export default function ProtectedPage() {
   const { user } = useUser();

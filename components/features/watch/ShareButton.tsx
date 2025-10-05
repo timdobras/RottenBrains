@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 const ShareButton: React.FC = () => {
   const [copied, setCopied] = useState(false);
@@ -16,11 +16,11 @@ const ShareButton: React.FC = () => {
           url: currentUrl,
         })
         .then(() => {
-          console.log("Successfully shared");
+          console.log('Successfully shared');
         })
         .catch((error) => {
-          console.error("Error sharing:", error);
-          alert("Sharing failed. Please try copying the link.");
+          console.error('Error sharing:', error);
+          alert('Sharing failed. Please try copying the link.');
         });
     } else if (navigator.clipboard && navigator.clipboard.writeText) {
       // Fallback: copy the URL to the clipboard
@@ -31,15 +31,12 @@ const ShareButton: React.FC = () => {
           setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
         })
         .catch((error) => {
-          console.error("Failed to copy the link.", error);
-          alert("Failed to copy the link. Please copy manually.");
+          console.error('Failed to copy the link.', error);
+          alert('Failed to copy the link. Please copy manually.');
         });
     } else {
       // Fallback if clipboard API is unavailable
-      alert(
-        "Clipboard API is not available. Please copy the link manually: " +
-          currentUrl,
-      );
+      alert('Clipboard API is not available. Please copy the link manually: ' + currentUrl);
     }
   };
 

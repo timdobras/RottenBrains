@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef, useContext } from "react";
-import { getVideos } from "@/lib/tmdb";
-import { MobileVideoContext } from "@/hooks/MobileVideoContext";
-import ImageWithFallback from "@/components/features/media/ImageWithFallback";
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import ImageWithFallback from '@/components/features/media/ImageWithFallback';
+import { MobileVideoContext } from '@/hooks/MobileVideoContext';
+import { getVideos } from '@/lib/tmdb';
 
 interface HoverImageProps {
   imageUrl: string | null | undefined;
@@ -33,10 +33,9 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
 
   // Detect if the device is mobile
   useEffect(() => {
-    const isMobile =
-      /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent,
-      );
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
     setIsMobileDevice(isMobile);
   }, []);
 
@@ -60,12 +59,10 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
 
       if (data && Array.isArray(data.results) && data.results.length > 0) {
         const trailer =
-          data.results.find(
-            (video: any) =>
-              video.type === "Trailer" && video.site === "YouTube",
-          ) || data.results.find((video: any) => video.site === "YouTube");
+          data.results.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube') ||
+          data.results.find((video: any) => video.site === 'YouTube');
 
-        if (trailer && trailer.key && trailer.site === "YouTube") {
+        if (trailer && trailer.key && trailer.site === 'YouTube') {
           const videoUrl = `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&cc_load_policy=1&cc_lang_pref=en`;
           setVideoUrl(videoUrl);
         } else {
@@ -77,7 +74,7 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
         setIsLoading(false);
       }
     } catch (error) {
-      console.error("Failed to fetch video:", error);
+      console.error('Failed to fetch video:', error);
       setVideoUrl(null);
       setIsLoading(false);
     }
@@ -114,7 +111,7 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
   useEffect(() => {
     if (isMobileDevice) return;
 
-    let hoverTimeout: NodeJS.Timeout | null = null;
+    const hoverTimeout: NodeJS.Timeout | null = null;
 
     if (isHovered) {
       setIsLoading(true);
@@ -151,11 +148,7 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
       ref={ref}
       data-media-id={media_id}
     >
-      <ImageWithFallback
-        imageUrl={imageUrl}
-        altText={altText}
-        quality={"w1280"}
-      />
+      <ImageWithFallback imageUrl={imageUrl} altText={altText} quality={'w1280'} />
       {children}
 
       {/* Loading Bar */}
@@ -176,7 +169,7 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
                 allowFullScreen
                 onLoad={handleIframeLoad}
                 className={`transition-opacity delay-200 duration-500 ${
-                  iframeVisible ? "opacity-100" : "opacity-0"
+                  iframeVisible ? 'opacity-100' : 'opacity-0'
                 }`}
               ></iframe>
               {/* Do not remove this div */}

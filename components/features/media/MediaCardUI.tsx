@@ -1,16 +1,16 @@
-import React from "react";
-import Link from "next/link";
-import MediaCardOverlay from "@/components/features/media/MediaCardOverlay";
-import HoverImage from "./TrailerDisplayOnHover";
-import MoreOptions from "./MoreOptions";
-import RemoveFromContinueWatching from "./RemoveFromContinueWatching";
+import Link from 'next/link';
+import React from 'react';
+import MediaCardOverlay from '@/components/features/media/MediaCardOverlay';
 import {
   formatDate,
   formatEpisodeCode,
   getHrefFromMedia,
   getImageUrl,
   transformRuntime,
-} from "@/lib/utils";
+} from '@/lib/utils';
+import MoreOptions from './MoreOptions';
+import RemoveFromContinueWatching from './RemoveFromContinueWatching';
+import HoverImage from './TrailerDisplayOnHover';
 
 interface MediaCardProps {
   media: any;
@@ -45,25 +45,21 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
 
   const genreIds: bigint[] = media?.genres?.map((genre: any) => genre.id) || [];
 
-  const releaseDate =
-    media.release_date || media.air_date || media.first_air_date;
+  const releaseDate = media.release_date || media.air_date || media.first_air_date;
 
   const dayDifference = releaseDate
-    ? (new Date().getTime() - new Date(releaseDate).getTime()) /
-      (1000 * 3600 * 24)
+    ? (new Date().getTime() - new Date(releaseDate).getTime()) / (1000 * 3600 * 24)
     : undefined;
 
   const dayDifferenceTv =
-    media_type === "tv" && media.last_air_date
-      ? (new Date().getTime() - new Date(media.last_air_date).getTime()) /
-        (1000 * 3600 * 24)
+    media_type === 'tv' && media.last_air_date
+      ? (new Date().getTime() - new Date(media.last_air_date).getTime()) / (1000 * 3600 * 24)
       : undefined;
 
-  const isNew =
-    dayDifference !== undefined && dayDifference > 0 && dayDifference <= 30;
+  const isNew = dayDifference !== undefined && dayDifference > 0 && dayDifference <= 30;
   const isSoon = dayDifference !== undefined && dayDifference < 0;
   const isNewEpisodes =
-    media_type === "tv" &&
+    media_type === 'tv' &&
     dayDifference !== undefined &&
     dayDifference >= 30 &&
     dayDifferenceTv !== undefined &&
@@ -72,28 +68,28 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   const mediaTitle = media.title || media.name;
 
   const formattedEpisodeCode =
-    media_type === "tv" && season_number && episode_number
+    media_type === 'tv' && season_number && episode_number
       ? ` | ${formatEpisodeCode(season_number, episode_number)}`
-      : "";
+      : '';
 
   return (
     <article className="flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[350px]">
       <div className="relative">
         <Link
           className={`relative block w-full overflow-hidden md:rounded-[8px] ${
-            rounded === true ? "rounded-[8px]" : ""
+            rounded === true ? 'rounded-[8px]' : ''
           }`}
           href={getHrefFromMedia(
-            media_type || "movie",
+            media_type || 'movie',
             media_id || 0,
             season_number,
-            episode_number,
+            episode_number
           )}
         >
           <HoverImage
             imageUrl={getImageUrl(media, season_number, episode_number)}
             altText={mediaTitle}
-            media_type={media_type || "movie"}
+            media_type={media_type || 'movie'}
             media_id={media_id || 0}
           >
             <MediaCardOverlay
@@ -141,11 +137,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
             key={media_type}
             className="rounded-[4px] bg-foreground/10 px-2 py-[2px] text-xs font-medium text-foreground/70"
           >
-            {media_type === "movie"
-              ? "Movie"
-              : episode_number
-                ? "Episode"
-                : "TV Show"}
+            {media_type === 'movie' ? 'Movie' : episode_number ? 'Episode' : 'TV Show'}
           </span>
           {media.genres?.slice(0, 2).map((genre: any) => (
             <Link
@@ -157,9 +149,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
             </Link>
           ))}
         </div>
-        <p className="mt-2 text-[10px] text-foreground/70">
-          {formatDate(releaseDate)}
-        </p>
+        <p className="mt-2 text-[10px] text-foreground/70">{formatDate(releaseDate)}</p>
       </div>
     </article>
   );

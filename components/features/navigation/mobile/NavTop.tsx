@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import React, { useEffect, useRef } from "react";
-import { useUser } from "@/hooks/UserContext";
-import MenuButtonWithSidebar from "./NavMenuSidebarButton";
-import ProfilePictureNew from "@/components/features/navigation/NavProfilePicture";
-import NotificationButton from "../../notifications/NotificationButton";
-import NavAdMobile from "../../ads/NavAdMobile";
+import Link from 'next/link';
+import React, { useEffect, useRef } from 'react';
+import ProfilePictureNew from '@/components/features/navigation/NavProfilePicture';
+import { useUser } from '@/hooks/UserContext';
+import NavAdMobile from '../../ads/NavAdMobile';
+import NotificationButton from '../../notifications/NotificationButton';
+import MenuButtonWithSidebar from './NavMenuSidebarButton';
 
 const NavTop = () => {
   const { user } = useUser();
@@ -42,15 +42,15 @@ const NavTop = () => {
   useEffect(() => {
     // Now it's safe to access window because this effect runs only in the browser
     lastScrollY.current = window.scrollY;
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
     <div
       className="fixed left-0 top-0 z-30 flex w-full flex-col"
       ref={topBarRef}
-      style={{ transform: "translateY(0)", willChange: "transform" }}
+      style={{ transform: 'translateY(0)', willChange: 'transform' }}
     >
       <div className="flex h-12 w-full items-center justify-between bg-background px-4 transition-transform duration-100 ease-out md:hidden">
         {/* Left side */}

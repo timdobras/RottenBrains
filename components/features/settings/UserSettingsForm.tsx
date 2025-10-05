@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import BackdropChange from "@/components/features/profile/BackdropChange";
-import ProfilePicture from "@/components/features/profile/ProfilePictureChange";
-import { useToast } from "@/components/ui/use-toast";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useRouter } from 'next/navigation';
+import { useState, ChangeEvent, FormEvent } from 'react';
+import BackdropChange from '@/components/features/profile/BackdropChange';
+import ProfilePicture from '@/components/features/profile/ProfilePictureChange';
+import { useToast } from '@/components/ui/use-toast';
+import { createClient } from '@/lib/supabase/client';
 
 interface FormData {
   name: string;
@@ -27,9 +27,7 @@ const UserSettingsForm = (user: any) => {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -38,7 +36,7 @@ const UserSettingsForm = (user: any) => {
     const supabase = createClient();
     try {
       const { data: updateData, error: updateError } = await supabase
-        .from("users")
+        .from('users')
         .update([
           {
             name: formData.name,
@@ -46,9 +44,9 @@ const UserSettingsForm = (user: any) => {
             bio: formData.bio,
           },
         ])
-        .eq("id", user.id);
+        .eq('id', user.id);
       setSubmitted(true);
-      router.push("/protected/profile");
+      router.push('/protected/profile');
       toast({
         title: `Settings Changed Successfully`,
       });
@@ -127,10 +125,7 @@ const UserSettingsForm = (user: any) => {
             className="mt-1 w-full rounded-[8px] bg-foreground/10 p-2"
           />
         </div>
-        <button
-          type="submit"
-          className="rounded-md bg-accent px-4 py-2 text-white"
-        >
+        <button type="submit" className="rounded-md bg-accent px-4 py-2 text-white">
           Submit
         </button>
       </form>

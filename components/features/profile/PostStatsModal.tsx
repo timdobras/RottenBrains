@@ -1,9 +1,9 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import { likePost, removeLike } from "@/lib/client/updatePostData";
-import { getPostComments } from "@/lib/supabase/clientQueries";
-import CommentCard from "./CommentCardModal";
-import AddComment from "./AddCommentModal";
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { likePost, removeLike } from '@/lib/client/updatePostData';
+import { getPostComments } from '@/lib/supabase/clientQueries';
+import AddComment from './AddCommentModal';
+import CommentCard from './CommentCardModal';
 
 const PostStats = ({ post, user_id, current_user }: any) => {
   const postId = post.id;
@@ -44,7 +44,7 @@ const PostStats = ({ post, user_id, current_user }: any) => {
           likes: state.likes, // Revert to the previous like count
           animate: false,
         }));
-        console.error("Error toggling like:", error);
+        console.error('Error toggling like:', error);
       }
     }
   }, [user_id, postId, state.liked, state.likes]);
@@ -67,7 +67,7 @@ const PostStats = ({ post, user_id, current_user }: any) => {
         loading: false,
       }));
     } catch (error) {
-      console.error("Error fetching comments:", error);
+      console.error('Error fetching comments:', error);
       setState((prevState) => ({
         ...prevState,
         loading: false,
@@ -117,11 +117,7 @@ const PostStats = ({ post, user_id, current_user }: any) => {
             )}
           </div>
           <div className="">
-            <AddComment
-              post={post}
-              user_id={user_id}
-              fetchComments={fetchComments}
-            />
+            <AddComment post={post} user_id={user_id} fetchComments={fetchComments} />
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
-import InfiniteScrollSearch from "@/components/features/search/InfiniteScrollSearch";
-import React from "react";
+import React from 'react';
+import InfiniteScrollSearch from '@/components/features/search/InfiniteScrollSearch';
 
 type Params = Promise<{ query: string }>;
 

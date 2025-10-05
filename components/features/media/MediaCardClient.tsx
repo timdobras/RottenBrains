@@ -1,11 +1,11 @@
 // components/features/media/HomeMediaCardClient.tsx
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { getMediaDetails, getEpisodeDetails } from "@/lib/tmdb";
-import { getWatchTime } from "@/lib/supabase/clientQueries";
-import HomeMediaCardSkeleton from "@/components/features/media/MediaCardSkeleton";
-import MediaCardUI from "@/components/features/media/MediaCardUI";
+import React, { useEffect, useState } from 'react';
+import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
+import MediaCardUI from '@/components/features/media/MediaCardUI';
+import { getWatchTime } from '@/lib/supabase/clientQueries';
+import { getMediaDetails, getEpisodeDetails } from '@/lib/tmdb';
 
 interface MediaCardClientProps {
   media_type: string;
@@ -36,7 +36,7 @@ const MediaCardClient: React.FC<MediaCardClientProps> = ({
     (async () => {
       try {
         const data =
-          media_type === "movie"
+          media_type === 'movie'
             ? await getMediaDetails(media_type, media_id)
             : season_number && episode_number
               ? await getEpisodeDetails(media_id, season_number, episode_number)
@@ -56,13 +56,7 @@ const MediaCardClient: React.FC<MediaCardClientProps> = ({
   useEffect(() => {
     if (!user_id) return;
     (async () => {
-      const wt = await getWatchTime(
-        user_id,
-        media_type,
-        media_id,
-        season_number,
-        episode_number,
-      );
+      const wt = await getWatchTime(user_id, media_type, media_id, season_number, episode_number);
       setWatchTime(wt ?? 0);
     })();
   }, [user_id, media_type, media_id, season_number, episode_number]);

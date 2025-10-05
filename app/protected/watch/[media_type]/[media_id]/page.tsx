@@ -1,41 +1,40 @@
-import Link from "next/link";
-import VideoEmbed from "@/components/features/watch/MediaEmbed";
-import WatchDuration from "@/components/features/watch/WatchDuration";
-import MediaCardSmall from "@/components/features/media/MediaCardSmall";
-import { getMediaDetails, getRecommendations } from "@/lib/tmdb";
-import WatchPageDetails from "@/components/features/watch/WatchPageDetails";
-import NativeAd from "@/components/features/ads/Native";
-import { fetchMediaData } from "@/lib/client/fetchMediaData";
-import { getCurrentUser } from "@/lib/supabase/serverQueries";
-import AdBanner from "@/components/features/ads/GoogleDisplayAd";
-import NavAdMobile from "@/components/features/ads/NavAdMobile";
-import FixedAd from "@/components/features/ads/300x250Ad";
-import MobileBannerExo42 from "@/components/features/ads/Notification";
-import MobileBannerExoAlt from "@/components/features/ads/Message";
-import MobileBannerExo from "@/components/features/ads/MobileBannerExo";
-import MobileBannerPem from "@/components/features/ads/Fullscreen";
-import VideoAd from "@/components/features/ads/Video";
-import VideoContextSetter from "@/hooks/VideoContextSetter";
-import MediaCardServer from "@/components/features/media/MediaCardServer";
+import Link from 'next/link';
+import FixedAd from '@/components/features/ads/300x250Ad';
+import MobileBannerPem from '@/components/features/ads/Fullscreen';
+import AdBanner from '@/components/features/ads/GoogleDisplayAd';
+import MobileBannerExoAlt from '@/components/features/ads/Message';
+import MobileBannerExo from '@/components/features/ads/MobileBannerExo';
+import NativeAd from '@/components/features/ads/Native';
+import NavAdMobile from '@/components/features/ads/NavAdMobile';
+import MobileBannerExo42 from '@/components/features/ads/Notification';
+import VideoAd from '@/components/features/ads/Video';
+import MediaCardServer from '@/components/features/media/MediaCardServer';
+import MediaCardSmall from '@/components/features/media/MediaCardSmall';
+import VideoEmbed from '@/components/features/watch/MediaEmbed';
+import WatchDuration from '@/components/features/watch/WatchDuration';
+import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
+import VideoContextSetter from '@/hooks/VideoContextSetter';
+import { fetchMediaData } from '@/lib/client/fetchMediaData';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getMediaDetails, getRecommendations } from '@/lib/tmdb';
 
 export async function generateMetadata({ params }: any) {
   const media_id = parseInt(params.media_id, 10);
-  const media_type = "movie";
+  const media_type = 'movie';
 
   let mediaData;
   try {
     mediaData = await fetchMediaData(media_type, media_id);
   } catch (error) {
-    console.error("Error fetching media data:", error);
+    console.error('Error fetching media data:', error);
     mediaData = null;
   }
   const media = mediaData;
 
   if (!media) {
     return {
-      title: "No Media Found",
-      description:
-        "Connect with fellow enthusiasts and dive deep into your favorite media.",
+      title: 'No Media Found',
+      description: 'Connect with fellow enthusiasts and dive deep into your favorite media.',
     };
   }
 
@@ -49,7 +48,7 @@ export async function generateMetadata({ params }: any) {
 type Params = Promise<{ media_id: number }>;
 export default async function mediaPage({ params }: { params: Params }) {
   const { media_id } = await params;
-  const media_type = "movie";
+  const media_type = 'movie';
 
   const user = await getCurrentUser();
 
@@ -61,9 +60,7 @@ export default async function mediaPage({ params }: { params: Params }) {
 
   // Fetch media details for recommendations
   const recommendationMediaDetails = await Promise.all(
-    recommendations.results.map((rec: any) =>
-      getMediaDetails(rec.media_type || "movie", rec.id),
-    ),
+    recommendations.results.map((rec: any) => getMediaDetails(rec.media_type || 'movie', rec.id))
   );
 
   return (
@@ -90,7 +87,8 @@ export default async function mediaPage({ params }: { params: Params }) {
           <section className="grid w-full grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8 px-4 md:gap-4 md:px-0">
             {recommendationMediaDetails.map((mediaDetail: any) => (
               <MediaCardServer
-                media_type={mediaDetail.media_type || "movie"}
+                key={mediaDetail.id}
+                media_type={mediaDetail.media_type || 'movie'}
                 media_id={mediaDetail.id}
                 user_id={user?.id}
                 rounded={true}

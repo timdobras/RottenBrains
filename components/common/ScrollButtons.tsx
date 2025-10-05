@@ -1,6 +1,6 @@
-"use client"; // Ensure this is a client component
+'use client'; // Ensure this is a client component
 
-import React from "react";
+import React from 'react';
 
 const ScrollButtons = ({
   containerId,
@@ -16,7 +16,7 @@ const ScrollButtons = ({
       scrollContainer.scrollBy({
         top: 0,
         left: -scrollAmount,
-        behavior: "smooth",
+        behavior: 'smooth',
       });
     }
   };
@@ -28,7 +28,7 @@ const ScrollButtons = ({
       scrollContainer.scrollBy({
         top: 0,
         left: scrollAmount,
-        behavior: "smooth",
+        behavior: 'smooth',
       });
     }
   };

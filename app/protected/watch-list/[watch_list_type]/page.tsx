@@ -1,9 +1,6 @@
-import WatchListInfiniteScroll from "@/components/features/library/InfiniteScroll";
-import {
-  getCurrentUser,
-  getWatchListSpecific,
-} from "@/lib/supabase/serverQueries";
-import React from "react";
+import React from 'react';
+import WatchListInfiniteScroll from '@/components/features/library/InfiniteScroll';
+import { getCurrentUser, getWatchListSpecific } from '@/lib/supabase/serverQueries';
 type Params = Promise<{ watch_list_type: string }>;
 const page = async ({ params }: { params: Params }) => {
   const { watch_list_type } = await params;
@@ -13,14 +10,7 @@ const page = async ({ params }: { params: Params }) => {
   const limit = 10;
   const offset = 0;
 
-  const media = await getWatchListSpecific(
-    user.id,
-    limit,
-    offset,
-    watch_list_type,
-  );
-
-  console.log(media);
+  const media = await getWatchListSpecific(user.id, limit, offset, watch_list_type);
 
   return (
     <div className="mb-16 w-full flex-col px-4 py-4">

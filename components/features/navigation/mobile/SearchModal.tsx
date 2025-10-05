@@ -1,16 +1,16 @@
-"use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { searchMulti } from "@/lib/tmdb";
-import { searchUsers } from "@/lib/client/searchUsers";
-import { debounce, SearchCache } from "@/lib/utils/debounce";
-import UserSearchCard from "../../search-bar-new-new/UserSearchCard";
-import PersonSearchCard from "../../search-bar-new-new/PersonSearchCard";
-import MediaSearchCard from "../../search-bar-new-new/MediaSearchCard";
-import { usePathname, useRouter } from "next/navigation";
-import { useUser } from "@/hooks/UserContext";
-import NavAdMobile from "../../ads/NavAdMobile";
+'use client';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useUser } from '@/hooks/UserContext';
+import { searchUsers } from '@/lib/client/searchUsers';
+import { searchMulti } from '@/lib/tmdb';
+import { debounce, SearchCache } from '@/lib/utils/debounce';
+import NavAdMobile from '../../ads/NavAdMobile';
+import MediaSearchCard from '../../search-bar-new-new/MediaSearchCard';
+import PersonSearchCard from '../../search-bar-new-new/PersonSearchCard';
+import UserSearchCard from '../../search-bar-new-new/UserSearchCard';
 
 const searchCache = new SearchCache<any[]>(5);
 
@@ -21,7 +21,7 @@ interface ModalProps {
 export default function SearchModal({ isOpen, onClose }: ModalProps) {
   const [mounted, setMounted] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
   const router = useRouter();
 
   const pathname = usePathname();
-  const [prevPath, setPrevPath] = useState("");
+  const [prevPath, setPrevPath] = useState('');
 
   const { user } = useUser();
 
@@ -46,24 +46,24 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
 
   useEffect(() => {
     if (isOpen) {
-      document.documentElement.style.overflow = "hidden"; // Prevent scrolling
-      document.documentElement.style.position = "fixed"; // Keep position fixed
-      document.documentElement.style.width = "100%"; // Ensure full width
-      document.body.style.overflow = "hidden"; // Prevent scrolling
-      document.body.style.position = "fixed"; // Prevent body scroll
-      document.body.style.width = "100%";
+      document.documentElement.style.overflow = 'hidden'; // Prevent scrolling
+      document.documentElement.style.position = 'fixed'; // Keep position fixed
+      document.documentElement.style.width = '100%'; // Ensure full width
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
+      document.body.style.position = 'fixed'; // Prevent body scroll
+      document.body.style.width = '100%';
     } else {
-      document.documentElement.style.overflow = "";
-      document.documentElement.style.position = "";
-      document.body.style.overflow = "";
-      document.body.style.position = "";
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.position = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
     }
 
     return () => {
-      document.documentElement.style.overflow = "";
-      document.documentElement.style.position = "";
-      document.body.style.overflow = "";
-      document.body.style.position = "";
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.position = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
     };
   }, [isOpen]);
 
@@ -71,28 +71,28 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
     // For example, if 'item' has an 'id' and 'media_type'
     // you can route accordingly:
     switch (item.media_type) {
-      case "user":
+      case 'user':
         router.push(`/protected/user/${item.id}`);
         break;
-      case "movie":
+      case 'movie':
         router.push(`/protected/watch/movie/${item.id}`);
         break;
-      case "tv":
+      case 'tv':
         router.push(`/protected/watch/tv/${item.id}/1/1`);
         break;
-      case "person":
+      case 'person':
         router.push(`/protected/person/${item.id}`);
         break;
       default:
         // Fallback
-        console.warn("Unknown media_type", item.media_type);
+        console.warn('Unknown media_type', item.media_type);
     }
   };
 
   // Prevent scrolling on background, but allow scrolling inside modal
   useEffect(() => {
     const preventScroll = (e: TouchEvent) => {
-      const modalContent = document.getElementById("modal-content");
+      const modalContent = document.getElementById('modal-content');
       if (modalContent && modalContent.contains(e.target as Node)) {
         return; // Allow scrolling inside the modal content
       }
@@ -100,27 +100,27 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
     };
 
     if (isOpen) {
-      document.addEventListener("touchmove", preventScroll, { passive: false });
+      document.addEventListener('touchmove', preventScroll, { passive: false });
     }
 
     return () => {
-      document.removeEventListener("touchmove", preventScroll);
+      document.removeEventListener('touchmove', preventScroll);
     };
   }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -161,19 +161,19 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
 
           let mediaItems: any[] = [];
           let userItems: any[] = [];
-          if (resMedia.status === "fulfilled") {
+          if (resMedia.status === 'fulfilled') {
             mediaItems = resMedia.value.results.slice(0, 20);
           } else {
-            console.error("searchMulti failed:", resMedia.reason);
+            console.error('searchMulti failed:', resMedia.reason);
           }
-          if (resUsers.status === "fulfilled") {
+          if (resUsers.status === 'fulfilled') {
             userItems =
               resUsers.value?.slice(0, 5).map((u: any) => ({
                 ...u,
-                media_type: "user",
+                media_type: 'user',
               })) ?? [];
           } else {
-            console.error("searchUsers failed:", resUsers.reason);
+            console.error('searchUsers failed:', resUsers.reason);
           }
           const resAll = [...(userItems ?? []), ...(mediaItems ?? [])];
 
@@ -182,14 +182,14 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
           setLoading(false);
           setHighlightedIndex(0);
         } catch (error: any) {
-          if (error.name !== "AbortError") {
-            console.error("Search error:", error);
-            setError("Failed to search. Please try again.");
+          if (error.name !== 'AbortError') {
+            console.error('Search error:', error);
+            setError('Failed to search. Please try again.');
             setLoading(false);
           }
         }
       }, 150),
-    [],
+    []
   );
 
   // Fire the debounced search whenever `query` changes
@@ -290,7 +290,7 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
                 <>
                   <div className="sticky top-0 bg-background/95 px-4 py-3 backdrop-blur-sm">
                     <p className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
-                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                      {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
                     </p>
                   </div>
                   {searchResults.map((res, i) => {
@@ -301,25 +301,15 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
                         ref={(el) => {
                           itemRefs.current[i] = el;
                         }}
-                        className={`w-full transition-colors ${isSelected ? "bg-foreground/20" : ""}`}
+                        className={`w-full transition-colors ${isSelected ? 'bg-foreground/20' : ''}`}
                       >
-                        {res.media_type === "user" ? (
-                          <UserSearchCard
-                            media={res}
-                            onClick={() => handleItemSelect(res)}
-                          />
-                        ) : res.media_type === "person" ? (
-                          <PersonSearchCard
-                            media={res}
-                            onClick={() => handleItemSelect(res)}
-                          />
+                        {res.media_type === 'user' ? (
+                          <UserSearchCard media={res} onClick={() => handleItemSelect(res)} />
+                        ) : res.media_type === 'person' ? (
+                          <PersonSearchCard media={res} onClick={() => handleItemSelect(res)} />
                         ) : (
-                          (res.media_type === "movie" ||
-                            res.media_type === "tv") && (
-                            <MediaSearchCard
-                              media={res}
-                              onClick={() => handleItemSelect(res)}
-                            />
+                          (res.media_type === 'movie' || res.media_type === 'tv') && (
+                            <MediaSearchCard media={res} onClick={() => handleItemSelect(res)} />
                           )
                         )}
                       </div>
@@ -332,6 +322,6 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
         </motion.div>
       )}
     </AnimatePresence>,
-    document.body,
+    document.body
   );
 }

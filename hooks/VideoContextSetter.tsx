@@ -1,14 +1,14 @@
 // components/video/VideoContextSetter.tsx
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useVideo, VideoState } from "./VideoProvider";
+import { useEffect } from 'react';
+import { useVideo, VideoState } from './VideoProvider';
 
 interface VideoContextSetterProps {
-  media_type: VideoState["media_type"];
-  media_id: VideoState["media_id"];
-  season_number?: VideoState["season_number"];
-  episode_number?: VideoState["episode_number"];
+  media_type: VideoState['media_type'];
+  media_id: VideoState['media_id'];
+  season_number?: VideoState['season_number'];
+  episode_number?: VideoState['episode_number'];
 }
 
 export default function VideoContextSetter({
@@ -26,12 +26,12 @@ export default function VideoContextSetter({
       media_id,
       season_number,
       episode_number,
-      mode: "full",
+      mode: 'full',
     });
 
     return () => {
       // revert to mini when unmounting
-      setState((s) => ({ ...s, mode: "mini" }));
+      setState((s) => ({ ...s, mode: 'mini' }));
     };
   }, [media_type, media_id, season_number, episode_number, setState]);
 

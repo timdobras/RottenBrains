@@ -1,23 +1,23 @@
-import { searchUsers } from "@/lib/client/searchUsers";
-import { searchMovies, searchMulti, searchPerson, searchTv } from "@/lib/tmdb";
-import { debounce, SearchCache } from "@/lib/utils/debounce";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import UserSearchCard from "./UserSearchCard";
-import PersonSearchCard from "./PersonSearchCard";
-import MediaSearchCard from "./MediaSearchCard";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { searchUsers } from '@/lib/client/searchUsers';
+import { searchMovies, searchMulti, searchPerson, searchTv } from '@/lib/tmdb';
+import { debounce, SearchCache } from '@/lib/utils/debounce';
+import MediaSearchCard from './MediaSearchCard';
+import PersonSearchCard from './PersonSearchCard';
+import UserSearchCard from './UserSearchCard';
 
 const searchCache = new SearchCache<any[]>(5);
 
 const SearchBar = () => {
-  const categories = ["All", "Movies", "TV", "People", "Users"];
+  const categories = ['All', 'Movies', 'TV', 'People', 'Users'];
 
   const [openSearchDialog, setOpenSearchDialog] = useState(true);
   const [openCategoryDialog, setOpenCategoryDialog] = useState(false);
 
-  const [searchCategory, setSearchCategory] = useState("All");
+  const [searchCategory, setSearchCategory] = useState('All');
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -34,11 +34,11 @@ const SearchBar = () => {
   const router = useRouter();
 
   const pathname = usePathname();
-  const [prevPath, setPrevPath] = useState("");
+  const [prevPath, setPrevPath] = useState('');
 
   useEffect(() => {
     if (prevPath && prevPath !== pathname) {
-      console.log("User navigated from", prevPath, "to", pathname);
+      console.log('User navigated from', prevPath, 'to', pathname);
     }
     setPrevPath(pathname);
     setOpenSearchDialog(false);
@@ -87,7 +87,7 @@ const SearchBar = () => {
         try {
           let results: any[] = [];
 
-          if (searchCategory === "All") {
+          if (searchCategory === 'All') {
             const [resMedia, resUsers] = await Promise.allSettled([
               searchMulti(query),
               searchUsers(query),
@@ -95,45 +95,45 @@ const SearchBar = () => {
 
             let mediaItems: any[] = [];
             let userItems: any[] = [];
-            if (resMedia.status === "fulfilled") {
+            if (resMedia.status === 'fulfilled') {
               mediaItems = resMedia.value.results.slice(0, 15);
             } else {
-              console.error("searchMulti failed:", resMedia.reason);
+              console.error('searchMulti failed:', resMedia.reason);
             }
-            if (resUsers.status === "fulfilled") {
+            if (resUsers.status === 'fulfilled') {
               userItems =
                 resUsers.value?.slice(0, 5).map((u: any) => ({
                   ...u,
-                  media_type: "user",
+                  media_type: 'user',
                 })) ?? [];
             } else {
-              console.error("searchUsers failed:", resUsers.reason);
+              console.error('searchUsers failed:', resUsers.reason);
             }
             results = [...(userItems ?? []), ...(mediaItems ?? [])];
-          } else if (searchCategory === "Movies") {
+          } else if (searchCategory === 'Movies') {
             const resMedia = await searchMovies(query);
             results = resMedia.results.slice(0, 20).map((m: any) => ({
               ...m,
-              media_type: "movie",
+              media_type: 'movie',
             }));
-          } else if (searchCategory === "TV") {
+          } else if (searchCategory === 'TV') {
             const resMedia = await searchTv(query);
             results = resMedia.results.slice(0, 20).map((m: any) => ({
               ...m,
-              media_type: "tv",
+              media_type: 'tv',
             }));
-          } else if (searchCategory === "People") {
+          } else if (searchCategory === 'People') {
             const resMedia = await searchPerson(query);
             results = resMedia.results.slice(0, 20).map((m: any) => ({
               ...m,
-              media_type: "person",
+              media_type: 'person',
             }));
-          } else if (searchCategory === "Users") {
+          } else if (searchCategory === 'Users') {
             const resUsers = await searchUsers(query);
             results =
               resUsers?.map((m: any) => ({
                 ...m,
-                media_type: "user",
+                media_type: 'user',
               })) ?? [];
           }
 
@@ -143,35 +143,35 @@ const SearchBar = () => {
           setLoading(false);
           setHighlightedIndex(0);
         } catch (error: any) {
-          if (error.name !== "AbortError") {
-            console.error("Search error:", error);
-            setError("Failed to search. Please try again.");
+          if (error.name !== 'AbortError') {
+            console.error('Search error:', error);
+            setError('Failed to search. Please try again.');
             setLoading(false);
           }
         }
       }, 150),
-    [searchCategory],
+    [searchCategory]
   );
 
   const handleItemSelect = (item: any) => {
     // For example, if 'item' has an 'id' and 'media_type'
     // you can route accordingly:
     switch (item.media_type) {
-      case "user":
+      case 'user':
         router.push(`/protected/user/${item.id}`);
         break;
-      case "movie":
+      case 'movie':
         router.push(`/protected/watch/movie/${item.id}`);
         break;
-      case "tv":
+      case 'tv':
         router.push(`/protected/watch/tv/${item.id}/1/1`);
         break;
-      case "person":
+      case 'person':
         router.push(`/protected/person/${item.id}`);
         break;
       default:
         // Fallback
-        console.warn("Unknown media_type", item.media_type);
+        console.warn('Unknown media_type', item.media_type);
     }
   };
 
@@ -193,9 +193,9 @@ const SearchBar = () => {
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -211,7 +211,7 @@ const SearchBar = () => {
   useEffect(() => {
     const el = itemRefs.current[highlightedIndex];
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [highlightedIndex, searchResults]);
 
@@ -220,17 +220,15 @@ const SearchBar = () => {
     if (searchResults.length === 0) return;
 
     switch (event.key) {
-      case "ArrowDown":
+      case 'ArrowDown':
         event.preventDefault();
-        setHighlightedIndex((prev) =>
-          Math.min(prev + 1, searchResults.length - 1),
-        );
+        setHighlightedIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
         break;
-      case "ArrowUp":
+      case 'ArrowUp':
         event.preventDefault();
         setHighlightedIndex((prev) => Math.max(prev - 1, 0));
         break;
-      case "Enter":
+      case 'Enter':
         event.preventDefault();
         const selectedItem = searchResults[highlightedIndex];
         if (selectedItem) {
@@ -253,7 +251,7 @@ const SearchBar = () => {
           <img
             src="/assets/icons/chevron-down.svg"
             alt=""
-            className={`invert-on-dark transition-transform ${openCategoryDialog ? "rotate-180" : ""}`}
+            className={`invert-on-dark transition-transform ${openCategoryDialog ? 'rotate-180' : ''}`}
           />
         </button>
 
@@ -266,9 +264,7 @@ const SearchBar = () => {
               <button
                 key={category}
                 className={`w-full p-3 text-left transition-colors hover:bg-foreground/20 ${
-                  category === searchCategory
-                    ? "bg-primary/20 font-medium text-primary"
-                    : ""
+                  category === searchCategory ? 'bg-primary/20 font-medium text-primary' : ''
                 }`}
                 onClick={() => handleCategorySelect(category)}
               >
@@ -327,14 +323,16 @@ const SearchBar = () => {
               ) : searchQuery.length < 2 ? (
                 <div className="flex h-32 w-full items-center justify-center">
                   <div className="flex flex-col items-center gap-1">
-                    <p className="text-sm text-foreground/60">Type at least 2 characters to search</p>
+                    <p className="text-sm text-foreground/60">
+                      Type at least 2 characters to search
+                    </p>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="sticky top-0 bg-background/80 px-4 py-2 backdrop-blur-sm">
                     <p className="text-xs font-medium text-foreground/60">
-                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                      {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
                     </p>
                   </div>
                   {searchResults.map((res, i) => {
@@ -345,25 +343,15 @@ const SearchBar = () => {
                         ref={(el) => {
                           itemRefs.current[i] = el;
                         }}
-                        className={`transition-colors ${isSelected ? "bg-foreground/20" : "hover:bg-foreground/10"}`}
+                        className={`transition-colors ${isSelected ? 'bg-foreground/20' : 'hover:bg-foreground/10'}`}
                       >
-                        {res.media_type === "user" ? (
-                          <UserSearchCard
-                            media={res}
-                            onClick={() => handleItemSelect(res)}
-                          />
-                        ) : res.media_type === "person" ? (
-                          <PersonSearchCard
-                            media={res}
-                            onClick={() => handleItemSelect(res)}
-                          />
+                        {res.media_type === 'user' ? (
+                          <UserSearchCard media={res} onClick={() => handleItemSelect(res)} />
+                        ) : res.media_type === 'person' ? (
+                          <PersonSearchCard media={res} onClick={() => handleItemSelect(res)} />
                         ) : (
-                          (res.media_type === "movie" ||
-                            res.media_type === "tv") && (
-                            <MediaSearchCard
-                              media={res}
-                              onClick={() => handleItemSelect(res)}
-                            />
+                          (res.media_type === 'movie' || res.media_type === 'tv') && (
+                            <MediaSearchCard media={res} onClick={() => handleItemSelect(res)} />
                           )
                         )}
                       </div>

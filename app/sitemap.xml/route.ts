@@ -1,12 +1,12 @@
-import { getPopular, getTrendingMovies, getTrendingTV } from "@/lib/tmdb";
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
+import { getPopular, getTrendingMovies, getTrendingTV } from '@/lib/tmdb';
 
 export async function GET(req: NextRequest) {
   const movies = await getTrendingMovies();
   const tv = await getTrendingTV();
 
   // 2. Get your base url (e.g., from .env or a fallback)
-  const baseUrl = process.env.SITE_URL || "https://rotten-brains.com";
+  const baseUrl = process.env.SITE_URL || 'https://rotten-brains.com';
 
   // 3. Build the XML sitemap
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       <changefreq>daily</changefreq>
     </url>`;
     })
-    .join("")}
+    .join('')}
       ${tv.results
         .map((media: any) => {
           return `
@@ -35,14 +35,14 @@ export async function GET(req: NextRequest) {
       <changefreq>daily</changefreq>
     </url>`;
         })
-        .join("")}
+        .join('')}
 </urlset>`;
 
   // 4. Return the response with correct headers
   return new Response(sitemap, {
     status: 200,
     headers: {
-      "Content-Type": "application/xml",
+      'Content-Type': 'application/xml',
     },
   });
 }

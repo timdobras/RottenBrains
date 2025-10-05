@@ -1,9 +1,6 @@
-import {
-  getLatestNewEpisodes,
-  getNextEpisodes,
-} from "../supabase/serverQueries";
-import { getMediaDetails } from "../tmdb";
-import { fetchMediaData } from "./fetchMediaData";
+import { getLatestNewEpisodes, getNextEpisodes } from '../supabase/serverQueries';
+import { getMediaDetails } from '../tmdb';
+import { fetchMediaData } from './fetchMediaData';
 
 export async function fetchContinueWatching(user_id: string) {
   try {
@@ -15,28 +12,19 @@ export async function fetchContinueWatching(user_id: string) {
         try {
           const processed = { ...media };
           processed.episode_number =
-            processed.episode_number === -1
-              ? undefined
-              : processed.episode_number;
+            processed.episode_number === -1 ? undefined : processed.episode_number;
           processed.season_number =
-            processed.season_number === -1
-              ? undefined
-              : processed.season_number;
+            processed.season_number === -1 ? undefined : processed.season_number;
 
           if (!processed.next_episode) {
             return processed;
           }
 
           if (processed.episode_number && processed.next_episode) {
-            const details = await getMediaDetails(
-              media.media_type,
-              media.media_id,
-            );
+            const details = await getMediaDetails(media.media_type, media.media_id);
             if (
-              processed.season_number ===
-                details.last_episode_to_air.season_number &&
-              processed.episode_number ===
-                details.last_episode_to_air.episode_number
+              processed.season_number === details.last_episode_to_air.season_number &&
+              processed.episode_number === details.last_episode_to_air.episode_number
             ) {
               // Series finished—no more episodes
               processed.next_episode = false;
@@ -46,20 +34,16 @@ export async function fetchContinueWatching(user_id: string) {
             } else {
               const seasonNumber = processed.season_number;
               const currentSeason = details.seasons.find(
-                (season: any) => season.season_number === seasonNumber,
+                (season: any) => season.season_number === seasonNumber
               );
-              if (
-                currentSeason &&
-                processed.episode_number < currentSeason.episode_count
-              ) {
+              if (currentSeason && processed.episode_number < currentSeason.episode_count) {
                 // Next episode in the same season
                 processed.episode_number = Number(processed.episode_number) + 1;
                 return processed;
               } else if (
                 currentSeason &&
                 processed.episode_number === currentSeason.episode_count &&
-                Number(processed.season_number) + 1 <=
-                  details.last_episode_to_air.season_number
+                Number(processed.season_number) + 1 <= details.last_episode_to_air.season_number
               ) {
                 // First episode of the next season
                 processed.season_number = Number(processed.season_number) + 1;
@@ -70,22 +54,15 @@ export async function fetchContinueWatching(user_id: string) {
           }
           return null;
         } catch (error) {
-          console.error(
-            "Error processing continue watching media",
-            media,
-            error,
-          );
+          console.error('Error processing continue watching media', media, error);
           return null;
         }
-      }),
+      })
     );
 
     // Extract successful (non-null) processed items
     const processed = processedResults
-      .filter(
-        (result): result is PromiseFulfilledResult<any> =>
-          result.status === "fulfilled",
-      )
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
       .map((result) => result.value)
       .filter((item) => item !== null && item !== undefined);
 
@@ -97,21 +74,18 @@ export async function fetchContinueWatching(user_id: string) {
           media.media_type,
           user_id,
           media.season_number,
-          media.episode_number,
+          media.episode_number
         );
-      }),
+      })
     );
 
     const mediaData = mediaDataResults
-      .filter(
-        (result): result is PromiseFulfilledResult<any> =>
-          result.status === "fulfilled",
-      )
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
       .map((result) => result.value);
 
     return mediaData;
   } catch (error) {
-    console.error("Error in fetchContinueWatching:", error);
+    console.error('Error in fetchContinueWatching:', error);
     return [];
   }
 }
@@ -123,14 +97,8 @@ export async function fetchNewEpisodes(user_id: string) {
   }
   const new_episodes_data = await Promise.all(
     new_episodes.map(async (media) => {
-      return fetchMediaData(
-        media.tv_id,
-        "tv",
-        user_id,
-        media.season_number,
-        media.episode_number,
-      );
-    }),
+      return fetchMediaData(media.tv_id, 'tv', user_id, media.season_number, media.episode_number);
+    })
   );
 
   return new_episodes_data;

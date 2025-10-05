@@ -1,11 +1,11 @@
-"use client";
-import { useUser } from "@/hooks/UserContext";
-import { uploadBackdropPicture } from "@/lib/supabase/clientQueries";
-import React, { useState, useEffect, ChangeEvent } from "react";
+'use client';
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { useUser } from '@/hooks/UserContext';
+import { uploadBackdropPicture } from '@/lib/supabase/clientQueries';
 
 const BackdropChange: React.FC = () => {
   const { user } = useUser();
-  const [image, setImage] = useState<string>("");
+  const [image, setImage] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [newImage, setNewImage] = useState<string | ArrayBuffer | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -44,7 +44,7 @@ const BackdropChange: React.FC = () => {
         setFile(null); // Reset the file object
       } else {
         // Handle error
-        console.error("Error uploading profile picture");
+        console.error('Error uploading profile picture');
       }
     }
   };
@@ -64,10 +64,7 @@ const BackdropChange: React.FC = () => {
         <div className="flex flex-col items-center">
           <input type="file" onChange={handleFileChange} />
           <div className="mt-2 flex gap-4">
-            <button
-              onClick={handleSave}
-              className="rounded bg-accent px-4 py-2 text-white"
-            >
+            <button onClick={handleSave} className="rounded bg-accent px-4 py-2 text-white">
               Save
             </button>
             <button

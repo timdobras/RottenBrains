@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import { getUserFromDB } from "@/lib/supabase/serverQueries";
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { getUserFromDB } from '@/lib/supabase/serverQueries';
 
 export interface User {
   id: string;
@@ -12,16 +12,16 @@ interface Props {
 }
 
 const getUser = async () => {
-  let user: User | null = null;
+  const user: User | null = null;
   const supabase = await createClient();
   // Fetch user data from Supabase using the session cookie
   const { data: supabaseUser, error } = await supabase.auth.getUser();
 
   if (error) {
-    console.error("Error fetching user:", error.message);
+    console.error('Error fetching user:', error.message);
     return {
       redirect: {
-        destination: "/login", // Redirect to login page if user is not authenticated
+        destination: '/login', // Redirect to login page if user is not authenticated
         permanent: false,
       },
     };
@@ -31,7 +31,7 @@ const getUser = async () => {
     const dbUser = await getUserFromDB(supabaseUser.user.id);
     if (!dbUser) {
       const { error: insertError } = await supabase
-        .from("users") // Replace 'profiles' with your actual table name
+        .from('users') // Replace 'profiles' with your actual table name
         .insert([
           {
             id: supabaseUser.user.id, // Use the user's unique ID from the sign-up
@@ -43,10 +43,10 @@ const getUser = async () => {
           },
         ]);
       if (insertError) {
-        console.log("Error inserting user profile:", insertError.message);
+        console.error('Error inserting user profile:', insertError.message);
       }
     }
-    redirect("/");
+    redirect('/');
   }
 
   return <div>HI</div>;

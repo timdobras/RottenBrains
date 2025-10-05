@@ -1,16 +1,10 @@
-"use client";
-import { useUser } from "@/hooks/UserContext";
-import { createClient } from "@/lib/supabase/client";
-import { useState } from "react";
+'use client';
+import { useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
+import { createClient } from '@/lib/supabase/client';
 
-const AddComment: React.FC<any> = ({
-  post,
-  user_id,
-  fetchComments,
-  fetchReplies,
-  parent_id,
-}) => {
-  const [content, setContent] = useState("");
+const AddComment: React.FC<any> = ({ post, user_id, fetchComments, fetchReplies, parent_id }) => {
+  const [content, setContent] = useState('');
   const postId = post.id;
   const { user } = useUser();
 
@@ -20,16 +14,16 @@ const AddComment: React.FC<any> = ({
     e.preventDefault();
 
     if (!user_id) {
-      alert("You must be logged in to comment");
+      alert('You must be logged in to comment');
       return;
     }
 
     const { data, error } = await supabase
-      .from("comments")
+      .from('comments')
       .insert([{ post_id: postId, user_id: user_id, content, parent_id }])
       .select();
 
-    const { error: incrementError } = await supabase.rpc("increment_comments", {
+    const { error: incrementError } = await supabase.rpc('increment_comments', {
       post_id: postId,
     });
     if (incrementError) throw incrementError;
@@ -37,7 +31,7 @@ const AddComment: React.FC<any> = ({
     if (error) {
       console.error(error);
     } else {
-      setContent("");
+      setContent('');
 
       if (parent_id) {
         await fetchReplies(parent_id); // Fetch replies when a reply is added
@@ -52,11 +46,7 @@ const AddComment: React.FC<any> = ({
       onSubmit={handleSubmit}
       className="md:text-s4 flex w-full flex-row items-center gap-2 border-t border-foreground/10 bg-background px-2"
     >
-      <img
-        src={user.image_url}
-        alt="prof_picture"
-        className="aspect-square h-8 rounded-full"
-      />
+      <img src={user.image_url} alt="prof_picture" className="aspect-square h-8 rounded-full" />
       <input
         type="text"
         value={content}

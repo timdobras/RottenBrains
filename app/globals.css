@@ -2,7 +2,7 @@
   1. Import your font (if you still want it in globals.css).
   2. Then import Tailwind layers in order.
 */
-@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -247,8 +247,7 @@
 
 .loader {
   @apply mt-4 h-12 w-12 rounded-full border-4 border-t-4 border-solid;
-  border-color: theme("colors.accent.DEFAULT") transparent transparent
-    transparent;
+  border-color: theme('colors.accent.DEFAULT') transparent transparent transparent;
   animation: spin 1s linear infinite;
 }
 @keyframes spin {
@@ -281,13 +280,7 @@
     black 50%,
     black 100%
   );
-  mask-image: linear-gradient(
-    to top,
-    transparent 0%,
-    transparent 25%,
-    black 50%,
-    black 100%
-  );
+  mask-image: linear-gradient(to top, transparent 0%, transparent 25%, black 50%, black 100%);
 }
 .mask2 {
   -webkit-mask-image: linear-gradient(
@@ -314,16 +307,8 @@
 .page-loader {
   width: 55px;
   aspect-ratio: 1;
-  --g1: conic-gradient(
-    from 90deg at 3px 3px,
-    #0000 90deg,
-    hsl(var(--foreground)) 0
-  );
-  --g2: conic-gradient(
-    from -90deg at 22px 22px,
-    #0000 90deg,
-    hsl(var(--foreground)) 0
-  );
+  --g1: conic-gradient(from 90deg at 3px 3px, #0000 90deg, hsl(var(--foreground)) 0);
+  --g2: conic-gradient(from -90deg at 22px 22px, #0000 90deg, hsl(var(--foreground)) 0);
   background: var(--g1), var(--g1), var(--g1), var(--g2), var(--g2), var(--g2);
   background-size: 25px 25px;
   background-repeat: no-repeat;
@@ -381,11 +366,7 @@
 }
 
 .gradient-edge {
-  background: linear-gradient(
-    90deg,
-    rgba(15, 15, 15, 0) 0%,
-    hsl(var(--background)) 100%
-  );
+  background: linear-gradient(90deg, rgba(15, 15, 15, 0) 0%, hsl(var(--background)) 100%);
 }
 
 .gradient-explore {

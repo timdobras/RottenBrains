@@ -1,18 +1,12 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { getCommentReplies } from "@/lib/supabase/clientQueries";
-import Link from "next/link";
-import AddComment from "./AddCommentModal";
-import { getRepliesByCommentId } from "@/lib/supabase/serverQueries";
-import { getRelativeTime } from "@/lib/utils";
+'use client';
+import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import { getCommentReplies } from '@/lib/supabase/clientQueries';
+import { getRepliesByCommentId } from '@/lib/supabase/serverQueries';
+import { getRelativeTime } from '@/lib/utils';
+import AddComment from './AddCommentModal';
 
-const CommentCard = ({
-  comment,
-  post,
-  user_id,
-  fetchComments,
-  fetchReplies,
-}: any) => {
+const CommentCard = ({ comment, post, user_id, fetchComments, fetchReplies }: any) => {
   const [reply, setReply] = useState(false);
   const [replies, setReplies] = useState<any[]>(comment.replies);
   const creator = comment.commenter;
@@ -40,10 +34,10 @@ const CommentCard = ({
         <div className="flex w-full flex-col gap-1">
           <div className="flex flex-row items-center gap-2">
             <p className="text-sm">
-              <Link href={"/"} className="mr-2 font-medium">
+              <Link href={'/'} className="mr-2 font-medium">
                 {creator.username}
               </Link>
-              {"  "}
+              {'  '}
               {comment.content}
             </p>
           </div>

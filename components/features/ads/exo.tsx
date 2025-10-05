@@ -1,18 +1,14 @@
 // components/AdComponent.tsx
 
-"use client";
+'use client';
 
-import Script from "next/script";
+import Script from 'next/script';
 
 export default function AdComponent() {
   return (
     <>
       {/* The async script for loading the ad provider */}
-      <Script
-        async
-        src="https://a.magsrv.com/ad-provider.js"
-        strategy="afterInteractive"
-      />
+      <Script async src="https://a.magsrv.com/ad-provider.js" strategy="afterInteractive" />
 
       {/* The ad <ins> element itself */}
       <ins

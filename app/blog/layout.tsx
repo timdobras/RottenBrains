@@ -1,9 +1,5 @@
-import React from "react";
+import React from 'react';
 
-export default async function BlogLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function BlogLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

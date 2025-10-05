@@ -1,27 +1,24 @@
-import { MobileVideoProvider } from "@/hooks/MobileVideoContext";
-import Banner_90x728 from "@/components/features/ads/Banner_90x728";
-import {
-  fetchContinueWatching,
-  fetchNewEpisodes,
-} from "@/lib/server/homeFunctions";
-import { fetchPostsData } from "@/lib/server/fetchPostsData";
-import HomePostCardUI from "@/components/features/posts/HomePostCardUI";
+import { ErrorBoundary } from '@/components/common/ErrorBoundry';
+import Banner_90x728 from '@/components/features/ads/Banner_90x728';
+import MobileBannerPem from '@/components/features/ads/Fullscreen';
+import AdBanner from '@/components/features/ads/GoogleDisplayAd';
+import MobileBannerExoAlt from '@/components/features/ads/Message';
+import MobileBannerExo42 from '@/components/features/ads/Notification';
+import GenreSelector from '@/components/features/home/GenreSelector';
+import HorizontalScroll from '@/components/features/home/HorizontalScroll';
+import InfiniteScrollHome from '@/components/features/home/InfiniteScroll';
+import MediaCardUI from '@/components/features/media/MediaCardUI';
+import NavTop from '@/components/features/navigation/mobile/NavTop';
+import HomePostCardUI from '@/components/features/posts/HomePostCardUI';
+import { MobileVideoProvider } from '@/hooks/MobileVideoContext';
+import VideoContextSetter from '@/hooks/VideoContextSetter';
+import { fetchPostsData } from '@/lib/server/fetchPostsData';
+import { fetchContinueWatching, fetchNewEpisodes } from '@/lib/server/homeFunctions';
 import {
   getCurrentUser,
   getTopMovieGenresForUser,
   getTopTvGenresForUser,
-} from "@/lib/supabase/serverQueries";
-import MediaCardUI from "@/components/features/media/MediaCardUI";
-import NavTop from "@/components/features/navigation/mobile/NavTop";
-import GenreSelector from "@/components/features/home/GenreSelector";
-import InfiniteScrollHome from "@/components/features/home/InfiniteScroll";
-import HorizontalScroll from "@/components/features/home/HorizontalScroll";
-import { ErrorBoundary } from "@/components/common/ErrorBoundry";
-import AdBanner from "@/components/features/ads/GoogleDisplayAd";
-import MobileBannerExo42 from "@/components/features/ads/Notification";
-import MobileBannerExoAlt from "@/components/features/ads/Message";
-import MobileBannerPem from "@/components/features/ads/Fullscreen";
-import VideoContextSetter from "@/hooks/VideoContextSetter";
+} from '@/lib/supabase/serverQueries';
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -35,46 +32,29 @@ export default async function Page() {
   if (user) {
     const user_id = user.id.toString();
     // Fetch data in parallel
-    const [
-      postsResult,
-      continueWatchingResult,
-      movieGenresResult,
-      tvGenresResult,
-    ] = await Promise.allSettled([
-      fetchPostsData(user_id),
-      fetchContinueWatching(user_id),
-      getTopMovieGenresForUser(undefined, user),
-      getTopTvGenresForUser(undefined, user),
-    ]);
+    const [postsResult, continueWatchingResult, movieGenresResult, tvGenresResult] =
+      await Promise.allSettled([
+        fetchPostsData(user_id),
+        fetchContinueWatching(user_id),
+        getTopMovieGenresForUser(undefined, user),
+        getTopTvGenresForUser(undefined, user),
+      ]);
 
-    followedPosts = postsResult.status === "fulfilled" ? postsResult.value : [];
+    followedPosts = postsResult.status === 'fulfilled' ? postsResult.value : [];
     continue_watching =
-      continueWatchingResult.status === "fulfilled"
-        ? continueWatchingResult.value
-        : [];
-    movie_genres =
-      movieGenresResult.status === "fulfilled" ? movieGenresResult.value : [];
-    tv_genres =
-      tvGenresResult.status === "fulfilled" ? tvGenresResult.value : [];
+      continueWatchingResult.status === 'fulfilled' ? continueWatchingResult.value : [];
+    movie_genres = movieGenresResult.status === 'fulfilled' ? movieGenresResult.value : [];
+    tv_genres = tvGenresResult.status === 'fulfilled' ? tvGenresResult.value : [];
   }
-
-  console.log(continue_watching[0]);
 
   return (
     <MobileVideoProvider>
-      <div
-        className="flex w-full flex-col gap-8 md:w-auto md:py-0"
-        id="main-content"
-      >
+      <div className="flex w-full flex-col gap-8 md:w-auto md:py-0" id="main-content">
         <NavTop />
-        <ErrorBoundary
-          fallback={<div>Could not load "Continue Watching".</div>}
-        >
+        <ErrorBoundary fallback={<div>Could not load &quot;Continue Watching&quot;.</div>}>
           {user ? (
             <section className="mt-14 md:mt-0">
-              <p className="mb-4 hidden font-medium md:flex md:text-lg">
-                Continue Watching
-              </p>
+              <p className="mb-4 hidden font-medium md:flex md:text-lg">Continue Watching</p>
               {continue_watching.length > 0 ? (
                 <>
                   {/* <VideoContextSetter
@@ -85,16 +65,8 @@ export default async function Page() {
                   /> */}
                   <HorizontalScroll>
                     {continue_watching.map((media: any) => (
-                      <div
-                        key={media.id}
-                        className="snap-start scroll-ml-4 md:scroll-ml-8"
-                      >
-                        <MediaCardUI
-                          media={media}
-                          user_id={user.id}
-                          rounded
-                          showRemoveButton
-                        />
+                      <div key={media.id} className="snap-start scroll-ml-4 md:scroll-ml-8">
+                        <MediaCardUI media={media} user_id={user.id} rounded showRemoveButton />
                       </div>
                     ))}
                   </HorizontalScroll>
@@ -112,9 +84,7 @@ export default async function Page() {
                 alt=""
                 className="invert-on-dark aspect-square h-12 opacity-50"
               />
-              <p className="text-foreground/50">
-                Log in to see your watch history
-              </p>
+              <p className="text-foreground/50">Log in to see your watch history</p>
             </div>
           )}
         </ErrorBoundary>
@@ -134,10 +104,7 @@ export default async function Page() {
                         key={post.id}
                         className="flex w-[80vw] flex-shrink-0 snap-start scroll-ml-4 md:w-fit"
                       >
-                        <HomePostCardUI
-                          post_media_data={post}
-                          user_id={user.id}
-                        />
+                        <HomePostCardUI post_media_data={post} user_id={user.id} />
                       </div>
                     ))
                   ) : (
@@ -162,11 +129,7 @@ export default async function Page() {
 
         <GenreSelector />
 
-        <InfiniteScrollHome
-          user_id={user?.id}
-          movie_genres={movie_genres}
-          tv_genres={tv_genres}
-        />
+        <InfiniteScrollHome user_id={user?.id} movie_genres={movie_genres} tv_genres={tv_genres} />
 
         <div className="h-16 w-full" />
       </div>

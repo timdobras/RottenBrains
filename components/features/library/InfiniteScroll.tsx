@@ -1,12 +1,9 @@
-"use client";
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useInView } from "react-intersection-observer";
-import { useToast } from "@/components/ui/use-toast";
-import {
-  getWatchListSpecific,
-  removeFromWatchList,
-} from "@/lib/supabase/clientQueries";
-import MediaCardClient from "../media/MediaCardClient";
+'use client';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { useToast } from '@/components/ui/use-toast';
+import { getWatchListSpecific, removeFromWatchList } from '@/lib/supabase/clientQueries';
+import MediaCardClient from '../media/MediaCardClient';
 
 interface WatchListInfiniteScrollProps {
   watchListType: string; // e.g. "watched", "planned", "watching"
@@ -33,12 +30,7 @@ const WatchListInfiniteScroll: React.FC<WatchListInfiniteScrollProps> = ({
     setLoading(true);
     try {
       const offset = page * limit;
-      const result = await getWatchListSpecific(
-        userId,
-        limit,
-        offset,
-        watchListType,
-      );
+      const result = await getWatchListSpecific(userId, limit, offset, watchListType);
 
       if (!result || result.length === 0) {
         setHasMore(false);
@@ -47,7 +39,7 @@ const WatchListInfiniteScroll: React.FC<WatchListInfiniteScrollProps> = ({
         setPage((prev) => prev + 1);
       }
     } catch (error) {
-      console.error("Error fetching watch list items:", error);
+      console.error('Error fetching watch list items:', error);
     } finally {
       setLoading(false);
     }
@@ -68,7 +60,7 @@ const WatchListInfiniteScroll: React.FC<WatchListInfiniteScrollProps> = ({
       await removeFromWatchList(mediaItem.id);
       // 2) Update local state so it's removed from the UI
     } catch (error) {
-      console.error("Removal failed:", error);
+      console.error('Removal failed:', error);
     } finally {
       toast({
         title: `${mediaItem.id} removed from ${watchListType}`,
@@ -76,11 +68,8 @@ const WatchListInfiniteScroll: React.FC<WatchListInfiniteScrollProps> = ({
       setMediaItems((prev) =>
         prev.filter(
           (item) =>
-            !(
-              item.media_type === mediaItem.media_type &&
-              item.media_id === mediaItem.media_id
-            ),
-        ),
+            !(item.media_type === mediaItem.media_type && item.media_id === mediaItem.media_id)
+        )
       );
     }
   };

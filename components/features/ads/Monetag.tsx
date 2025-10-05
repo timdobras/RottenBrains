@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useUser } from "@/hooks/UserContext";
+import React, { useEffect, useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
 
 const MonetagAd: React.FC = () => {
   const [adBlocked, setAdBlocked] = useState(false);
@@ -14,13 +14,13 @@ const MonetagAd: React.FC = () => {
       if (!scriptLoaded) setAdBlocked(true);
     }, 3000);
 
-    const adScript = document.createElement("script");
-    adScript.type = "text/javascript";
-    adScript.setAttribute("data-cfasync", "false");
+    const adScript = document.createElement('script');
+    adScript.type = 'text/javascript';
+    adScript.setAttribute('data-cfasync', 'false');
     adScript.innerHTML = `(() => { <script>(function(s,u,z,p){s.src=u,s.setAttribute('data-zone',z),p.appendChild(s);})(document.createElement('script'),'https://shebudriftaiter.net/tag.min.js',8939144,document.body||document.documentElement)</script>})();`;
 
-    const fallbackScript = document.createElement("script");
-    fallbackScript.type = "text/javascript";
+    const fallbackScript = document.createElement('script');
+    fallbackScript.type = 'text/javascript';
     fallbackScript.innerHTML = `
       (function(d,z,s,c){
         s.src='//offfurreton.com/400/8939142';
@@ -40,7 +40,7 @@ const MonetagAd: React.FC = () => {
       clearTimeout(timeoutId);
     };
 
-    const adContainer = document.getElementById("monetag-ad-container");
+    const adContainer = document.getElementById('monetag-ad-container');
     if (adContainer) {
       adContainer.appendChild(adScript);
       adContainer.appendChild(fallbackScript);
@@ -55,9 +55,7 @@ const MonetagAd: React.FC = () => {
     return <div className="text-center">Ad blocked or not loaded.</div>;
   }
 
-  return (
-    <div id="monetag-ad-container" className="h-[50px] w-full bg-gray-200" />
-  );
+  return <div id="monetag-ad-container" className="h-[50px] w-full bg-gray-200" />;
 };
 
 export default MonetagAd;

@@ -1,26 +1,25 @@
-"use client";
-import React, { useEffect, useState, useMemo } from "react";
-import { redirect, usePathname, useRouter } from "next/navigation";
-import { useUser } from "@/hooks/UserContext";
-
-import movie_genres_json from "@/lib/constants/movie_genres.json";
-import tv_genres_json from "@/lib/constants/tv_genres.json";
+'use client';
+import { redirect, usePathname, useRouter } from 'next/navigation';
+import React, { useEffect, useState, useMemo } from 'react';
+import Modal from '@/components/features/profile/Modal';
+import { useUser } from '@/hooks/UserContext';
+import movie_genres_json from '@/lib/constants/movie_genres.json';
+import tv_genres_json from '@/lib/constants/tv_genres.json';
 import {
   getTopMovieGenresForUser,
   getTopTvGenresForUser,
   updateUserFeedGenres,
-} from "@/lib/supabase/clientQueries";
-import Modal from "@/components/features/profile/Modal";
+} from '@/lib/supabase/clientQueries';
 
 export interface Genre {
   id: number;
   name: string;
-  media_type: "movie" | "tv";
+  media_type: 'movie' | 'tv';
 }
 
 interface RecommendedGenre {
   genre_code: string;
-  media_type: "movie" | "tv";
+  media_type: 'movie' | 'tv';
   value?: number;
 }
 
@@ -28,7 +27,7 @@ type UnifiedGenre = Genre | RecommendedGenre;
 
 interface FeedGenre {
   genre_code: string;
-  media_type: "movie" | "tv";
+  media_type: 'movie' | 'tv';
 }
 
 type GenreSelectorProps = {
@@ -36,22 +35,15 @@ type GenreSelectorProps = {
   genre_id?: number;
 };
 
-const GenreSelector: React.FC<GenreSelectorProps> = ({
-  media_type,
-  genre_id,
-}) => {
+const GenreSelector: React.FC<GenreSelectorProps> = ({ media_type, genre_id }) => {
   const { user } = useUser();
   const router = useRouter();
 
-  const [feedGenres, setFeedGenres] = useState<FeedGenre[]>(
-    user?.feed_genres || [],
+  const [feedGenres, setFeedGenres] = useState<FeedGenre[]>(user?.feed_genres || []);
+  const [topRecommendedGenres, setTopRecommendedGenres] = useState<RecommendedGenre[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<'Recommended' | 'movie' | 'tv' | 'Home'>(
+    'Recommended'
   );
-  const [topRecommendedGenres, setTopRecommendedGenres] = useState<
-    RecommendedGenre[]
-  >([]);
-  const [selectedCategory, setSelectedCategory] = useState<
-    "Recommended" | "movie" | "tv" | "Home"
-  >("Recommended");
 
   const [loading, setLoading] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -69,19 +61,19 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
   // ---------------------------
   const movieGenres: Genre[] = movie_genres_json.genres.map((genre: any) => ({
     ...genre,
-    media_type: "movie",
+    media_type: 'movie',
   }));
   const tvGenres: Genre[] = tv_genres_json.genres.map((genre: any) => ({
     ...genre,
-    media_type: "tv",
+    media_type: 'tv',
   }));
 
   // Update selected category based on the URL
   useEffect(() => {
-    if (media_type === "movie" || media_type === "tv") {
+    if (media_type === 'movie' || media_type === 'tv') {
       setSelectedCategory(media_type);
     } else {
-      setSelectedCategory("Recommended");
+      setSelectedCategory('Recommended');
     }
   }, [media_type]);
 
@@ -103,28 +95,28 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
         const combinedGenres: RecommendedGenre[] = [
           ...(topMovies?.map((genre: any) => ({
             ...genre,
-            media_type: "movie",
+            media_type: 'movie',
           })) || []),
           ...(topTVs?.map((genre: any) => ({
             ...genre,
-            media_type: "tv",
+            media_type: 'tv',
           })) || []),
         ];
 
         setTopRecommendedGenres(combinedGenres);
       } catch (error) {
-        console.error("Error fetching recommended genres:", error);
+        console.error('Error fetching recommended genres:', error);
       } finally {
         setLoading(false);
       }
     };
 
     const getGenresNoUser = async () => {
-      console.log("NO USER");
+      console.log('NO USER');
       setTopRecommendedGenres([]);
     };
 
-    if (selectedCategory === "Recommended") {
+    if (selectedCategory === 'Recommended') {
       if (user) {
         fetchRecommendedGenres();
       } else {
@@ -139,11 +131,11 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
   // Decide which set of genres to display in the category row
   const getGenres = useMemo<UnifiedGenre[]>(() => {
     switch (selectedCategory) {
-      case "movie":
+      case 'movie':
         return movieGenres;
-      case "tv":
+      case 'tv':
         return tvGenres;
-      case "Recommended":
+      case 'Recommended':
         return topRecommendedGenres;
       default:
         return [];
@@ -152,9 +144,9 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
 
   // Helper to retrieve genre name from ID
   const getGenreName = (genreId: number, mediaType: string) => {
-    let genres = mediaType === "movie" ? movieGenres : tvGenres;
+    const genres = mediaType === 'movie' ? movieGenres : tvGenres;
     const genre = genres.find((g) => g.id === genreId);
-    return genre ? genre.name : "Unknown";
+    return genre ? genre.name : 'Unknown';
   };
 
   // Type guard to check if item is a standard Genre (vs. recommended)
@@ -165,17 +157,17 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
   // ---------------------------
   // 6. CLICK HANDLERS
   // ---------------------------
-  const handleGenreClick = (genreId: number, mediaType: "movie" | "tv") => {
+  const handleGenreClick = (genreId: number, mediaType: 'movie' | 'tv') => {
     router.push(`/genre/${mediaType}/${genreId}`);
   };
 
   const handleRecommendedClick = () => {
-    setSelectedCategory("Recommended");
-    redirect("/");
+    setSelectedCategory('Recommended');
+    redirect('/');
   };
 
   // Add genre to feed (optimistic update)
-  const addGenreToFeed = async (genreId: number, mediaType: "movie" | "tv") => {
+  const addGenreToFeed = async (genreId: number, mediaType: 'movie' | 'tv') => {
     if (!user_id) return;
 
     const oldFeedGenres = [...feedGenres];
@@ -189,43 +181,30 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
     setFeedGenres(updatedFeedGenres);
 
     // Persist to Supabase
-    const { error } = await updateUserFeedGenres(
-      user_id.toString(),
-      updatedFeedGenres,
-    );
+    const { error } = await updateUserFeedGenres(user_id.toString(), updatedFeedGenres);
     if (error) {
-      console.error("Failed to add genre:", error);
+      console.error('Failed to add genre:', error);
       // Revert on error
       setFeedGenres(oldFeedGenres);
     }
   };
 
   // Remove genre from feed (optimistic update)
-  const removeGenreFromFeed = async (
-    genreId: number,
-    mediaType: "movie" | "tv",
-  ) => {
+  const removeGenreFromFeed = async (genreId: number, mediaType: 'movie' | 'tv') => {
     if (!user_id) return;
 
     const oldFeedGenres = [...feedGenres];
     const updatedFeedGenres = feedGenres.filter(
-      (item) =>
-        !(
-          item.genre_code === genreId.toString() &&
-          item.media_type === mediaType
-        ),
+      (item) => !(item.genre_code === genreId.toString() && item.media_type === mediaType)
     );
 
     // Optimistic update
     setFeedGenres(updatedFeedGenres);
 
     // Persist to Supabase
-    const { error } = await updateUserFeedGenres(
-      user_id.toString(),
-      updatedFeedGenres,
-    );
+    const { error } = await updateUserFeedGenres(user_id.toString(), updatedFeedGenres);
     if (error) {
-      console.error("Failed to remove genre:", error);
+      console.error('Failed to remove genre:', error);
       // Revert on error
       setFeedGenres(oldFeedGenres);
     }
@@ -256,9 +235,9 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
       {user ? (
         <button
           className={`h-full rounded-full px-4 ${
-            selectedCategory === "Recommended"
-              ? "bg-foreground text-background"
-              : "bg-foreground/10"
+            selectedCategory === 'Recommended'
+              ? 'bg-foreground text-background'
+              : 'bg-foreground/10'
           }`}
           onClick={handleRecommendedClick}
         >
@@ -267,9 +246,9 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
       ) : (
         <button
           className={`h-full rounded-full px-4 ${
-            selectedCategory === "Recommended"
-              ? "bg-foreground text-background"
-              : "bg-foreground/10"
+            selectedCategory === 'Recommended'
+              ? 'bg-foreground text-background'
+              : 'bg-foreground/10'
           }`}
           onClick={handleRecommendedClick}
         >
@@ -278,21 +257,17 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
       )}
       <button
         className={`h-full rounded-full px-4 ${
-          selectedCategory === "movie"
-            ? "bg-foreground text-background"
-            : "bg-foreground/10"
+          selectedCategory === 'movie' ? 'bg-foreground text-background' : 'bg-foreground/10'
         }`}
-        onClick={() => setSelectedCategory("movie")}
+        onClick={() => setSelectedCategory('movie')}
       >
         Movies
       </button>
       <button
         className={`h-full rounded-full px-4 ${
-          selectedCategory === "tv"
-            ? "bg-foreground text-background"
-            : "bg-foreground/10"
+          selectedCategory === 'tv' ? 'bg-foreground text-background' : 'bg-foreground/10'
         }`}
-        onClick={() => setSelectedCategory("tv")}
+        onClick={() => setSelectedCategory('tv')}
       >
         TV
       </button>
@@ -301,7 +276,7 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
         getGenres.map((genre) => {
           let genreName: string;
           let genreId: number;
-          let mediaType: "movie" | "tv";
+          let mediaType: 'movie' | 'tv';
 
           if (isGenre(genre)) {
             // It's a standard Genre
@@ -316,16 +291,13 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
           }
 
           // Highlight if this genre matches the URL
-          const isSelected =
-            media_type === mediaType && Number(genre_id) === genreId;
+          const isSelected = media_type === mediaType && Number(genre_id) === genreId;
 
           return (
             <button
               key={`${mediaType}-${genreId}`}
               className={`flex h-full flex-shrink-0 items-center rounded-full px-4 ${
-                isSelected
-                  ? "bg-foreground text-background"
-                  : "bg-foreground/10"
+                isSelected ? 'bg-foreground text-background' : 'bg-foreground/10'
               }`}
               onClick={() => handleGenreClick(genreId, mediaType)}
             >
@@ -345,9 +317,8 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
         <div className="w-full">
           <h2 className="mb-2 text-lg font-medium">Your Genres</h2>
           <p className="mb-4 text-sm text-foreground/60">
-            These genres will be used to build your custom feed. You can also
-            filter out the content on your feed by removing the genres you
-            don&apos;t want to see on your home page.
+            These genres will be used to build your custom feed. You can also filter out the content
+            on your feed by removing the genres you don&apos;t want to see on your home page.
           </p>
 
           {/* Movie Genres in Feed */}
@@ -357,13 +328,12 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
               .filter((genre) =>
                 feedGenres.some(
                   (feedGenre) =>
-                    feedGenre.genre_code === genre.id.toString() &&
-                    feedGenre.media_type === "movie",
-                ),
+                    feedGenre.genre_code === genre.id.toString() && feedGenre.media_type === 'movie'
+                )
               )
               .map((genre) => (
                 <button
-                  onClick={() => removeGenreFromFeed(genre.id, "movie")}
+                  onClick={() => removeGenreFromFeed(genre.id, 'movie')}
                   key={genre.id}
                   className="flex flex-shrink-0 flex-row items-center gap-2 rounded-[8px] bg-foreground px-3 py-1 text-background"
                 >
@@ -380,13 +350,12 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
               .filter((genre) =>
                 feedGenres.some(
                   (feedGenre) =>
-                    feedGenre.genre_code === genre.id.toString() &&
-                    feedGenre.media_type === "tv",
-                ),
+                    feedGenre.genre_code === genre.id.toString() && feedGenre.media_type === 'tv'
+                )
               )
               .map((genre) => (
                 <button
-                  onClick={() => removeGenreFromFeed(genre.id, "tv")}
+                  onClick={() => removeGenreFromFeed(genre.id, 'tv')}
                   key={genre.id}
                   className="flex flex-shrink-0 flex-row items-center gap-2 rounded-[8px] bg-foreground px-3 py-1 text-background"
                 >
@@ -398,8 +367,8 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
 
           <h2 className="mb-2 text-lg font-medium">Other Genres</h2>
           <p className="mb-4 text-sm text-foreground/60">
-            Genres that are here will not be included in your recommendations
-            and will not show up on your home page.
+            Genres that are here will not be included in your recommendations and will not show up
+            on your home page.
           </p>
 
           {/* Excluded Movie Genres */}
@@ -411,12 +380,12 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
                   !feedGenres.some(
                     (feedGenre) =>
                       feedGenre.genre_code === genre.id.toString() &&
-                      feedGenre.media_type === "movie",
-                  ),
+                      feedGenre.media_type === 'movie'
+                  )
               )
               .map((genre) => (
                 <button
-                  onClick={() => addGenreToFeed(genre.id, "movie")}
+                  onClick={() => addGenreToFeed(genre.id, 'movie')}
                   key={genre.id}
                   className="flex flex-shrink-0 flex-row items-center gap-2 rounded-[8px] bg-foreground/10 px-3 py-1"
                 >
@@ -434,13 +403,12 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
                 (genre) =>
                   !feedGenres.some(
                     (feedGenre) =>
-                      feedGenre.genre_code === genre.id.toString() &&
-                      feedGenre.media_type === "tv",
-                  ),
+                      feedGenre.genre_code === genre.id.toString() && feedGenre.media_type === 'tv'
+                  )
               )
               .map((genre) => (
                 <button
-                  onClick={() => addGenreToFeed(genre.id, "tv")}
+                  onClick={() => addGenreToFeed(genre.id, 'tv')}
                   key={genre.id}
                   className="flex flex-shrink-0 flex-row items-center gap-2 rounded-[8px] bg-foreground/10 px-3 py-1"
                 >

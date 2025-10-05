@@ -1,7 +1,7 @@
-"use client";
-import { useUser } from "@/hooks/UserContext";
-import { removeSave, savePost } from "@/lib/client/updatePostData";
-import { useCallback, useEffect, useState } from "react";
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
+import { removeSave, savePost } from '@/lib/client/updatePostData';
 
 const SaveButton: React.FC<any> = ({ post }: any) => {
   const [saved, setSaved] = useState<boolean>(post.has_saved);
@@ -20,7 +20,7 @@ const SaveButton: React.FC<any> = ({ post }: any) => {
         }
       } catch (error) {
         setSaved((prevSaved) => !prevSaved); // Revert if there's an error
-        console.error("Error saving or removing save:", error);
+        console.error('Error saving or removing save:', error);
       }
     }
   }, [userId, postId, saved]);
@@ -33,7 +33,7 @@ const SaveButton: React.FC<any> = ({ post }: any) => {
     <button onClick={handleSave}>
       {saved ? (
         <img
-          src={"/assets/icons/bookmark-solid.svg"}
+          src={'/assets/icons/bookmark-solid.svg'}
           alt="Saved"
           width={30}
           height={30}
@@ -41,7 +41,7 @@ const SaveButton: React.FC<any> = ({ post }: any) => {
         />
       ) : (
         <img
-          src={"/assets/icons/bookmark-outline.svg"}
+          src={'/assets/icons/bookmark-outline.svg'}
           alt="Not Saved"
           width={30}
           height={30}

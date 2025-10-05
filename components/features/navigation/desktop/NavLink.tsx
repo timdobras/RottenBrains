@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FC, SVGProps } from "react";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { FC, SVGProps } from 'react';
 
 interface NavLinkProps {
   href: string;
@@ -9,18 +9,13 @@ interface NavLinkProps {
   label?: string;
 }
 
-const NavLink: FC<NavLinkProps> = ({
-  href,
-  icon: Icon,
-  icon_fill: IconFill,
-  label,
-}) => {
+const NavLink: FC<NavLinkProps> = ({ href, icon: Icon, icon_fill: IconFill, label }) => {
   const pathname = usePathname();
   const isActive =
-    href === "/" && pathname === "/"
+    href === '/' && pathname === '/'
       ? true
-      : href !== "/"
-        ? pathname.includes(href.split("/").pop()!)
+      : href !== '/'
+        ? pathname.includes(href.split('/').pop()!)
         : false;
 
   return (
@@ -30,15 +25,9 @@ const NavLink: FC<NavLinkProps> = ({
         isActive ? `text-accent` : `text-foreground`
       }`}
     >
-      <div
-        className={`flex flex-row items-center gap-4 ${!label ? "justify-center" : ""}`}
-      >
+      <div className={`flex flex-row items-center gap-4 ${!label ? 'justify-center' : ''}`}>
         {isActive && IconFill ? (
-          <IconFill
-            className="flex-shrink-0 fill-current"
-            width={24}
-            height={24}
-          />
+          <IconFill className="flex-shrink-0 fill-current" width={24} height={24} />
         ) : (
           <Icon className="flex-shrink-0 fill-current" width={24} height={24} />
         )}

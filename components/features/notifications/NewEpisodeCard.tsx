@@ -1,14 +1,13 @@
-import React, { FC } from "react";
-import ImageWithFallback from "../media/ImageWithFallback";
-import Link from "next/link";
-import { formatEpisodeCode, getRelativeTime } from "@/lib/utils";
+import Link from 'next/link';
+import React, { FC } from 'react';
+import { formatEpisodeCode, getRelativeTime } from '@/lib/utils';
+import ImageWithFallback from '../media/ImageWithFallback';
 
 interface NewEpisodeCardProps {
   notification: any;
 }
 
 const NewEpisodeCard: FC<NewEpisodeCardProps> = ({ notification }) => {
-  console.log(notification);
   const imageUrl =
     notification.episode_data.still_path ||
     notification.media_data?.images?.backdrops?.[0]?.file_path ||
@@ -17,7 +16,7 @@ const NewEpisodeCard: FC<NewEpisodeCardProps> = ({ notification }) => {
     <div className="flex w-full flex-row gap-4 p-4">
       <div className="flex w-full flex-col gap-4">
         <p className="text-lg">
-          There is a new episode from:{" "}
+          There is a new episode from:{' '}
           <Link
             className="text-primary"
             href={`/protected/media/${notification.media_type}/${notification.media_id}`}
@@ -31,11 +30,8 @@ const NewEpisodeCard: FC<NewEpisodeCardProps> = ({ notification }) => {
         >
           <div className="flex flex-col gap-2">
             <p className="text-lg">
-              {notification.episode_data.name} |{" "}
-              {formatEpisodeCode(
-                notification.season_number,
-                notification.episode_number,
-              )}{" "}
+              {notification.episode_data.name} |{' '}
+              {formatEpisodeCode(notification.season_number, notification.episode_number)}{' '}
             </p>
             <p className="line-clamp-3 text-sm text-foreground/50">
               {notification.episode_data.overview}
@@ -48,9 +44,7 @@ const NewEpisodeCard: FC<NewEpisodeCardProps> = ({ notification }) => {
             ></ImageWithFallback>
           </div>
         </Link>
-        <p className="text-sm text-foreground/50">
-          {getRelativeTime(notification.created_at)}
-        </p>
+        <p className="text-sm text-foreground/50">{getRelativeTime(notification.created_at)}</p>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from 'react';
 
 interface WatchDurationProps {
   media_type: string;
@@ -32,9 +32,9 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
     while (retryQueueRef.current.length > 0) {
       const payload = retryQueueRef.current[0];
       try {
-        const response = await fetch("/api/saveWatchTime", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/saveWatchTime', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
 
@@ -64,7 +64,7 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
       const totalMediaSeconds = media_duration * 60;
       const percentageWatched = Math.min(
         (accumulatedTimeRef.current / totalMediaSeconds) * 100,
-        100,
+        100
       );
 
       const payload = {
@@ -77,10 +77,7 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
         percentage_watched: percentageWatched.toFixed(2),
       };
 
-      const sent = navigator.sendBeacon(
-        "/api/saveWatchTime",
-        JSON.stringify(payload),
-      );
+      const sent = navigator.sendBeacon('/api/saveWatchTime', JSON.stringify(payload));
 
       if (!sent) {
         retryQueueRef.current.push(payload);
@@ -102,9 +99,9 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
   ]);
 
   const handleVisibilityChange = useCallback(() => {
-    if (document.visibilityState === "hidden") {
+    if (document.visibilityState === 'hidden') {
       sendWatchData();
-    } else if (document.visibilityState === "visible") {
+    } else if (document.visibilityState === 'visible') {
       startTimeRef.current = Date.now();
     }
   }, [sendWatchData]);
@@ -117,19 +114,22 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
     startTimeRef.current = Date.now();
     accumulatedTimeRef.current = 0;
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", sendWatchData);
-    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', sendWatchData);
+    window.addEventListener('pagehide', handlePageHide);
 
     // Reduced interval from 5 minutes to 2 minutes for more frequent saves
-    const intervalId = setInterval(() => {
-      sendWatchData();
-    }, 2 * 60 * 1000);
+    const intervalId = setInterval(
+      () => {
+        sendWatchData();
+      },
+      2 * 60 * 1000
+    );
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", sendWatchData);
-      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', sendWatchData);
+      window.removeEventListener('pagehide', handlePageHide);
       clearInterval(intervalId);
 
       sendWatchData();

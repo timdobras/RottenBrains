@@ -1,11 +1,7 @@
-"use client";
-import { useUser } from "@/hooks/UserContext";
-import {
-  followUser,
-  getFollowStatus,
-  unFollowUser,
-} from "@/lib/client/updateFollowingData";
-import { useEffect, useState } from "react";
+'use client';
+import { useEffect, useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
+import { followUser, getFollowStatus, unFollowUser } from '@/lib/client/updateFollowingData';
 
 interface SaveButtonProps {
   user_to_follow_id: string;
@@ -30,7 +26,7 @@ const FollowButton: React.FC<SaveButtonProps> = ({ user_to_follow_id }) => {
         }
         setFollowed(!followed);
       } catch (error) {
-        console.error("Error following or unfollowing user:", error);
+        console.error('Error following or unfollowing user:', error);
       }
     }
   };
@@ -38,10 +34,7 @@ const FollowButton: React.FC<SaveButtonProps> = ({ user_to_follow_id }) => {
   useEffect(() => {
     const fetchData = async () => {
       if (user) {
-        const isUserFollowed = await getFollowStatus(
-          user.id.toString(),
-          user_to_follow_id,
-        ); // Assuming getSavedStatus is asynchronous
+        const isUserFollowed = await getFollowStatus(user.id.toString(), user_to_follow_id); // Assuming getSavedStatus is asynchronous
         setFollowed(isUserFollowed);
       }
     };
@@ -58,7 +51,7 @@ const FollowButton: React.FC<SaveButtonProps> = ({ user_to_follow_id }) => {
       onClick={handleFollow}
       className="flex items-center justify-center rounded-full bg-foreground/10 px-4 py-1"
     >
-      <p>{`${followed ? "Following" : "Follow back"}`}</p>
+      <p>{`${followed ? 'Following' : 'Follow back'}`}</p>
     </button>
   );
 };

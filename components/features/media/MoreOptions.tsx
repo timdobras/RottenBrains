@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/use-toast";
-import { addToWatchList, updateGenreStats } from "@/lib/supabase/clientQueries";
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/components/ui/use-toast';
+import { addToWatchList, updateGenreStats } from '@/lib/supabase/clientQueries';
 
 type MoreOptionsProps = {
   user_id: string;
@@ -17,27 +17,22 @@ type MoreOptionsProps = {
   genre_ids: bigint[];
 };
 
-const MoreOptions = ({
-  user_id,
-  media_type,
-  media_id,
-  genre_ids,
-}: MoreOptionsProps) => {
+const MoreOptions = ({ user_id, media_type, media_id, genre_ids }: MoreOptionsProps) => {
   const [isSaving, setIsSaving] = useState<string | null>(null); // Set initial state to null
 
   const { toast } = useToast();
 
   const handleSaveToWatchLater = () => {
-    setIsSaving("watch_later");
+    setIsSaving('watch_later');
   };
   const handleSaveToWatching = () => {
-    setIsSaving("watching");
+    setIsSaving('watching');
   };
   const handleSaveToPlanned = () => {
-    setIsSaving("planned");
+    setIsSaving('planned');
   };
   const handleSaveToWatched = () => {
-    setIsSaving("watched");
+    setIsSaving('watched');
   };
 
   useEffect(() => {
@@ -45,13 +40,8 @@ const MoreOptions = ({
       if (isSaving !== null) {
         // Only proceed if isSaving is not null
         try {
-          const data = await addToWatchList(
-            user_id,
-            media_type,
-            media_id,
-            isSaving,
-          );
-          if (!data.includes("Error")) {
+          const data = await addToWatchList(user_id, media_type, media_id, isSaving);
+          if (!data.includes('Error')) {
             await updateGenreStats({
               genreIds: genre_ids,
               mediaType: media_type,
@@ -62,7 +52,7 @@ const MoreOptions = ({
             title: data,
           });
         } catch (error) {
-          console.error("Error saving to watch list", error);
+          console.error('Error saving to watch list', error);
         } finally {
           setIsSaving(null); // Reset isSaving to null after the operation
         }
@@ -81,10 +71,7 @@ const MoreOptions = ({
           className="invert-on-dark h-[20px] w-[20px]"
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="border-none bg-background p-0"
-        align="start"
-      >
+      <DropdownMenuContent className="border-none bg-background p-0" align="start">
         <div className="h-full w-full bg-foreground/10">
           <div
             className="flex h-full w-full flex-row items-center gap-4 p-2 hover:cursor-pointer hover:bg-foreground/20"

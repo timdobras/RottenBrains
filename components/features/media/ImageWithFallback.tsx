@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC } from 'react';
 
 interface ImageWithFallbackProps {
   imageUrl?: string | null; // The URL of the image
@@ -11,9 +11,9 @@ interface ImageWithFallbackProps {
 const ImageWithFallback: FC<ImageWithFallbackProps> = ({
   imageUrl,
   altText,
-  fallbackText = "No image available",
-  fallbackIcon = "/assets/images/logo_new_black.svg",
-  quality = "w500", // Default image quality (w500, w780, w1280, etc.) - w500 for most thumbnails
+  fallbackText = 'No image available',
+  fallbackIcon = '/assets/images/logo_new_black.svg',
+  quality = 'w500', // Default image quality (w500, w780, w1280, etc.) - w500 for most thumbnails
 }) => {
   return imageUrl ? (
     <img
@@ -23,11 +23,7 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
     />
   ) : (
     <div className="flex aspect-[16/9] h-full w-full flex-col items-center justify-center gap-2 bg-foreground/10">
-      <img
-        src={fallbackIcon}
-        alt="Fallback Icon"
-        className="invert-on-dark h-8 w-8 opacity-50"
-      />
+      <img src={fallbackIcon} alt="Fallback Icon" className="invert-on-dark h-8 w-8 opacity-50" />
       <p className="text-xs text-foreground/50">{fallbackText}</p>
     </div>
   );

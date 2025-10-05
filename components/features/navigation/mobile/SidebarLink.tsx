@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FC, SVGProps } from "react";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { FC, SVGProps } from 'react';
 
 interface NavLinkMobileProps {
   href: string;
@@ -9,14 +9,9 @@ interface NavLinkMobileProps {
   label?: string;
 }
 
-const SidebarLink: FC<NavLinkMobileProps> = ({
-  href,
-  icon: Icon,
-  icon_fill: IconFill,
-  label,
-}) => {
+const SidebarLink: FC<NavLinkMobileProps> = ({ href, icon: Icon, icon_fill: IconFill, label }) => {
   const pathname = usePathname();
-  const isActive = pathname.includes(href.split("/").pop()!);
+  const isActive = pathname.includes(href.split('/').pop()!);
 
   return (
     <Link

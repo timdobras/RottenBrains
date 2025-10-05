@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 
 const Native2 = () => {
   const [adBlocked, setAdBlocked] = useState(false);
@@ -16,11 +16,10 @@ const Native2 = () => {
     }, 3000);
 
     // Create the script element
-    const adScript = document.createElement("script");
+    const adScript = document.createElement('script');
     adScript.async = true;
-    adScript.setAttribute("data-cfasync", "false");
-    adScript.src =
-      "//pl25674844.profitablecpmrate.com/abb2ea7a4d3e44fcab41da307b190d27/invoke.js";
+    adScript.setAttribute('data-cfasync', 'false');
+    adScript.src = '//pl25674844.profitablecpmrate.com/abb2ea7a4d3e44fcab41da307b190d27/invoke.js';
 
     // Mark the script as loaded if successful
     adScript.onload = () => {

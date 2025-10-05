@@ -1,6 +1,6 @@
-import { getMediaDetails } from "@/lib/tmdb";
-import React from "react";
-import Link from "next/link";
+import Link from 'next/link';
+import React from 'react';
+import { getMediaDetails } from '@/lib/tmdb';
 
 type MediaInfoProps = {
   media_type: string;
@@ -8,16 +8,12 @@ type MediaInfoProps = {
   season_number?: number;
 };
 
-const MediaInfoComponent = async ({
-  media_type,
-  media_id,
-  season_number,
-}: MediaInfoProps) => {
+const MediaInfoComponent = async ({ media_type, media_id, season_number }: MediaInfoProps) => {
   let mediaData;
   try {
     mediaData = await getMediaDetails(media_type, media_id);
   } catch (error) {
-    console.error("Error fetching media data:", error);
+    console.error('Error fetching media data:', error);
     mediaData = null;
   }
   const media = mediaData;

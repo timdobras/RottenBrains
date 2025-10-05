@@ -1,10 +1,10 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import AddComment from "./AddComment";
-import CommentCard from "./CommentCard";
-import { likePost, removeLike } from "@/lib/client/updatePostData";
-import { getPostComments } from "@/lib/supabase/clientQueries";
-import Link from "next/link";
+'use client';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { likePost, removeLike } from '@/lib/client/updatePostData';
+import { getPostComments } from '@/lib/supabase/clientQueries';
+import AddComment from './AddComment';
+import CommentCard from './CommentCard';
 
 const PostStats = ({ post, user_id, current_user, post_link }: any) => {
   const postId = post.id;
@@ -45,7 +45,7 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
           likes: state.likes, // Revert to the previous like count
           animate: false,
         }));
-        console.error("Error toggling like:", error);
+        console.error('Error toggling like:', error);
       }
     }
   }, [user_id, postId, state.liked, state.likes]);
@@ -68,7 +68,7 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
         loading: false,
       }));
     } catch (error) {
-      console.error("Error fetching comments:", error);
+      console.error('Error fetching comments:', error);
       setState((prevState) => ({
         ...prevState,
         loading: false,
@@ -91,7 +91,7 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
   return (
     <div className="flex flex-row items-center gap-4 px-2">
       <div className="flex flex-row items-center gap-2">
-        <button onClick={handleLike} className={state.animate ? "pop" : ""}>
+        <button onClick={handleLike} className={state.animate ? 'pop' : ''}>
           {state.liked ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -99,19 +99,17 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
               viewBox="0 -960 960 960"
               width="24px"
               fill="0000000"
-              className={`heart-icon ${state.animate ? "pop" : ""} fill-accent`}
+              className={`heart-icon ${state.animate ? 'pop' : ''} fill-accent`}
             >
               <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
             </svg>
           ) : (
             <img
-              src={"/assets/icons/heart-outline.svg"}
+              src={'/assets/icons/heart-outline.svg'}
               alt="Not Liked"
               width="24px"
               height="24px"
-              className={`heart-icon invert-on-dark ${
-                state.animate ? "pop" : ""
-              }`}
+              className={`heart-icon invert-on-dark ${state.animate ? 'pop' : ''}`}
             />
           )}
         </button>
@@ -166,11 +164,7 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
                   )}
                 </div>
                 <div className="absolute bottom-6 w-11/12">
-                  <AddComment
-                    post={post}
-                    user_id={user_id}
-                    fetchComments={fetchComments}
-                  />
+                  <AddComment post={post} user_id={user_id} fetchComments={fetchComments} />
                 </div>
               </div>
             </div>

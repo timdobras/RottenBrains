@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useUser } from "@/hooks/UserContext";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import React from "react";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import React from 'react';
+import { useUser } from '@/hooks/UserContext';
 
 const UserIconNavBottom = () => {
   const { user } = useUser();
   const pathname = usePathname();
-  const href = "/protected/user-mobile";
-  const isActive = pathname.includes(href.split("/").pop()!);
+  const href = '/protected/user-mobile';
+  const isActive = pathname.includes(href.split('/').pop()!);
   return (
     <Link
-      href={"/protected/user-mobile"}
+      href={'/protected/user-mobile'}
       className={`flex flex-1 flex-col items-center justify-center opacity-80`}
     >
       <div

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from 'react';
 // ^ Replace with any icon library or custom SVG you'd like.
 
 interface HorizontalScrollProps {
@@ -37,7 +37,7 @@ export default function HorizontalScroll({
   const handleScrollLeft = () => {
     containerRef.current?.scrollBy({
       left: -scrollDistance,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
   };
 
@@ -47,7 +47,7 @@ export default function HorizontalScroll({
   const handleScrollRight = () => {
     containerRef.current?.scrollBy({
       left: scrollDistance,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
   };
 
@@ -70,11 +70,7 @@ export default function HorizontalScroll({
           onClick={handleScrollLeft}
           className="absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/80 p-2 text-white hover:bg-black/80 focus:outline-none md:flex"
         >
-          <img
-            src="/assets/icons/caret-left-solid.svg"
-            alt=""
-            className="h-4 w-4 invert"
-          />
+          <img src="/assets/icons/caret-left-solid.svg" alt="" className="h-4 w-4 invert" />
         </button>
       )}
 
@@ -97,11 +93,7 @@ export default function HorizontalScroll({
           onClick={handleScrollRight}
           className="absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/80 p-2 text-white hover:bg-black/80 focus:outline-none md:flex"
         >
-          <img
-            src="/assets/icons/caret-right-solid.svg"
-            alt=""
-            className="h-4 w-4 invert"
-          />
+          <img src="/assets/icons/caret-right-solid.svg" alt="" className="h-4 w-4 invert" />
         </button>
       )}
     </div>

@@ -1,7 +1,7 @@
-import React from "react";
-import Link from "next/link";
-import ProfilePicture from "../../ui/ProfilePicture";
-import { getRelativeTime } from "@/lib/utils";
+import Link from 'next/link';
+import React from 'react';
+import { getRelativeTime } from '@/lib/utils';
+import ProfilePicture from '../../ui/ProfilePicture';
 
 interface Creator {
   id: number;
@@ -32,13 +32,9 @@ const PostHeader = ({ creator, post, user_id }: PostHeaderProps) => {
         </span>
         <div className="flex flex-col">
           <p className="line-clamp-1 text-sm font-bold text-accent/80">
-            <Link href={`/protected/user/${creator.id}`}>
-              {creator.username}
-            </Link>
+            <Link href={`/protected/user/${creator.id}`}>{creator.username}</Link>
           </p>
-          <p className="-mt-1 text-[10px] opacity-50">
-            {getRelativeTime(post.created_at)}
-          </p>
+          <p className="-mt-1 text-[10px] opacity-50">{getRelativeTime(post.created_at)}</p>
         </div>
       </div>
       <div className="flex h-full flex-row items-center gap-2">

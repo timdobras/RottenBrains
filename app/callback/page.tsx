@@ -1,13 +1,13 @@
 // app/callback/page.tsx
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function CallbackPage() {
   const searchParams = useSearchParams();
   // Get the intended destination from the query string, or default to "/"
-  const next = searchParams.get("next") || "/";
+  const next = searchParams.get('next') || '/';
 
   useEffect(() => {
     // Force a full page reload to ensure that cookies are available in the new request.
@@ -15,7 +15,7 @@ export default function CallbackPage() {
   }, [next]);
 
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
       <p>Completing authentication. Please wait...</p>
     </div>
   );

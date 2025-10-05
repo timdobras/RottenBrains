@@ -1,6 +1,9 @@
-"use server";
-import { cache } from "react";
-import { createClient } from "./server";
+'use server';
+import { cache } from 'react';
+import { handleError as handleAppError, DatabaseError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
+import { upsertWatchHistorySchema } from '@/lib/validations';
+import { IUser } from '@/types';
 import {
   ensureAtLeastFiveGenres,
   Episode,
@@ -8,29 +11,26 @@ import {
   UpdateGenreStatsParams,
   User,
   WatchListItem,
-} from "./clientQueries";
-import { IUser } from "@/types";
-
-const handleError = (operation: string, error: any) => {
-  console.error(`Error during ${operation}:`, error.message);
-};
+} from './clientQueries';
+import { createClient } from './server';
 
 const getSupabaseClient = cache(async () => {
   return await createClient();
 });
 
-export async function getUserFromDB(id: string): Promise<any | null> {
+export async function getUserFromDB(id: string): Promise<{ user: IUser } | null> {
   const supabase = await getSupabaseClient();
   try {
-    const { data: user, error } = await supabase
-      .from("users")
-      .select()
-      .eq("id", id)
-      .single();
-    if (error) throw error;
-    return { user };
+    const { data: user, error } = await supabase.from('users').select().eq('id', id).single();
+
+    if (error) {
+      logger.error('Database error in getUserFromDB:', error);
+      throw new DatabaseError('Failed to fetch user from database');
+    }
+
+    return { user: user as IUser };
   } catch (error) {
-    handleError("getUserFromDB", error);
+    const errorInfo = handleAppError(error, 'getUserFromDB');
     return null;
   }
 }
@@ -42,11 +42,7 @@ export const getCurrentUser = cache(async () => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: userData } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).single();
 
   return userData;
 });
@@ -60,15 +56,11 @@ export const signOut = async () => {
 export const getPostById = async (post_id: string): Promise<any | null> => {
   const supabase = await getSupabaseClient();
   try {
-    const { data, error } = await supabase
-      .from("posts")
-      .select("*")
-      .eq("id", post_id)
-      .single();
+    const { data, error } = await supabase.from('posts').select('*').eq('id', post_id).single();
     if (error) throw error;
     return data;
   } catch (error) {
-    handleError("getPostById", error);
+    handleError('getPostById', error);
   }
 };
 
@@ -76,27 +68,24 @@ export const getPostsOfMedia = async (
   user_id: string,
   media_type: string,
   media_id: number,
-  page: number,
+  page: number
 ): Promise<any | null> => {
   try {
     const supabase = await getSupabaseClient();
     // Call the RPC function to fetch posts with media type and ID
-    const { data: postsData, error: postsError } = await supabase.rpc(
-      "fetch_posts_by_media",
-      {
-        current_user_id: user_id,
-        media_type_param: media_type,
-        media_id_param: media_id,
-        result_limit: 6,
-        result_offset: page * 6,
-      },
-    );
+    const { data: postsData, error: postsError } = await supabase.rpc('fetch_posts_by_media', {
+      current_user_id: user_id,
+      media_type_param: media_type,
+      media_id_param: media_id,
+      result_limit: 6,
+      result_offset: page * 6,
+    });
 
     if (postsError) throw postsError;
 
     return postsData;
   } catch (error) {
-    console.error("getPostsByMedia", error);
+    console.warn('getPostsByMedia', error);
     return null;
   }
 };
@@ -108,62 +97,54 @@ export const upsertWatchHistory = async (
   new_time_spent: number,
   new_percentage_watched: string,
   season_number: number | null,
-  episode_number: number | null,
+  episode_number: number | null
 ) => {
   try {
-    console.log("Starting upsertWatchHistory...");
+    // Validate input using Zod schema
+    const validatedInput = upsertWatchHistorySchema.parse({
+      user_id,
+      media_type,
+      media_id,
+      new_time_spent,
+      new_percentage_watched,
+      season_number,
+      episode_number,
+    });
+
+    logger.debug('Starting upsertWatchHistory with validated input:', validatedInput);
 
     // Replace NULL with -1 for season_number and episode_number
     const normalizedSeasonNumber = season_number ?? -1;
     const normalizedEpisodeNumber = episode_number ?? -1;
-    console.log("Normalized season_number:", normalizedSeasonNumber);
-    console.log("Normalized episode_number:", normalizedEpisodeNumber);
 
-    // Parse new_percentage_watched to a float
+    // Parse new_percentage_watched to a float (already validated by Zod)
     const newPercentageFloat = parseFloat(new_percentage_watched);
-    console.log("Parsed new_percentage_watched:", newPercentageFloat);
 
     // Step 1: Retrieve existing percentage_watched
-    console.log("Fetching existing watch history...");
     const supabase = await getSupabaseClient();
     const { data: existingData, error: fetchError } = await supabase
-      .from("watch_history")
-      .select("percentage_watched")
-      .eq("user_id", user_id)
-      .eq("media_type", media_type)
-      .eq("media_id", media_id)
-      .eq("season_number", normalizedSeasonNumber)
-      .eq("episode_number", normalizedEpisodeNumber)
-      .single(); // Retrieve one record
+      .from('watch_history')
+      .select('percentage_watched')
+      .eq('user_id', user_id)
+      .eq('media_type', media_type)
+      .eq('media_id', media_id)
+      .eq('season_number', normalizedSeasonNumber)
+      .eq('episode_number', normalizedEpisodeNumber)
+      .single();
 
-    if (fetchError) {
-      if (fetchError.code === "PGRST116") {
-        console.log(
-          "No existing watch history found for this media. Assuming percentage_watched = 0.",
-        );
-      } else {
-        console.error(
-          "Error fetching existing watch history:",
-          fetchError.message,
-        );
-        throw new Error(fetchError.message);
-      }
-    } else {
-      console.log("Existing watch history found:", existingData);
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      logger.error('Error fetching existing watch history:', fetchError);
+      throw new DatabaseError('Failed to fetch existing watch history');
     }
 
     // Calculate the total percentage watched
     const existingPercentage = existingData?.percentage_watched || 0;
-    console.log("Existing percentage_watched:", existingPercentage);
-
     const updatedPercentage = Math.min(
       Number(existingPercentage) + Number(newPercentageFloat),
-      100,
+      100
     ).toFixed(2);
-    console.log("Updated percentage_watched (cumulative):", updatedPercentage);
 
-    const updatedCreatedAt = new Date().toISOString(); // Current timestamp
-    console.log("Updated created_at timestamp:", updatedCreatedAt);
+    const updatedCreatedAt = new Date().toISOString();
 
     // Step 2: Prepare the data to upsert
     const watchHistoryData = {
@@ -177,27 +158,26 @@ export const upsertWatchHistory = async (
       created_at: updatedCreatedAt,
       hidden_until: null, // Reset hidden_until when user watches again
     };
-    console.log("Prepared watch history data for upsert:", watchHistoryData);
 
     // Step 3: Perform the upsert operation
-    console.log("Performing upsert operation...");
+    logger.debug('Performing upsert operation...');
     const { data, error } = await supabase
-      .from("watch_history")
+      .from('watch_history')
       .upsert(watchHistoryData, {
-        onConflict: "user_id,media_type,media_id,season_number,episode_number",
+        onConflict: 'user_id,media_type,media_id,season_number,episode_number',
       })
       .select();
 
     if (error) {
-      console.error("Error during upsert operation:", error.message);
-      throw new Error(error.message);
+      logger.error('Error during upsert operation:', error);
+      throw new DatabaseError('Failed to upsert watch history');
     }
 
-    console.log("Upsert successful. Returned data:", data);
+    logger.debug('Upsert successful. Returned data:', data);
 
-    return { success: true, action: "upserted", data };
+    return { success: true, action: 'upserted', data };
   } catch (error) {
-    console.error("Error in upsertWatchHistory:", error);
+    const errorInfo = handleAppError(error, 'upsertWatchHistory');
     throw error;
   }
 };
@@ -207,11 +187,11 @@ export const getWatchTime = async (
   media_type: string,
   media_id: number,
   season_number?: number | null,
-  episode_number?: number | null,
+  episode_number?: number | null
 ) => {
   try {
     const supabase = await getSupabaseClient();
-    const { data, error } = await supabase.rpc("get_percentage_watched", {
+    const { data, error } = await supabase.rpc('get_percentage_watched', {
       p_user_id: user_id,
       p_media_type: media_type,
       p_media_id: media_id,
@@ -221,7 +201,7 @@ export const getWatchTime = async (
 
     return data;
   } catch (error) {
-    console.log("Error in getWatchTime:", error);
+    console.warn('Error in getWatchTime:', error);
   }
 };
 
@@ -249,7 +229,7 @@ export const getBatchWatchTimes = async (
 
     // Fetch all watch times in parallel (still multiple queries, but concurrent)
     const watchTimePromises = media_items.map(async (item) => {
-      const { data } = await supabase.rpc("get_percentage_watched", {
+      const { data } = await supabase.rpc('get_percentage_watched', {
         p_user_id: user_id,
         p_media_type: item.media_type,
         p_media_id: item.media_id,
@@ -267,7 +247,7 @@ export const getBatchWatchTimes = async (
 
     return watchTimeMap;
   } catch (error) {
-    console.log("Error in getBatchWatchTimes:", error);
+    console.warn('Error in getBatchWatchTimes:', error);
     return watchTimeMap;
   }
 };
@@ -276,11 +256,11 @@ export const getWatchListSpecific = async (
   user_id: string,
   limit: number,
   offset: number,
-  watch_list_type: string,
+  watch_list_type: string
 ) => {
   try {
     const supabase = await getSupabaseClient();
-    const { data, error } = await supabase.rpc("get_watch_list_specific", {
+    const { data, error } = await supabase.rpc('get_watch_list_specific', {
       p_user_id: user_id,
       p_limit: limit,
       p_offset: offset,
@@ -288,13 +268,13 @@ export const getWatchListSpecific = async (
     });
 
     if (error) {
-      console.error("Error fetching watch later:", error);
+      console.error('Error fetching watch later:', error);
       throw new Error(error.message);
     }
 
     return data;
   } catch (error) {
-    console.error("Error in getWatchHistoryForUser:", error);
+    console.error('Error in getWatchHistoryForUser:', error);
     throw error;
   }
 };
@@ -302,16 +282,14 @@ export const getWatchListSpecific = async (
 async function getTopGenresForUser(
   userId: string | undefined,
   user: IUser | undefined,
-  mediaType: "movie" | "tv",
+  mediaType: 'movie' | 'tv'
 ) {
   const user_id = user ? user.id : userId;
   try {
     const supabase = await getSupabaseClient();
     // Choose the appropriate RPC based on the media type
     const rpcName =
-      mediaType === "movie"
-        ? "get_top_movie_genres_for_user"
-        : "get_top_tv_genres_for_user";
+      mediaType === 'movie' ? 'get_top_movie_genres_for_user' : 'get_top_tv_genres_for_user';
 
     const { data: recommended, error } = await supabase.rpc(rpcName, {
       p_user_id: user_id,
@@ -323,16 +301,10 @@ async function getTopGenresForUser(
 
     // Get the user's current feed genres
     const userFeedGenres = user?.feed_genres || [];
-    const userMediaFeedGenres = userFeedGenres.filter(
-      (g) => g.media_type === mediaType,
-    );
+    const userMediaFeedGenres = userFeedGenres.filter((g) => g.media_type === mediaType);
 
     // Merge the feed genres with the recommended ones, ensuring at least five
-    const final = ensureAtLeastFiveGenres(
-      userMediaFeedGenres,
-      recommended || [],
-      mediaType,
-    );
+    const final = ensureAtLeastFiveGenres(userMediaFeedGenres, recommended || [], mediaType);
 
     return final;
   } catch (error) {
@@ -341,34 +313,25 @@ async function getTopGenresForUser(
   }
 }
 
-export const getTopMovieGenresForUser = async (
-  userId?: string,
-  user?: IUser,
-) => {
-  return getTopGenresForUser(userId, user, "movie");
+export const getTopMovieGenresForUser = async (userId?: string, user?: IUser) => {
+  return getTopGenresForUser(userId, user, 'movie');
 };
 
 export const getTopTvGenresForUser = async (userId?: string, user?: IUser) => {
-  return getTopGenresForUser(userId, user, "tv");
+  return getTopGenresForUser(userId, user, 'tv');
 };
 
-export async function updateGenreStats({
-  genreIds,
-  mediaType,
-  userId,
-}: UpdateGenreStatsParams) {
+export async function updateGenreStats({ genreIds, mediaType, userId }: UpdateGenreStatsParams) {
   const supabase = await getSupabaseClient();
-  const { data, error } = await supabase.rpc("update_genre_stats", {
+  const { data, error } = await supabase.rpc('update_genre_stats', {
     genre_ids: genreIds,
     media_type: mediaType,
     user_id: userId,
   });
 
   if (error) {
-    console.error("Error updating genre stats:", error);
-    throw new Error("Failed to update genre stats");
-  } else {
-    console.log("added genres");
+    console.error('Error updating genre stats:', error);
+    throw new Error('Failed to update genre stats');
   }
 
   return data;
@@ -376,13 +339,13 @@ export async function updateGenreStats({
 
 export const getNextEpisodes = async (userId: string): Promise<Episode[]> => {
   const supabase = await getSupabaseClient();
-  const { data, error } = await supabase.rpc("get_next_episodes", {
+  const { data, error } = await supabase.rpc('get_next_episodes', {
     user_id_input: userId,
   });
 
   if (error) {
-    console.error("Error fetching next episodes:", error);
-    throw new Error("Failed to fetch next episodes");
+    console.error('Error fetching next episodes:', error);
+    throw new Error('Failed to fetch next episodes');
   }
 
   return data as Episode[];
@@ -390,24 +353,22 @@ export const getNextEpisodes = async (userId: string): Promise<Episode[]> => {
 
 export async function getAllUsers(): Promise<User[]> {
   const supabase = await getSupabaseClient();
-  const { data: users, error } = await supabase.from("users").select("id");
+  const { data: users, error } = await supabase.from('users').select('id');
 
   if (error) {
-    console.error("Error fetching users:", error);
+    console.error('Error fetching users:', error);
     return [];
   }
   return users ?? [];
 }
 
-export async function getTvWatchListForUser(
-  userId: string,
-): Promise<WatchListItem[]> {
+export async function getTvWatchListForUser(userId: string): Promise<WatchListItem[]> {
   const supabase = await getSupabaseClient();
   const { data, error } = await supabase
-    .from("watch_list")
-    .select("media_id")
-    .eq("user_id", userId)
-    .eq("media_type", "tv");
+    .from('watch_list')
+    .select('media_id')
+    .eq('user_id', userId)
+    .eq('media_type', 'tv');
 
   if (error) {
     console.error(`Error fetching watch_list for user=${userId}:`, error);
@@ -421,10 +382,10 @@ export async function upsertNewEpisodeRecord(
   tvId: number,
   lastAirDate: string,
   season_number: number,
-  episode_number: number,
+  episode_number: number
 ): Promise<void> {
   const supabase = await getSupabaseClient();
-  const { error } = await supabase.from("new_episodes").upsert(
+  const { error } = await supabase.from('new_episodes').upsert(
     {
       user_id: userId,
       tv_id: tvId,
@@ -433,31 +394,26 @@ export async function upsertNewEpisodeRecord(
       episode_number,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id,tv_id" },
+    { onConflict: 'user_id,tv_id' }
   );
 
   if (error) {
-    console.error(
-      `new_episodes upsert error (user=${userId}, tvId=${tvId}):`,
-      error,
-    );
+    console.error(`new_episodes upsert error (user=${userId}, tvId=${tvId}):`, error);
   }
 }
 
-export async function getLatestNewEpisodes(
-  userId: string,
-): Promise<any[] | null> {
+export async function getLatestNewEpisodes(userId: string): Promise<any[] | null> {
   // Query the `new_episodes` table:
   const supabase = await getSupabaseClient();
   const { data, error } = await supabase
-    .from("new_episodes")
-    .select("*")
-    .eq("user_id", userId)
-    .order("last_air_date", { ascending: false })
+    .from('new_episodes')
+    .select('*')
+    .eq('user_id', userId)
+    .order('last_air_date', { ascending: false })
     .limit(10);
 
   if (error) {
-    console.error("Error fetching latest new episodes:", error);
+    console.error('Error fetching latest new episodes:', error);
     return null;
   }
 
@@ -466,14 +422,10 @@ export async function getLatestNewEpisodes(
 
 export const fetchBlogPostById = async (id: string) => {
   const supabase = await getSupabaseClient();
-  const { data, error } = await supabase
-    .from("dev_blog")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data, error } = await supabase.from('dev_blog').select('*').eq('id', id).single();
 
   if (error) {
-    console.error("Error fetching blog post:", error.message);
+    console.error('Error fetching blog post:', error.message);
     return null;
   }
 
@@ -483,12 +435,12 @@ export const fetchBlogPostById = async (id: string) => {
 export const fetchBlogPosts = async () => {
   const supabase = await getSupabaseClient();
   const { data, error } = await supabase
-    .from("dev_blog")
-    .select("*")
+    .from('dev_blog')
+    .select('*')
     .limit(6)
-    .order("created_at", { ascending: false });
+    .order('created_at', { ascending: false });
   if (error) {
-    console.error("Error fetching blog post:", error.message);
+    console.error('Error fetching blog post:', error.message);
     return null;
   }
 
@@ -497,88 +449,82 @@ export const fetchBlogPosts = async () => {
 
 export const getPostsFromFollowedUsers = async (
   userId: string,
-  page: number = 0,
+  page: number = 0
 ): Promise<any | null> => {
   try {
     const supabase = await getSupabaseClient();
     // Call the new RPC function to fetch posts with creator details and like/save status
     const { data: postsData, error: postsError } = await supabase.rpc(
-      "fetch_posts_from_followed_users",
+      'fetch_posts_from_followed_users',
       {
         current_user_id: userId,
         result_limit: 10,
         result_offset: page * 10,
-      },
+      }
     );
 
     if (postsError) throw postsError;
 
     return postsData;
   } catch (error) {
-    console.error("getPostsFromFollowedUsers", error);
+    console.warn('getPostsFromFollowedUsers', error);
     return null;
   }
 };
 
 export const getPostByIdNew = async (
   post_id: string,
-  current_user_id?: string,
+  current_user_id?: string
 ): Promise<any | null> => {
   try {
     const supabase = await getSupabaseClient();
     const { data: postsData, error: postsError } = await supabase.rpc(
-      "fetch_post_with_comments_by_id",
+      'fetch_post_with_comments_by_id',
       {
         p_post_id: post_id,
         current_user_id: current_user_id,
-      },
+      }
     );
     if (postsError) throw postsError;
     return postsData;
   } catch (error) {
-    console.log("getPostsFromFollowedUsers", error);
+    console.warn('getPostByIdNew', error);
     return null;
   }
 };
 
-export const getCommentsByPostId = async (
-  post_id: string,
-  current_user_id?: string,
-) => {
+export const getCommentsByPostId = async (post_id: string, current_user_id?: string) => {
   try {
     const supabase = await getSupabaseClient();
     const { data: commentData, error: commentError } = await supabase.rpc(
-      "fetch_comments_by_post_id",
+      'fetch_comments_by_post_id',
       {
         p_post_id: post_id,
         current_user_id: current_user_id,
-      },
+      }
     );
     if (commentError) throw commentError;
     return commentData;
   } catch (error) {
-    console.log("getCommentsByPostId", error);
+    console.warn('getCommentsByPostId', error);
     return null;
   }
 };
 
-export const getRepliesByCommentId = async (
-  comment_id: string,
-  current_user_id?: string,
-) => {
+export const getRepliesByCommentId = async (comment_id: string, current_user_id?: string) => {
   try {
     const supabase = await getSupabaseClient();
     const { data: commentData, error: commentError } = await supabase.rpc(
-      "fetch_replies_by_comment_id",
+      'fetch_replies_by_comment_id',
       {
         p_comment_id: comment_id,
         current_user_id: current_user_id,
-      },
+      }
     );
     if (commentError) throw commentError;
     return commentData;
   } catch (error) {
-    console.log("getRepliesByCommentId", error);
+    console.warn('getRepliesByCommentId', error);
     return null;
   }
 };

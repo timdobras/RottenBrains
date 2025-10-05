@@ -1,10 +1,9 @@
-import React from "react";
-import PostCardMain from "./PostCardMain";
-import { fetchBlogPosts } from "@/lib/supabase/serverQueries";
+import React from 'react';
+import { fetchBlogPosts } from '@/lib/supabase/serverQueries';
+import PostCardMain from './PostCardMain';
 
 const page = async () => {
   const posts = await fetchBlogPosts();
-  console.log(posts);
   return (
     <div className="w-full">
       <div className="relative aspect-[2/1] w-full overflow-hidden bg-black md:aspect-[10/1]">
@@ -16,18 +15,14 @@ const page = async () => {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex h-full w-full max-w-[1500px] items-center justify-between p-4">
             <div>
-              <h1 className="text-2xl font-bold">
-                RottenBrains Developer Blog
-              </h1>
-              <h2 className="text-xl opacity-80">
-                Bugs, news, code and more bugs.
-              </h2>
+              <h1 className="text-2xl font-bold">RottenBrains Developer Blog</h1>
+              <h2 className="text-xl opacity-80">Bugs, news, code and more bugs.</h2>
             </div>
             <div className="hidden w-1/3 bg-secondary p-4 text-lg md:flex">
               <h3>
-                Welcome to the RottenBrains Developer Blog (Beta). Where you can
-                find all the news about the website, my perfect coding skills
-                and me slowly losing my sanity with databases.
+                Welcome to the RottenBrains Developer Blog (Beta). Where you can find all the news
+                about the website, my perfect coding skills and me slowly losing my sanity with
+                databases.
               </h3>
             </div>
           </div>

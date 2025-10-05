@@ -1,8 +1,8 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import movieGenres from "@/lib/constants/movie_genres.json";
-import tvGenres from "@/lib/constants/tv_genres.json";
-import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
+import { type ClassValue, clsx } from 'clsx';
+import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
+import { twMerge } from 'tailwind-merge';
+import movieGenres from '@/lib/constants/movie_genres.json';
+import tvGenres from '@/lib/constants/tv_genres.json';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -19,13 +19,13 @@ export function formatDate(inputDate: string): string {
     }
 
     // Format and return
-    return format(date, "do MMMM yyyy");
+    return format(date, 'do MMMM yyyy');
   } catch (error) {
     // Log the error for debugging
-    console.error("Error formatting date:", error);
+    console.error('Error formatting date:', error);
 
     // Return a user-friendly fallback
-    return "Invalid date";
+    return 'Invalid date';
   }
 }
 
@@ -34,8 +34,8 @@ export function transformRuntime(minutes: number): string {
   const remainingMinutes: number = minutes % 60;
   const seconds: number = Math.floor(Math.random() * 60); // Random seconds between 0 and 59
 
-  const formattedMinutes: string = remainingMinutes.toString().padStart(2, "0");
-  const formattedSeconds: string = seconds.toString().padStart(2, "0");
+  const formattedMinutes: string = remainingMinutes.toString().padStart(2, '0');
+  const formattedSeconds: string = seconds.toString().padStart(2, '0');
   if (hours > 0) {
     const formattedHours: string = hours.toString();
     return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
@@ -44,13 +44,8 @@ export function transformRuntime(minutes: number): string {
   }
 }
 
-export const formatEpisodeCode = (
-  seasonNumber: number,
-  episodeNumber: number,
-) => {
-  return `S${String(seasonNumber).padStart(2, "0")}E${String(
-    episodeNumber,
-  ).padStart(2, "0")}`;
+export const formatEpisodeCode = (seasonNumber: number, episodeNumber: number) => {
+  return `S${String(seasonNumber).padStart(2, '0')}E${String(episodeNumber).padStart(2, '0')}`;
 };
 
 type Genre = {
@@ -63,10 +58,8 @@ export function getGenreNameById(genreId: number): string {
   const combinedGenres: Genre[] = [...movieGenres.genres, ...tvGenres.genres];
 
   // Verify the genreId type
-  if (typeof genreId !== "number") {
-    throw new Error(
-      `Invalid genreId type: ${typeof genreId}. Expected a number.`,
-    );
+  if (typeof genreId !== 'number') {
+    throw new Error(`Invalid genreId type: ${typeof genreId}. Expected a number.`);
   }
 
   // Find the genre by ID
@@ -86,7 +79,7 @@ export function getGenreNameById(genreId: number): string {
 export function getRelativeTime(dateString: string): string {
   try {
     if (!dateString) {
-      throw new Error("No date string provided.");
+      throw new Error('No date string provided.');
     }
 
     const date = parseISO(dateString);
@@ -96,17 +89,13 @@ export function getRelativeTime(dateString: string): string {
 
     return formatDistanceToNow(date, { addSuffix: true });
   } catch (error: unknown) {
-    console.error("Error in getRelativeTime:", error);
+    console.error('Error in getRelativeTime:', error);
     // Return a fallback string, or you could re-throw the error if desired
-    return "Invalid date";
+    return 'Invalid date';
   }
 }
 
-export function getImageUrl(
-  media: any,
-  season_number?: number,
-  episode_number?: number,
-) {
+export function getImageUrl(media: any, season_number?: number, episode_number?: number) {
   return (
     media?.images?.backdrops?.[0]?.file_path ||
     (season_number && episode_number ? media.still_path : media.backdrop_path)
@@ -117,12 +106,12 @@ export function getHrefFromMedia(
   media_type?: string,
   media_id?: number,
   season_number?: number,
-  episode_number?: number,
+  episode_number?: number
 ) {
   if (!media_type || !media_id) {
-    return "";
+    return '';
   }
-  return media_type === "movie"
+  return media_type === 'movie'
     ? `/protected/watch/${media_type}/${media_id}`
     : season_number && episode_number
       ? `/protected/watch/${media_type}/${media_id}/${season_number}/${episode_number}`

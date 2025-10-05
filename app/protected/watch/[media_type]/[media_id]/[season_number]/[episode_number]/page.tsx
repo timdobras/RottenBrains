@@ -1,24 +1,24 @@
-import Link from "next/link";
-import VideoEmbed from "@/components/features/watch/MediaEmbed";
-import WatchDuration from "@/components/features/watch/WatchDuration";
-import ScrollButtons from "@/components/common/ScrollButtons";
-import MediaCardSmall from "@/components/features/media/MediaCardSmall";
-import { getEpisodeDetails, getMediaDetails } from "@/lib/tmdb";
-import WatchPageDetails from "@/components/features/watch/WatchPageDetails";
-import NativeAd from "@/components/features/ads/Native";
-import { fetchMediaData } from "@/lib/client/fetchMediaData";
-import { getCurrentUser } from "@/lib/supabase/serverQueries";
-import TVShowDetails from "@/components/features/watch/TVSeasons";
-import AdBanner from "@/components/features/ads/GoogleDisplayAd";
-import NavAdMobile from "@/components/features/ads/NavAdMobile";
-import FixedAd from "@/components/features/ads/300x250Ad";
-import MobileBannerExo from "@/components/features/ads/MobileBannerExo";
-import MobileBannerExo42 from "@/components/features/ads/Notification";
-import MobileBannerExoAlt from "@/components/features/ads/Message";
-import MobileBannerPem from "@/components/features/ads/Fullscreen";
-import VideoAd from "@/components/features/ads/Video";
-import MediaCardServer from "@/components/features/media/MediaCardServer";
-import VideoContextSetter from "@/hooks/VideoContextSetter";
+import Link from 'next/link';
+import ScrollButtons from '@/components/common/ScrollButtons';
+import FixedAd from '@/components/features/ads/300x250Ad';
+import MobileBannerPem from '@/components/features/ads/Fullscreen';
+import AdBanner from '@/components/features/ads/GoogleDisplayAd';
+import MobileBannerExoAlt from '@/components/features/ads/Message';
+import MobileBannerExo from '@/components/features/ads/MobileBannerExo';
+import NativeAd from '@/components/features/ads/Native';
+import NavAdMobile from '@/components/features/ads/NavAdMobile';
+import MobileBannerExo42 from '@/components/features/ads/Notification';
+import VideoAd from '@/components/features/ads/Video';
+import MediaCardServer from '@/components/features/media/MediaCardServer';
+import MediaCardSmall from '@/components/features/media/MediaCardSmall';
+import VideoEmbed from '@/components/features/watch/MediaEmbed';
+import TVShowDetails from '@/components/features/watch/TVSeasons';
+import WatchDuration from '@/components/features/watch/WatchDuration';
+import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
+import VideoContextSetter from '@/hooks/VideoContextSetter';
+import { fetchMediaData } from '@/lib/client/fetchMediaData';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getEpisodeDetails, getMediaDetails } from '@/lib/tmdb';
 type Params = Promise<{
   media_id: number;
   season_number: number;
@@ -36,16 +36,15 @@ export async function generateMetadata({ params }: { params: Params }) {
   try {
     mediaData = await fetchMediaData(media_type, media_id);
   } catch (error) {
-    console.error("Error fetching media data:", error);
+    console.error('Error fetching media data:', error);
     mediaData = null;
   }
   const media = mediaData;
 
   if (!media) {
     return {
-      title: "No Media Found",
-      description:
-        "Connect with fellow enthusiasts and dive deep into your favorite media.",
+      title: 'No Media Found',
+      description: 'Connect with fellow enthusiasts and dive deep into your favorite media.',
     };
   }
 
@@ -61,41 +60,30 @@ export default async function mediaPage({ params }: { params: Params }) {
   const { season_number } = await params;
   const { episode_number } = await params;
 
-  console.log(media_type, media_id, season_number, episode_number);
-
   const user = await getCurrentUser();
   const media = await getMediaDetails(media_type, media_id);
   if (!media) {
     return <div>NO MEDIA FOUND</div>;
   }
-  const episode = await getEpisodeDetails(
-    media_id,
-    season_number,
-    episode_number,
-  );
+  const episode = await getEpisodeDetails(media_id, season_number, episode_number);
 
   let nextEpisode = null;
 
   if (media && media.seasons) {
     // Find next episode
     const seasons = media.seasons.filter(
-      (season: { season_number: number }) => season.season_number !== 0,
+      (season: { season_number: number }) => season.season_number !== 0
     );
 
     const currentSeasonIndex = seasons.findIndex(
-      (season: { season_number: number }) =>
-        season.season_number === Number(season_number),
+      (season: { season_number: number }) => season.season_number === Number(season_number)
     );
 
     const currentSeason = seasons[Number(currentSeasonIndex)];
 
     if (currentSeason && episode_number < currentSeason.episode_count) {
       // Next episode in the same season
-      nextEpisode = await getEpisodeDetails(
-        media.id,
-        season_number,
-        Number(episode_number) + 1,
-      );
+      nextEpisode = await getEpisodeDetails(media.id, season_number, Number(episode_number) + 1);
     } else if (currentSeasonIndex + 1 < seasons.length) {
       // First episode of the next season
       const nextSeasonNumber = seasons[currentSeasonIndex + 1].season_number;
@@ -122,9 +110,7 @@ export default async function mediaPage({ params }: { params: Params }) {
         />
       )}
       <div className="relative mx-auto mb-16 w-full max-w-7xl">
-        <div
-          className={`small-screen-watch-margin mx-auto flex w-full flex-col md:gap-4`}
-        >
+        <div className={`small-screen-watch-margin mx-auto flex w-full flex-col md:gap-4`}>
           <div className="flex flex-col md:w-full md:gap-4">
             <VideoEmbed />
             <WatchPageDetails
@@ -144,7 +130,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                   className="px-4 md:px-0"
                 >
                   <MediaCardServer
-                    media_type={"tv"}
+                    media_type={'tv'}
                     media_id={media.id}
                     season_number={nextEpisode.season_number}
                     episode_number={nextEpisode.episode_number}
@@ -154,7 +140,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                 </Link>
               </div>
             )}
-            {media_type === "tv" && season_number && (
+            {media_type === 'tv' && season_number && (
               <TVShowDetails
                 tv_show_id={media_id}
                 season_number={season_number}

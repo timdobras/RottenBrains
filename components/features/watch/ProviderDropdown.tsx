@@ -1,26 +1,24 @@
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/use-toast";
-import { iframeLinks } from "@/lib/constants/links";
-import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/components/ui/use-toast';
+import { iframeLinks } from '@/lib/constants/links';
 
 const ProviderDropdown = () => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const handleProviderSelection = (providerName: string) => {
-    localStorage.setItem("video_provider", providerName);
+    localStorage.setItem('video_provider', providerName);
 
-    const selectedProvider = iframeLinks.find(
-      (link) => link.name === providerName,
-    );
+    const selectedProvider = iframeLinks.find((link) => link.name === providerName);
     window.location.reload();
     setOpen(!open);
     toast({
-      title: "Provider Changed",
+      title: 'Provider Changed',
       description: `${selectedProvider?.name} has been set as your default video provider.`,
     });
   };

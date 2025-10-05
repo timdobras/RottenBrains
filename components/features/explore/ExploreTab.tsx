@@ -1,23 +1,23 @@
-import { ExploreTabProps } from "@/types";
-import React from "react";
-import ExploreCard from "@/components/features/explore/ExploreCard";
-import { getCurrentUser, getBatchWatchTimes } from "@/lib/supabase/serverQueries";
-import { fetchExploreData } from "@/lib/client/fetchExploreData";
-import { getMediaDetails } from "@/lib/tmdb";
-import MediaCardUI from "../media/MediaCardUI";
-import HomeMediaCardSkeleton from "../media/MediaCardSkeleton";
+import React from 'react';
+import ExploreCard from '@/components/features/explore/ExploreCard';
+import { fetchExploreData } from '@/lib/client/fetchExploreData';
+import { getCurrentUser, getBatchWatchTimes } from '@/lib/supabase/serverQueries';
+import { getMediaDetails } from '@/lib/tmdb';
+import { ExploreTabProps } from '@/types';
+import HomeMediaCardSkeleton from '../media/MediaCardSkeleton';
+import MediaCardUI from '../media/MediaCardUI';
 
 export async function ExploreTab({
   action,
   containerId,
 }: ExploreTabProps & { containerId: string }) {
-  let user = await getCurrentUser();
+  const user = await getCurrentUser();
   let exploreData;
 
   try {
     exploreData = await fetchExploreData(action);
   } catch (error) {
-    console.error("Error fetching explore data:", error);
+    console.error('Error fetching explore data:', error);
     exploreData = null;
   }
 
@@ -28,9 +28,9 @@ export async function ExploreTab({
   // Add media_type to items that don't have it
   const mediaItems = exploreData.results.slice(0, 12).map((media: any) => {
     if (!media.media_type && media.title) {
-      media.media_type = "movie";
+      media.media_type = 'movie';
     } else if (!media.media_type && media.name) {
-      media.media_type = "tv";
+      media.media_type = 'tv';
     }
     return media;
   });

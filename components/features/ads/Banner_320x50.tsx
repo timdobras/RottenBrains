@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useUser } from "@/hooks/UserContext";
+import React, { useEffect, useState } from 'react';
+import { useUser } from '@/hooks/UserContext';
 
 type AdConfig = {
   key: string;
@@ -16,8 +16,8 @@ type AdComponentProps = {
 
 const Banner_320x50: React.FC<AdComponentProps> = ({
   adConfig = {
-    key: "1c236cabb3ebbc30d25e05756a97c1ab",
-    format: "iframe",
+    key: '1c236cabb3ebbc30d25e05756a97c1ab',
+    format: 'iframe',
     height: 50,
     width: 320,
     params: {},
@@ -33,8 +33,8 @@ const Banner_320x50: React.FC<AdComponentProps> = ({
       if (!scriptLoaded) setAdBlocked(true);
     }, 3000);
 
-    const atScript = document.createElement("script");
-    atScript.type = "text/javascript";
+    const atScript = document.createElement('script');
+    atScript.type = 'text/javascript';
     atScript.innerHTML = `
       atOptions = {
         'key': '${adConfig.key}',
@@ -45,8 +45,8 @@ const Banner_320x50: React.FC<AdComponentProps> = ({
       };
     `;
 
-    const invokeScript = document.createElement("script");
-    invokeScript.type = "text/javascript";
+    const invokeScript = document.createElement('script');
+    invokeScript.type = 'text/javascript';
     invokeScript.src = `//www.highperformanceformat.com/${adConfig.key}/invoke.js`;
 
     invokeScript.onload = () => {
@@ -82,10 +82,7 @@ const Banner_320x50: React.FC<AdComponentProps> = ({
   }
 
   return (
-    <div
-      id="ad-container-banner"
-      className="h-[50px] w-[300px] overflow-hidden bg-foreground/10"
-    />
+    <div id="ad-container-banner" className="h-[50px] w-[300px] overflow-hidden bg-foreground/10" />
   );
 };
 

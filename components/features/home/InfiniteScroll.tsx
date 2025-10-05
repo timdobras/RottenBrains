@@ -1,13 +1,15 @@
-"use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useInView } from "react-intersection-observer";
-import { getPopular } from "@/lib/tmdb";
-import { fetchInfiniteScrollHome } from "@/lib/server/fetchInfiniteScrollHome";
-import HomeMediaCardSkeleton from "@/components/features/media/MediaCardSkeleton";
-import HomeMediaCardUI from "@/components/features/media/MediaCardUI";
-import { useUser } from "@/hooks/UserContext";
-import FixedAd from "../ads/300x250Ad";
-import MobileBannerExo from "../ads/MobileBannerExo";
+'use client';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useInView } from 'react-intersection-observer';
+import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
+import HomeMediaCardUI from '@/components/features/media/MediaCardUI';
+import { useUser } from '@/hooks/UserContext';
+import { PAGINATION } from '@/lib/constants';
+import { logger } from '@/lib/logger';
+import { fetchInfiniteScrollHome } from '@/lib/server/fetchInfiniteScrollHome';
+import { getPopular } from '@/lib/tmdb';
+import FixedAd from '../ads/300x250Ad';
+import MobileBannerExo from '../ads/MobileBannerExo';
 
 interface InfiniteScrollHomeProps {
   user_id?: string;
@@ -24,7 +26,7 @@ const InfiniteScrollHome: React.FC<InfiniteScrollHomeProps> = ({
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [page, setPage] = useState<number>(1);
-  const { ref, inView } = useInView({ threshold: 0.1, rootMargin: "200px" });
+  const { ref, inView } = useInView({ threshold: 0.1, rootMargin: '200px' });
   const targetRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
 
@@ -34,14 +36,9 @@ const InfiniteScrollHome: React.FC<InfiniteScrollHomeProps> = ({
       try {
         // Fetch recommendations in parallel
         if (user_id) {
-          const results = await fetchInfiniteScrollHome(
-            movie_genres,
-            tv_genres,
-            page,
-            user_id,
-          );
+          const results = await fetchInfiniteScrollHome(movie_genres, tv_genres, page, user_id);
 
-          if (results.length === 0 || page === 10) {
+          if (results.length === 0 || page === PAGINATION.MAX_PAGES) {
             setHasMore(false);
           } else {
             setMediaItems((prev) => [...prev, ...results]);
@@ -49,8 +46,8 @@ const InfiniteScrollHome: React.FC<InfiniteScrollHomeProps> = ({
           }
         } else {
           const combined_results = await getPopular(page);
-          console.log(combined_results);
-          if (combined_results.results.length === 0 || page === 10) {
+          logger.debug('Fetched popular media:', combined_results);
+          if (combined_results.results.length === 0 || page === PAGINATION.MAX_PAGES) {
             setHasMore(false);
           } else {
             setMediaItems((prev) => [...prev, ...combined_results.results]);
@@ -58,7 +55,7 @@ const InfiniteScrollHome: React.FC<InfiniteScrollHomeProps> = ({
           }
         }
       } catch (error) {
-        console.error("Error fetching posts:", error);
+        logger.error('Error fetching posts:', error);
       } finally {
         setLoading(false);
       }
@@ -70,10 +67,7 @@ const InfiniteScrollHome: React.FC<InfiniteScrollHomeProps> = ({
   }, [loadMore]);
 
   return (
-    <section
-      className="flex w-full flex-col justify-center gap-4 px-4 md:p-0"
-      ref={targetRef}
-    >
+    <section className="flex w-full flex-col justify-center gap-4 px-4 md:p-0" ref={targetRef}>
       <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8 md:gap-4">
         {mediaItems && mediaItems.length > 0 ? (
           mediaItems.map((mediaItem, index) => {

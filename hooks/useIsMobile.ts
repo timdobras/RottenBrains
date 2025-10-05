@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export default function useIsMobile(breakpoint = 767) {
   const [isMobile, setIsMobile] = useState(false);
@@ -6,8 +6,8 @@ export default function useIsMobile(breakpoint = 767) {
     const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
     const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     setIsMobile(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, [breakpoint]);
   return isMobile;
 }

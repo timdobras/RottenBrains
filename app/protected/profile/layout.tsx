@@ -1,27 +1,27 @@
-import { redirect } from "next/navigation";
-import React from "react";
-import ProfilePicture from "../../../components/features/profile/ProfilePictureChange";
-import NewTabs from "../../../components/features/profile/NewTabs";
-import MobileTopBarHome from "../../../components/features/navigation/mobile/NavTop";
-import { getCurrentUser } from "@/lib/supabase/serverQueries";
-import FollowInfo from "@/components/features/profile/FollowInfo";
-import FollowButton from "@/components/features/profile/FollowButton";
+import { redirect } from 'next/navigation';
+import React from 'react';
+import FollowButton from '@/components/features/profile/FollowButton';
+import FollowInfo from '@/components/features/profile/FollowInfo';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import MobileTopBarHome from '../../../components/features/navigation/mobile/NavTop';
+import NewTabs from '../../../components/features/profile/NewTabs';
+import ProfilePicture from '../../../components/features/profile/ProfilePictureChange';
 
 const ProfileLayout = async ({ children }: { children: React.ReactNode }) => {
-  let currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser();
 
   if (!currentUser) {
-    redirect("/login");
+    redirect('/login');
   }
 
   const user = currentUser;
   const dateString = user.created_at;
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "long",
+    year: 'numeric',
+    month: 'long',
   };
-  const formatter = new Intl.DateTimeFormat("en-US", options);
+  const formatter = new Intl.DateTimeFormat('en-US', options);
   const formattedDate = formatter.format(date);
 
   return (
@@ -48,9 +48,7 @@ const ProfileLayout = async ({ children }: { children: React.ReactNode }) => {
                 </div>
                 <div className="flex w-full flex-col gap-2 md:flex-row md:items-center">
                   <FollowInfo user={user} />
-                  <p className="text-sm text-foreground/50">
-                    Member since {formattedDate}
-                  </p>
+                  <p className="text-sm text-foreground/50">Member since {formattedDate}</p>
                 </div>
               </div>
             </div>

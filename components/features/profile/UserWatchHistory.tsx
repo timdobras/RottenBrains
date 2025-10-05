@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useInView } from "react-intersection-observer";
-import { useUser } from "@/hooks/UserContext";
-import { getWatchHistoryForUser } from "@/lib/supabase/clientQueries";
-import MediaCardClient from "../media/MediaCardClient";
+import React, { useEffect, useState } from 'react';
+import { useInView } from 'react-intersection-observer';
+import { useUser } from '@/hooks/UserContext';
+import { getWatchHistoryForUser } from '@/lib/supabase/clientQueries';
+import MediaCardClient from '../media/MediaCardClient';
 
 interface UserWatchHistoryProps {
   userId: string;
@@ -43,7 +43,7 @@ const UserWatchHistory: React.FC<UserWatchHistoryProps> = ({
             }
           }
         } catch (error) {
-          console.error("Error fetching watch history:", error);
+          console.error('Error fetching watch history:', error);
         } finally {
           setLoadingHistory(false);
         }
@@ -68,6 +68,7 @@ const UserWatchHistory: React.FC<UserWatchHistoryProps> = ({
           <>
             {watchHistory.map((item) => (
               <MediaCardClient
+                key={`${item.media_type}-${item.media_id}-${item.season_number}-${item.episode_number}`}
                 media_type={item.media_type}
                 media_id={item.media_id}
                 season_number={item.season_number}

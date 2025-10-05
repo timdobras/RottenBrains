@@ -1,6 +1,6 @@
-import React from "react";
-import PostStats from "./PostStats";
-import MoreOptions from "@/components/features/media/MoreOptions";
+import React from 'react';
+import MoreOptions from '@/components/features/media/MoreOptions';
+import PostStats from './PostStats';
 
 interface PostFooterProps {
   post: any;

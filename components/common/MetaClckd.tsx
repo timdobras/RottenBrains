@@ -1,5 +1,5 @@
 // components/MetaClckd.js
-import Head from "next/head";
+import Head from 'next/head';
 
 const MetaClckd = () => (
   <Head>

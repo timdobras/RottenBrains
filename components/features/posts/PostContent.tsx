@@ -1,6 +1,6 @@
-import React from "react";
-import Link from "next/link";
-import UserReviewText from "./UserReviewText";
+import Link from 'next/link';
+import React from 'react';
+import UserReviewText from './UserReviewText';
 
 interface Media {
   id: number;
@@ -39,10 +39,7 @@ const PostContent = ({ media, post, post_link }: PostContentProps) => {
             {media && (media.title || media.name)}
           </Link>
         </div>
-        <UserReviewText
-          post_review={post.review_user || "No review"}
-          post_link={post_link}
-        />
+        <UserReviewText post_review={post.review_user || 'No review'} post_link={post_link} />
       </div>
     </div>
   );

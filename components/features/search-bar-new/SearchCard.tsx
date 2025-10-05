@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 const SearchCard = (media: any) => {
   media = media.media;
@@ -10,9 +10,7 @@ const SearchCard = (media: any) => {
         className="aspect-[1/1] h-full overflow-hidden rounded-[4px] object-cover object-center"
       />
       <div className="flex flex-col pl-4">
-        <p className="text-lg font-bold text-foreground">
-          {media.title || media.name}
-        </p>
+        <p className="text-lg font-bold text-foreground">{media.title || media.name}</p>
         <p className="text-foreground/70">
           {media.release_date?.slice(0, 4) || media.first_air_date?.slice(0, 4)}
         </p>
