@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`[Check-IP] Checking if ${ip} is in saved list for user ${user.id}`);
+    logger.debug(`[Check-IP] Checking if ${ip} is in saved list for user ${user.id}`);
 
     // Check if this IP is in the user's saved non-VPN IPs
     const { data: savedIPs, error: dbError } = await supabase
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const isKnownIP = !!savedIPs;
 
-    console.log(`[Check-IP] Result: IP ${ip} is ${isKnownIP ? 'KNOWN' : 'UNKNOWN'}`);
+    logger.debug(`[Check-IP] Result: IP ${ip} is ${isKnownIP ? 'KNOWN' : 'UNKNOWN'}`);
 
     return NextResponse.json({
       ip,

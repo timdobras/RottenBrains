@@ -69,7 +69,7 @@ const VPNDebugPanel = () => {
       });
     } catch (error) {
       console.error('Debug fetch error:', error);
-      setDebugInfo({ error: error.message });
+      setDebugInfo({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   };
 

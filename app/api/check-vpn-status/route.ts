@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Log all headers for debugging
-    console.log('IP Detection - All Headers:', headers);
+    logger.debug('IP Detection - All Headers:', headers);
 
     // Get IP from the first available header
     let clientIP = 'unknown';
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       if (value) {
         // x-forwarded-for can have multiple IPs, take the first
         clientIP = value.split(',')[0].trim();
-        console.log(`IP detected from ${key}: ${clientIP}`);
+        logger.debug(`IP detected from ${key}: ${clientIP}`);
         break;
       }
     }
@@ -54,14 +54,14 @@ export async function GET(request: NextRequest) {
 
     if (isLocalhost) {
       isDevelopment = true;
-      console.log('Localhost detected. In production, real IP would be available from headers.');
+      logger.debug('Localhost detected. In production, real IP would be available from headers.');
 
       // Option 1: Allow testing with a mock IP from query params (for development only)
       const testIP = request.nextUrl.searchParams.get('test_ip');
       if (testIP) {
         clientIP = testIP;
         detectionMethod = 'test_param';
-        console.log('Using test IP from query param:', clientIP);
+        logger.debug('Using test IP from query param:', clientIP);
       }
       // Option 2: In development, allow manual IP override via environment variable
       else if (process.env.NODE_ENV === 'development') {
@@ -70,17 +70,17 @@ export async function GET(request: NextRequest) {
         if (manualIP) {
           clientIP = manualIP;
           detectionMethod = 'env_variable';
-          console.log('Using manual test IP from env:', clientIP);
+          logger.debug('Using manual test IP from env:', clientIP);
         } else {
-          console.log('Localhost detected. In production, real IP will be available from headers.');
-          console.log('To test locally, add NEXT_PUBLIC_TEST_IP=your.ip.here to .env.local');
+          logger.debug('Localhost detected. In production, real IP will be available from headers.');
+          logger.debug('To test locally, add NEXT_PUBLIC_TEST_IP=your.ip.here to .env.local');
           clientIP = 'localhost';
           detectionMethod = 'localhost';
         }
       }
     }
 
-    console.log('Final client IP:', clientIP);
+    logger.debug('Final client IP:', clientIP);
 
     if (clientIP === 'unknown') {
       return NextResponse.json({
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       .eq('is_trusted', true)
       .single();
 
-    console.log('Database check result:', {
+    logger.debug('Database check result:', {
       userId: user.id,
       clientIP,
       foundIP: !!savedIPs,

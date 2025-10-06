@@ -4,6 +4,11 @@ import { useUser } from '@/hooks/UserContext';
 
 const Profile = () => {
   const { user } = useUser();
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <a href={`/protected/profile`} className="flex w-full flex-row items-center gap-4 p-4">
       <img src={user.image_url} alt="User Avatar" className={`aspect-square h-16 rounded-full`} />

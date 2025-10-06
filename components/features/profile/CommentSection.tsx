@@ -19,7 +19,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
   const comment_data = post_data.comments;
   const postId = post.id;
   const { user } = useUser();
-  const user_id = user.id;
+  const user_id = user?.id;
   const [state, setState] = useState({
     liked: current_user.has_liked,
     likes: post.total_likes,
@@ -38,7 +38,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
 
   const fetchComments = async () => {
     try {
-      const comments = await getCommentsByPostId(postId, user_id);
+      const comments = await getCommentsByPostId(String(postId), String(user_id));
       setState((prevState) => ({
         ...prevState,
         comments,
@@ -55,7 +55,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
 
   const fetchReplies = async (commentId: string) => {
     try {
-      const replies = await getRepliesByCommentId(commentId, user_id);
+      const replies = await getRepliesByCommentId(String(commentId), String(user_id));
 
       setState((prevState) => {
         const updatedComments = prevState.comments.map((comment: any) => {
@@ -145,9 +145,9 @@ const CommentSection = ({ post_data, current_user }: any) => {
 
       try {
         if (newLikedState) {
-          await likePost(user_id, postId);
+          await likePost(String(user_id), String(postId));
         } else {
-          await removeLike(user_id, postId);
+          await removeLike(String(user_id), String(postId));
         }
       } catch (error) {
         setState((prevState) => ({

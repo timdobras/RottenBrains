@@ -14,13 +14,13 @@ type Props = {
 
 const ProfileLayout = async ({ children, params }: Props) => {
   const { userId } = await params;
-  let user = await getUserFromDB(userId);
-  if (!user) {
+  const userData = await getUserFromDB(userId);
+  if (!userData) {
     return <p>Loading...</p>;
   }
-  user = user.user;
+  const user = userData.user;
 
-  const dateString = user.created_at;
+  const dateString = user.created_at || new Date().toISOString();
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
@@ -53,7 +53,7 @@ const ProfileLayout = async ({ children, params }: Props) => {
               <div className="flex flex-col pt-4">
                 <div className="flex w-full flex-row flex-wrap gap-2 md:justify-between">
                   <p className="text-2xl font-semibold">{user.username}</p>
-                  <FollowButton user_to_follow_id={user.id}></FollowButton>
+                  <FollowButton user_to_follow_id={String(user.id)}></FollowButton>
                 </div>
                 <div className="flex w-full flex-col gap-2 md:flex-row md:items-center">
                   <p className="lowercase">@{user.username}</p>

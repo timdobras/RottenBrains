@@ -30,7 +30,7 @@ const VPNTest = () => {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
-      setStatus({ loading: false, error: error.message });
+      setStatus({ loading: false, error: error instanceof Error ? error.message : 'Unknown error' });
     }
   };
 

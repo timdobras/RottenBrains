@@ -62,7 +62,7 @@ const Navbar = ({ children }: any) => {
                   </svg>
                 </Link>
                 <div className="flex aspect-square h-full items-center justify-center rounded-full bg-foreground/10">
-                  <NotificationButton user_id={user.id} />
+                  <NotificationButton user_id={String(user.id)} />
                 </div>
                 <div className="flex items-center">
                   <ProfilePictureNew />

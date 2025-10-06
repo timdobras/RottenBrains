@@ -62,6 +62,7 @@ const CommentCard = ({ comment, post, user_id, fetchComments, fetchReplies }: an
                 {replies.map((reply: any) => {
                   return (
                     <CommentCard
+                      key={reply.id}
                       comment={reply}
                       post={post}
                       user_id={user_id}

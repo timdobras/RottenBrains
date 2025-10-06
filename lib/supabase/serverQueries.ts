@@ -60,7 +60,7 @@ export const getPostById = async (post_id: string): Promise<any | null> => {
     if (error) throw error;
     return data;
   } catch (error) {
-    handleError('getPostById', error);
+    handleAppError(error, 'getPostById');
   }
 };
 

@@ -185,7 +185,7 @@ const VPNWarningProduction = () => {
                 <div className="text-sm text-yellow-100/90">
                   <p className="mb-1 font-medium">Privacy Warning:</p>
                   <p className="text-xs leading-relaxed text-yellow-100/70">
-                    You're browsing from a known public IP address without a VPN.
+                    You&apos;re browsing from a known public IP address without a VPN.
                   </p>
                 </div>
               </div>

@@ -7,9 +7,9 @@ export async function fetchPostsDataForUser(
   current_user_id?: string
 ) {
   const posts = await getUserPosts(user_id, page, current_user_id);
+  if (!posts) return [];
   const posts_media_data = await Promise.all(
     posts.map(async (post: any) => {
-      console.log(post.post.media_id);
       const media_data = await fetchMediaData(post.post.media_id, post.post.media_type);
       return { post_data: post, media_data: media_data };
     })
@@ -24,6 +24,7 @@ export async function fetchPostsDataForUserByType(
   current_user_id?: string
 ) {
   const posts = await getUserPostsType(user_id, media_type, page, current_user_id);
+  if (!posts) return [];
   const posts_media_data = await Promise.all(
     posts.map(async (post: any) => {
       const media_data = await fetchMediaData(post.post.media_id, post.post.media_type);

@@ -1,5 +1,5 @@
 import React from 'react';
-import ExploreCard from '@/components/features/explore/ExploreCard';
+// import ExploreCard from '@/components/features/explore/ExploreCard';
 import { fetchExploreData } from '@/lib/client/fetchExploreData';
 import { getCurrentUser, getBatchWatchTimes } from '@/lib/supabase/serverQueries';
 import { getMediaDetails } from '@/lib/tmdb';

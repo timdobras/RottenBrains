@@ -41,6 +41,10 @@ const AddComment: React.FC<any> = ({ post, user_id, fetchComments, fetchReplies,
     }
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <form
       onSubmit={handleSubmit}

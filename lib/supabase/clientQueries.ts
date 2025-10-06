@@ -121,7 +121,7 @@ export const getCommentReplies = async (comment_id: string): Promise<any | null>
     if (error) throw error;
     return data;
   } catch (error) {
-    handleError('getPostComments', error);
+    handleAppError(error, 'getPostComments');
     return null;
   }
 };
