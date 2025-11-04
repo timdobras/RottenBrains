@@ -69,7 +69,7 @@ export default async function mediaPage({ params }: { params: Params }) {
       {user && (
         <WatchDuration
           media_type={media_type}
-          media_id={media_id}
+          media_id={Number(media_id)}
           user_id={user.id}
           media_duration={media.runtime || 24}
         />

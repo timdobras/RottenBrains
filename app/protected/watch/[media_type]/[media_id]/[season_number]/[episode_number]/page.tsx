@@ -102,9 +102,9 @@ export default async function mediaPage({ params }: { params: Params }) {
       {user && (
         <WatchDuration
           media_type={media_type}
-          media_id={media_id}
-          season_number={season_number}
-          episode_number={episode_number}
+          media_id={Number(media_id)}
+          season_number={Number(season_number)}
+          episode_number={Number(episode_number)}
           user_id={user.id}
           media_duration={episode.runtime || 100}
         />

@@ -58,14 +58,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Convert string parameters to numbers if needed
+    const media_id = typeof data.media_id === 'string' ? parseInt(data.media_id, 10) : data.media_id;
+    const season_number = data.season_number
+      ? (typeof data.season_number === 'string' ? parseInt(data.season_number, 10) : data.season_number)
+      : null;
+    const episode_number = data.episode_number
+      ? (typeof data.episode_number === 'string' ? parseInt(data.episode_number, 10) : data.episode_number)
+      : null;
+
     const result = await upsertWatchHistory(
       data.user_id,
       data.media_type,
-      data.media_id,
+      media_id,
       data.time_spent,
       data.percentage_watched,
-      data.season_number ?? null,
-      data.episode_number ?? null
+      season_number,
+      episode_number
     );
 
     logger.debug('Watch time saved successfully:', {
