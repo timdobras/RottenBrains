@@ -120,11 +120,11 @@ export const upsertWatchHistory = async (
     // Parse new_percentage_watched to a float (already validated by Zod)
     const newPercentageFloat = parseFloat(new_percentage_watched);
 
-    // Step 1: Retrieve existing percentage_watched
+    // Step 1: Retrieve existing percentage_watched and time_spent
     const supabase = await getSupabaseClient();
     const { data: existingData, error: fetchError } = await supabase
       .from('watch_history')
-      .select('percentage_watched')
+      .select('percentage_watched, time_spent')
       .eq('user_id', user_id)
       .eq('media_type', media_type)
       .eq('media_id', media_id)
@@ -144,6 +144,19 @@ export const upsertWatchHistory = async (
       100
     ).toFixed(2);
 
+    // Calculate the total time spent (accumulate, don't replace)
+    const existingTimeSpent = existingData?.time_spent || 0;
+    const updatedTimeSpent = Number(existingTimeSpent) + Number(new_time_spent);
+
+    logger.debug('Accumulating watch time:', {
+      existingTimeSpent,
+      newTimeSpent: new_time_spent,
+      updatedTimeSpent,
+      existingPercentage,
+      newPercentage: newPercentageFloat,
+      updatedPercentage,
+    });
+
     const updatedCreatedAt = new Date().toISOString();
 
     // Step 2: Prepare the data to upsert
@@ -151,12 +164,12 @@ export const upsertWatchHistory = async (
       user_id,
       media_type,
       media_id,
-      time_spent: new_time_spent,
+      time_spent: updatedTimeSpent, // Use accumulated time, not just new time
       percentage_watched: updatedPercentage,
       season_number: normalizedSeasonNumber,
       episode_number: normalizedEpisodeNumber,
       created_at: updatedCreatedAt,
-      hidden_until: null, // Reset hidden_until when user watches again
+      hidden_until: null, // Reset hidden_until when user watches again (column added via migration)
     };
 
     // Step 3: Perform the upsert operation
