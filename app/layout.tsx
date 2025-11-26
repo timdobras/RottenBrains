@@ -24,6 +24,7 @@ export const metadata = {
   title: 'Rotten Brains | Stream movies and TV for free in HD quality.',
   description:
     'Watch movies and tv shows in HD quality for free. Discover all new movies in 2025. Stream for free in the best HD quality possible | Rotten Brains',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
