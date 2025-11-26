@@ -3,6 +3,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { fetchBlogPostById } from '@/lib/supabase/serverQueries';
 
+export const dynamic = 'force-dynamic';
+
 type Params = Promise<{ blog_id: string }>;
 
 export default async function AsyncPage({ params }: { params: Params }) {

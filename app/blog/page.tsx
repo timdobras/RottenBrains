@@ -2,6 +2,8 @@ import React from 'react';
 import { fetchBlogPosts } from '@/lib/supabase/serverQueries';
 import PostCardMain from './PostCardMain';
 
+export const dynamic = 'force-dynamic';
+
 const page = async () => {
   const posts = await fetchBlogPosts();
   return (
