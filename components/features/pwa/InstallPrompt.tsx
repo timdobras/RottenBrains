@@ -21,20 +21,25 @@ export default function InstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    console.log('PWA: InstallPrompt mounted, setting up listeners...');
+
     // Check if already installed as PWA
     const isInStandaloneMode =
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     setIsStandalone(isInStandaloneMode);
+    console.log('PWA: Standalone mode:', isInStandaloneMode);
 
     if (isInStandaloneMode) {
+      console.log('PWA: Already in standalone mode, skipping install prompt');
       return;
     }
 
     // Check if iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
+    console.log('PWA: iOS device:', isIOSDevice);
 
     // Check if already shown this session
     const shownThisSession = sessionStorage.getItem('pwa-install-shown');
@@ -45,8 +50,12 @@ export default function InstallPrompt() {
     const oneDayMs = 24 * 60 * 60 * 1000;
     const wasDismissedRecently = dismissedTime && Date.now() - dismissedTime < oneDayMs;
 
+    console.log('PWA: Shown this session:', !!shownThisSession);
+    console.log('PWA: Dismissed recently:', wasDismissedRecently);
+
     // Don't show if already shown this session or dismissed recently
     if (shownThisSession || wasDismissedRecently) {
+      console.log('PWA: Skipping due to session/dismiss state');
       return;
     }
 
@@ -61,18 +70,23 @@ export default function InstallPrompt() {
 
     // For other browsers, listen for beforeinstallprompt
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
+      console.log('PWA: beforeinstallprompt event FIRED! Chrome considers this site installable.');
       e.preventDefault();
       setDeferredPrompt(e);
       setShowPrompt(true);
       sessionStorage.setItem('pwa-install-shown', 'true');
     };
 
+    console.log('PWA: Adding beforeinstallprompt listener...');
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // For browsers that don't fire beforeinstallprompt (like Firefox),
     // show a generic prompt after a delay
     const fallbackTimer = setTimeout(() => {
       if (!deferredPrompt) {
+        console.log('PWA: beforeinstallprompt NOT fired after 5s - showing fallback prompt');
+        console.log('PWA: This means Chrome does NOT consider this site installable yet.');
+        console.log('PWA: Check Application > Manifest in DevTools for errors.');
         setShowPrompt(true);
         sessionStorage.setItem('pwa-install-shown', 'true');
       }
