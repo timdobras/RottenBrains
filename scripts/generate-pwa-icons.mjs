@@ -3,7 +3,8 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
-const SOURCE_LOGO = './public/assets/images/logo.png';
+// Using the red brand logo for PWA icons (visible on all backgrounds)
+const SOURCE_LOGO = './public/assets/images/logo_new.svg';
 const OUTPUT_DIR = './public/icons';
 
 const ICON_SIZES = [
