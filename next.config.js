@@ -1,6 +1,11 @@
-/** @type {import('next').NextConfig} */
+const withSerwist = require('@serwist/next').default({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+});
 
-module.exports = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
@@ -32,3 +37,5 @@ module.exports = {
     dangerouslyAllowSVG: true, // Enable SVG support
   },
 };
+
+module.exports = withSerwist(nextConfig);

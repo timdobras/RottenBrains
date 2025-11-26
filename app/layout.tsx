@@ -5,6 +5,8 @@ import LegalConsent from '@/components/features/consent/LegalConsent';
 import TopLoader from '@/components/features/loaders/TopLoader';
 import VPNWarningProduction from '@/components/features/navigation/VPNWarningProduction';
 import VPNDebugPanel from '@/components/features/navigation/VPNDebugPanel';
+import InstallPrompt from '@/components/features/pwa/InstallPrompt';
+import OfflineIndicator from '@/components/features/pwa/OfflineIndicator';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider } from '@/hooks/SidebarContext';
 import UserProvider from '@/hooks/UserContext';
@@ -22,6 +24,35 @@ export const metadata = {
   title: 'Rotten Brains | Stream movies and TV for free in HD quality.',
   description:
     'Watch movies and tv shows in HD quality for free. Discover all new movies in 2025. Stream for free in the best HD quality possible | Rotten Brains',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Rotten Brains',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f0f0f' },
+  ],
 };
 
 export default async function NotProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -54,6 +85,7 @@ export default async function NotProtectedLayout({ children }: { children: React
           <body className="custom-scrollbar max-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground transition-all duration-300">
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <VideoProvider>
+                <OfflineIndicator />
                 <TopLoader />
                 {initialUser && <VPNWarningProduction />}
                 {initialUser && process.env.NODE_ENV === 'development' && <VPNDebugPanel />}
@@ -72,6 +104,7 @@ export default async function NotProtectedLayout({ children }: { children: React
                 {/* <OneTapComponent /> */}
                 {/* <LegalConsent /> */}
                 <Toaster />
+                <InstallPrompt />
                 {/* <IubendaScripts /> */}
                 <Analytics />
                 <SpeedInsights />
