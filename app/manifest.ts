@@ -3,11 +3,13 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/',
     name: 'Rotten Brains | Stream movies and TV for free in HD quality.',
     short_name: 'Rotten Brains',
     description:
       'Watch movies and tv shows in HD quality for free. Discover all new movies in 2025. Stream for free in the best HD quality possible | Rotten Brains',
     start_url: '/',
+    scope: '/',
     display: 'standalone',
     orientation: 'portrait-primary',
     background_color: '#0f0f0f',
