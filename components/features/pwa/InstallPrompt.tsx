@@ -38,16 +38,15 @@ export default function InstallPrompt() {
 
     // Check if already shown this session
     const shownThisSession = sessionStorage.getItem('pwa-install-shown');
-    if (shownThisSession) {
-      return;
-    }
 
-    // Check if user has dismissed the prompt before
+    // Check if user has dismissed the prompt before (24 hour cooldown)
     const dismissed = localStorage.getItem('pwa-install-dismissed');
     const dismissedTime = dismissed ? parseInt(dismissed, 10) : 0;
-    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const wasDismissedRecently = dismissedTime && Date.now() - dismissedTime < oneDayMs;
 
-    if (dismissedTime && Date.now() - dismissedTime < oneWeek) {
+    // Don't show if already shown this session or dismissed recently
+    if (shownThisSession || wasDismissedRecently) {
       return;
     }
 
@@ -56,7 +55,7 @@ export default function InstallPrompt() {
       const timer = setTimeout(() => {
         setShowPrompt(true);
         sessionStorage.setItem('pwa-install-shown', 'true');
-      }, 5000);
+      }, 3000);
       return () => clearTimeout(timer);
     }
 
@@ -64,18 +63,26 @@ export default function InstallPrompt() {
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setTimeout(() => {
-        setShowPrompt(true);
-        sessionStorage.setItem('pwa-install-shown', 'true');
-      }, 3000);
+      setShowPrompt(true);
+      sessionStorage.setItem('pwa-install-shown', 'true');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // For browsers that don't fire beforeinstallprompt (like Firefox),
+    // show a generic prompt after a delay
+    const fallbackTimer = setTimeout(() => {
+      if (!deferredPrompt) {
+        setShowPrompt(true);
+        sessionStorage.setItem('pwa-install-shown', 'true');
+      }
+    }, 5000);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      clearTimeout(fallbackTimer);
     };
-  }, []);
+  }, [deferredPrompt]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -98,6 +105,10 @@ export default function InstallPrompt() {
     return null;
   }
 
+  // Check if this is Firefox (doesn't support beforeinstallprompt)
+  const isFirefox = typeof navigator !== 'undefined' && /Firefox/i.test(navigator.userAgent);
+  const showManualInstructions = isIOS || (isFirefox && !deferredPrompt);
+
   return (
     <div className="fixed bottom-20 left-4 right-4 z-50 md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
       <div className="overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
@@ -118,19 +129,28 @@ export default function InstallPrompt() {
             <div className="flex-1 pr-6">
               <h3 className="font-semibold text-foreground">Install Rotten Brains</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {isIOS
+                {showManualInstructions
                   ? 'Add to your home screen for the best experience.'
                   : 'Install our app for faster access and offline features.'}
               </p>
             </div>
           </div>
 
-          {isIOS ? (
+          {showManualInstructions ? (
             <div className="mt-4 rounded-lg bg-muted/50 p-3">
               <p className="text-sm text-muted-foreground">
-                Tap the <span className="font-medium text-foreground">Share</span> button in Safari,
-                then tap{' '}
-                <span className="font-medium text-foreground">&quot;Add to Home Screen&quot;</span>
+                {isIOS ? (
+                  <>
+                    Tap the <span className="font-medium text-foreground">Share</span> button, then{' '}
+                    <span className="font-medium text-foreground">&quot;Add to Home Screen&quot;</span>
+                  </>
+                ) : (
+                  <>
+                    Tap the <span className="font-medium text-foreground">menu (⋮)</span> button, then{' '}
+                    <span className="font-medium text-foreground">&quot;Install&quot;</span> or{' '}
+                    <span className="font-medium text-foreground">&quot;Add to Home Screen&quot;</span>
+                  </>
+                )}
               </p>
             </div>
           ) : (
