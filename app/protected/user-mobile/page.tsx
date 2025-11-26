@@ -1,4 +1,3 @@
-import { getAverageColor } from 'fast-average-color-node';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import React from 'react';
@@ -7,10 +6,13 @@ import MediaCardClient from '@/components/features/media/MediaCardClient';
 import MediaCardServer from '@/components/features/media/MediaCardServer';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
 import NavTop from '@/components/features/navigation/mobile/NavTop';
+import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
 import { getWatchHistoryForUser, getWatchListSpecific } from '@/lib/supabase/clientQueries';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import { getMediaDetails } from '@/lib/tmdb';
 import Profile from './Profile';
+
+export const dynamic = 'force-dynamic';
 
 const page = async () => {
   const user = await getCurrentUser();
@@ -27,30 +29,30 @@ const page = async () => {
   const planned = await getWatchListSpecific(user.id, limit, offset, 'planned');
   const watched = await getWatchListSpecific(user.id, limit, offset, 'watched');
 
-  // “Watched”
+  // "Watched"
   const fwatched = watched[0];
   const watchedMedia = await getMediaDetails(fwatched.media_type, fwatched.media_id);
   const watchedImageUrl =
     watchedMedia?.images?.backdrops?.[0]?.file_path || watchedMedia?.backdrop_path;
-  const watchedColor = await getAverageColor(
+  const watchedColor = await getAverageColorSafe(
     `https://image.tmdb.org/t/p/w200${watchedMedia.backdrop_path}`
   );
 
-  // “Watching”
+  // "Watching"
   const fwatching = watching[0];
   const watchingMedia = await getMediaDetails(fwatching.media_type, fwatching.media_id);
   const watchingImageUrl =
     watchingMedia?.images?.backdrops?.[0]?.file_path || watchingMedia?.backdrop_path;
-  const watchingColor = await getAverageColor(
+  const watchingColor = await getAverageColorSafe(
     `https://image.tmdb.org/t/p/w200${watchingMedia.backdrop_path}`
   );
 
-  // “Planned”
+  // "Planned"
   const fplanned = planned[0];
   const plannedMedia = await getMediaDetails(fplanned.media_type, fplanned.media_id);
   const plannedImageUrl =
     plannedMedia?.images?.backdrops?.[0]?.file_path || plannedMedia?.backdrop_path;
-  const plannedColor = await getAverageColor(
+  const plannedColor = await getAverageColorSafe(
     `https://image.tmdb.org/t/p/w200${plannedMedia.backdrop_path}`
   );
   return (

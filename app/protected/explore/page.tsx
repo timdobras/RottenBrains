@@ -1,24 +1,21 @@
-import { getAverageColor } from 'fast-average-color-node';
 import React, { Suspense } from 'react';
 import Banner_90x728 from '@/components/features/ads/Banner_90x728';
 import AdBanner from '@/components/features/ads/GoogleDisplayAd';
 import ExploreTab from '@/components/features/explore/ExploreTab';
 import MediaCarouselNew from '@/components/features/explore/MediaCarouselNew';
 import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
+import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import { getPopular } from '@/lib/tmdb';
+
+export const dynamic = 'force-dynamic';
 
 const fetchMoviesWithColors = async (movies: any) => {
   const moviesWithColors = await Promise.all(
     movies.map(async (movie: any) => {
-      let color;
-      try {
-        color = await getAverageColor(`https://image.tmdb.org/t/p/w200${movie.backdrop_path}`);
-      } catch (error) {
-        console.warn('Error getting average color:', error);
-        color = { hex: '#FFFFFF' }; // Default color for movies without colors
-      }
-
+      const color = await getAverageColorSafe(
+        `https://image.tmdb.org/t/p/w200${movie.backdrop_path}`
+      );
       return { ...movie, averageColor: color.hex };
     })
   );

@@ -1,12 +1,14 @@
-import { getAverageColor } from 'fast-average-color-node';
+'use client';
+
+import { FastAverageColor } from 'fast-average-color';
 import Link from 'next/link';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { formatDate } from '@/lib/utils';
 
 interface Post {
-  id: string; // Adjust based on your data structure
-  title: string; // Add other fields as necessary
+  id: string;
+  title: string;
   thumbnail: string;
   content: string;
   slug: string;
@@ -18,15 +20,30 @@ interface Post {
   author_id: string;
 }
 
-const PostCardMain: React.FC<{ post: Post }> = async ({ post }) => {
+const PostCardMain: React.FC<{ post: Post }> = ({ post }) => {
+  const [avgColor, setAvgColor] = useState('#3b82f6');
+
   const randomImage =
     post.images.length > 0
       ? post.images[Math.floor(Math.random() * Math.min(4, post.images.length))]
       : post.thumbnail;
 
-  // Get the average color from the selected image
-  const avg_color = await getAverageColor(randomImage);
-  post.content = post.content.replace(/\\n/g, '\n');
+  useEffect(() => {
+    const fac = new FastAverageColor();
+    fac
+      .getColorAsync(randomImage, { crossOrigin: 'anonymous' })
+      .then((color) => {
+        setAvgColor(color.hex);
+      })
+      .catch(() => {
+        // Keep fallback color
+      });
+
+    return () => fac.destroy();
+  }, [randomImage]);
+
+  const content = post.content.replace(/\\n/g, '\n');
+
   return (
     <Link href={`/blog/${post.id}`} className="w-full min-w-[300px] border md:max-w-[500px]">
       <div className="relative aspect-[4/3] w-full overflow-hidden">
@@ -39,7 +56,7 @@ const PostCardMain: React.FC<{ post: Post }> = async ({ post }) => {
       <div className="bg-black p-4 text-sm font-semibold">
         <p className="">{post.title}</p>
       </div>
-      <div className="h-2 w-full" style={{ backgroundColor: avg_color.hex }} />
+      <div className="h-2 w-full" style={{ backgroundColor: avgColor }} />
       <div className="flex w-full flex-col gap-4 p-4">
         <div>
           <p className="text-sm text-foreground/50">{formatDate(post.created_at)}</p>
@@ -51,7 +68,7 @@ const PostCardMain: React.FC<{ post: Post }> = async ({ post }) => {
             </div>
           ))}
         </div>
-        <ReactMarkdown className={'line-clamp-5 text-sm'}>{post.content}</ReactMarkdown>
+        <ReactMarkdown className={'line-clamp-5 text-sm'}>{content}</ReactMarkdown>
         <img
           src="/assets/icons/arrow-out-outline.svg"
           alt=""
