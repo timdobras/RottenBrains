@@ -72,6 +72,7 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     screenshots: [
+      // Desktop screenshots
       {
         src: '/assets/images/home_page_screen.png',
         sizes: '1280x720',
@@ -89,6 +90,13 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '1280x720',
         type: 'image/png',
         form_factor: 'wide',
+      },
+      // Mobile screenshot (required for Android install)
+      {
+        src: '/assets/images/mobile_screenshot.png',
+        sizes: '766x1125',
+        type: 'image/png',
+        form_factor: 'narrow',
       },
     ],
     shortcuts: [
