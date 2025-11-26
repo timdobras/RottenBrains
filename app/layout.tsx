@@ -5,7 +5,6 @@ import LegalConsent from '@/components/features/consent/LegalConsent';
 import TopLoader from '@/components/features/loaders/TopLoader';
 import VPNWarningProduction from '@/components/features/navigation/VPNWarningProduction';
 import VPNDebugPanel from '@/components/features/navigation/VPNDebugPanel';
-import InstallPrompt from '@/components/features/pwa/InstallPrompt';
 import OfflineIndicator from '@/components/features/pwa/OfflineIndicator';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider } from '@/hooks/SidebarContext';
@@ -105,7 +104,6 @@ export default async function NotProtectedLayout({ children }: { children: React
                 {/* <OneTapComponent /> */}
                 {/* <LegalConsent /> */}
                 <Toaster />
-                <InstallPrompt />
                 {/* <IubendaScripts /> */}
                 <Analytics />
                 <SpeedInsights />

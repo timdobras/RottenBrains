@@ -17,33 +17,9 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      console.log('PWA: Attempting to register service worker...');
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('PWA: Service Worker registered successfully!');
-          console.log('PWA: SW scope:', registration.scope);
-          console.log('PWA: SW state:', registration.active?.state || 'no active worker yet');
-
-          // Check if there's a waiting worker
-          if (registration.waiting) {
-            console.log('PWA: New SW waiting to activate');
-          }
-          if (registration.installing) {
-            console.log('PWA: SW is installing...');
-          }
-
-          // Listen for state changes
-          registration.addEventListener('updatefound', () => {
-            console.log('PWA: New service worker found, installing...');
-          });
-        })
-        .catch((err) => {
-          console.error('PWA: Service worker registration FAILED:', err);
-          console.error('PWA: This will prevent the site from being installable!');
-        });
-    } else {
-      console.log('PWA: Service workers not supported in this browser');
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        // Service worker registration failed silently
+      });
     }
   }, []);
 
