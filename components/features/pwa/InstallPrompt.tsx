@@ -36,6 +36,12 @@ export default function InstallPrompt() {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
 
+    // Check if already shown this session
+    const shownThisSession = sessionStorage.getItem('pwa-install-shown');
+    if (shownThisSession) {
+      return;
+    }
+
     // Check if user has dismissed the prompt before
     const dismissed = localStorage.getItem('pwa-install-dismissed');
     const dismissedTime = dismissed ? parseInt(dismissed, 10) : 0;
@@ -49,6 +55,7 @@ export default function InstallPrompt() {
     if (isIOSDevice) {
       const timer = setTimeout(() => {
         setShowPrompt(true);
+        sessionStorage.setItem('pwa-install-shown', 'true');
       }, 5000);
       return () => clearTimeout(timer);
     }
@@ -59,6 +66,7 @@ export default function InstallPrompt() {
       setDeferredPrompt(e);
       setTimeout(() => {
         setShowPrompt(true);
+        sessionStorage.setItem('pwa-install-shown', 'true');
       }, 3000);
     };
 

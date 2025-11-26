@@ -3,8 +3,8 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
-// Using the red brand logo for PWA icons (visible on all backgrounds)
-const SOURCE_LOGO = './public/assets/images/logo_new.svg';
+// Using the app favicon source (red R on white background)
+const SOURCE_LOGO = './public/assets/images/favicon-source.png';
 const OUTPUT_DIR = './public/icons';
 
 const ICON_SIZES = [
