@@ -38,7 +38,7 @@ const MediaCardServer: React.FC<MediaCardServerProps> = async ({
       ? await getWatchTime(user_id, media_type, media_id, season_number, episode_number)
       : 0;
 
-    // 3) hand everything off to the pure-UI component
+    // 3) hand everything off to the pure-UI component (color is extracted client-side)
     return (
       <MediaCardUI
         media={media}

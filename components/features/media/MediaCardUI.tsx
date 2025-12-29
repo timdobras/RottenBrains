@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import React from 'react';
 import MediaCardOverlay from '@/components/features/media/MediaCardOverlay';
@@ -11,6 +13,7 @@ import {
 import MoreOptions from './MoreOptions';
 import RemoveFromContinueWatching from './RemoveFromContinueWatching';
 import HoverImage from './TrailerDisplayOnHover';
+import { useAverageColor } from '@/hooks/useAverageColor';
 
 interface MediaCardProps {
   media: any;
@@ -72,8 +75,22 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
       ? ` | ${formatEpisodeCode(season_number, episode_number)}`
       : '';
 
+  // Extract average color from the displayed image (same logic as getImageUrl)
+  const colorImagePath =
+    media?.images?.backdrops?.[0]?.file_path ||
+    (season_number && episode_number ? media.still_path : media.backdrop_path);
+  const colorImageUrl = colorImagePath
+    ? `https://image.tmdb.org/t/p/w200${colorImagePath}`
+    : undefined;
+  const mediaColor = useAverageColor(colorImageUrl);
+
   return (
-    <article className="flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[350px]">
+    <article className="group relative flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[512px]">
+      <div
+        className="pointer-events-none absolute inset-0 rounded-[8px] opacity-0 scale-100 transition-all duration-300 group-hover:opacity-20 group-hover:scale-110"
+        style={{ backgroundColor: mediaColor }}
+        suppressHydrationWarning
+      />
       <div className="relative">
         <Link
           className={`relative block w-full overflow-hidden md:rounded-[8px] ${
