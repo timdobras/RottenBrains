@@ -15,7 +15,7 @@ export const searchUsers = async (searchQuery: string) => {
     }
 
     // Rank results: exact matches first, then starts-with, then contains
-    const ranked = data?.sort((a, b) => {
+    const ranked = data?.sort((a: any, b: any) => {
       const aUsername = a.username?.toLowerCase() || '';
       const bUsername = b.username?.toLowerCase() || '';
       const aDisplayName = a.display_name?.toLowerCase() || '';

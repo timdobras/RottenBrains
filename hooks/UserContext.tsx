@@ -68,7 +68,7 @@ const UserProvider = ({ children, initialUser }: { children: ReactNode; initialU
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       logger.debug('Auth state changed:', event);
 
       if (session?.user) {

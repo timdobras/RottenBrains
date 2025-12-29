@@ -88,7 +88,7 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
           table: 'notifications',
           filter: `recipient_id=eq.${user_id}`,
         },
-        (payload) => {
+        (payload: any) => {
           // =============== INSERT EVENT ===============
           if (payload.eventType === 'INSERT') {
             const newNotification = payload.new;
