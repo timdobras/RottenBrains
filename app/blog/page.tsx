@@ -36,7 +36,7 @@ const page = async () => {
           <div className="flex w-full flex-col gap-4 md:grid md:grid-cols-[repeat(auto-fit,minmax(300px,1fr))]">
             {posts &&
               posts.length > 0 &&
-              posts.map((post) => <PostCardMain key={post.id} post={post} />)}
+              posts.map((post: any) => <PostCardMain key={post.id} post={post} />)}
           </div>
         </div>
         <div className="hidden w-1/3 p-4 md:flex">
