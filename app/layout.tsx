@@ -2,6 +2,7 @@ import { GeistSans } from 'geist/font/sans';
 import React from 'react';
 import CookieConsent from '@/components/features/consent/CookieConsent';
 import LegalConsent from '@/components/features/consent/LegalConsent';
+import { OfflineModeIndicator } from '@/components/features/dev/OfflineModeIndicator';
 import TopLoader from '@/components/features/loaders/TopLoader';
 import VPNWarningProduction from '@/components/features/navigation/VPNWarningProduction';
 import VPNDebugPanel from '@/components/features/navigation/VPNDebugPanel';
@@ -86,6 +87,7 @@ export default async function NotProtectedLayout({ children }: { children: React
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <VideoProvider>
                 <OfflineIndicator />
+                <OfflineModeIndicator />
                 <TopLoader />
                 {initialUser && <VPNWarningProduction />}
                 {initialUser && process.env.NODE_ENV === 'development' && <VPNDebugPanel />}

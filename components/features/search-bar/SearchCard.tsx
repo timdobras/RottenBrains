@@ -1,11 +1,12 @@
 import React from 'react';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 
 const SearchCard = (media: any) => {
   media = media.media;
   return (
     <div className="mb-2 flex h-[128px] w-full flex-row items-center rounded-[12px] p-2">
       <img
-        src={`https://image.tmdb.org/t/p/w200${media.poster_path}`}
+        src={getTMDBImageUrl(media.poster_path, 'w200') || ''}
         alt="Movie Poster Not Available"
         className="aspect-[1/1] h-full overflow-hidden rounded-[4px] object-cover object-center"
       />

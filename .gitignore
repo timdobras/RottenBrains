@@ -34,3 +34,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# mock data for offline development
+/public/mock-images/
+/lib/mocks/data/

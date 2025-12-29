@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import movieGenres from '@/lib/constants/movie_genres.json';
 import tvGenres from '@/lib/constants/tv_genres.json';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { getFromGenres } from '@/lib/tmdb';
 
 const GenreSelector: React.FC = () => {
@@ -107,7 +108,7 @@ const GenreSelector: React.FC = () => {
             <Link href={`/protected/media/${selectedType}/${media.id}`} key={media.id}>
               <div className="animate-fade-in">
                 <img
-                  src={`https://image.tmdb.org/t/p/w500${media.poster_path}`}
+                  src={getTMDBImageUrl(media.poster_path, 'w500') || ''}
                   alt={media.title || media.name}
                   className="rounded-[8px] bg-foreground/10 hover:opacity-80"
                   loading="lazy"

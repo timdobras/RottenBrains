@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { createClient } from '@/lib/supabase/client';
 import { updateGenreStats } from '@/lib/supabase/clientQueries';
 import { getMediaDetails } from '@/lib/tmdb';
@@ -248,7 +249,7 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
         <div className="m-auto h-[450px] w-[300px] overflow-hidden rounded-xl bg-foreground/10 shadow-lg">
           {media?.poster_path && (
             <img
-              src={`https://image.tmdb.org/t/p/w500${media?.poster_path}`}
+              src={getTMDBImageUrl(media?.poster_path, 'w500') || ''}
               alt="Poster"
               width="300"
               height="450"

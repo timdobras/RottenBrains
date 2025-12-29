@@ -56,16 +56,16 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
   return (
     <DropdownMenu open={open} onOpenChange={() => setOpen(!open)}>
       <DropdownMenuTrigger className="flex flex-shrink-0">
-        <div className="flex h-12 flex-row items-center gap-2 rounded-full bg-foreground/10 p-1 pr-6">
-          <img
+        <div className="flex h-12 flex-row items-center gap-2 rounded-full bg-foreground/10 p-1 pl-4">
+          <div className="flex flex-col">
+            <p className="text-end text-sm">{user.name}</p>
+            <p className="text-end text-xs text-foreground/50">@{user.username}</p>
+          </div>
+                    <img
             src={user.image_url}
             alt="User Avatar"
             className={`aspect-square h-full rounded-full ${imageSize}`}
           />
-          <div className="flex flex-col">
-            <p className="text-start text-sm">{user.name}</p>
-            <p className="text-start text-xs text-foreground/50">@{user.username}</p>
-          </div>
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent

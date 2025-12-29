@@ -1,7 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { isOfflineMode } from '@/lib/mocks/config';
+import { createMockServerClient } from '@/lib/mocks/supabase';
 
 export async function createClient() {
+  // Return mock client in offline mode
+  if (isOfflineMode()) {
+    return createMockServerClient();
+  }
+
   const cookieStore = await cookies();
 
   return createServerClient(

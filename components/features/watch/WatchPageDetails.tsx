@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import React, { useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { formatEpisodeCode, getRelativeTime } from '@/lib/utils';
 import AdBanner from '../ads/GoogleDisplayAd';
 import MobileBannerExo from '../ads/MobileBannerExo';
@@ -151,7 +152,7 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
                   className="flex h-32 w-full flex-row items-center gap-4 overflow-hidden rounded-[8px] bg-foreground/10"
                 >
                   <img
-                    src={`https://image.tmdb.org/t/p/w200${media.poster_path}`}
+                    src={getTMDBImageUrl(media.poster_path, 'w200') || ''}
                     alt={`${media.title || media.name} Poster`}
                     className="h-full"
                   />
@@ -219,7 +220,7 @@ const WatchPageDetails: React.FC<WatchPageDetailsProps> = ({
           className="flex h-32 w-full flex-row items-center gap-4 overflow-hidden rounded-[8px] bg-foreground/10"
         >
           <img
-            src={`https://image.tmdb.org/t/p/w200${media.poster_path}`}
+            src={getTMDBImageUrl(media.poster_path, 'w200') || ''}
             alt={`${media.title || media.name} Poster`}
             className="h-full"
           />

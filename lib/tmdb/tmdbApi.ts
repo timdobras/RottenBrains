@@ -1,3 +1,6 @@
+import { isOfflineMode } from '@/lib/mocks/config';
+import { getMockTMDBData } from '@/lib/mocks/tmdb';
+
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 const BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -6,6 +9,11 @@ export const fetchFromApi = async (
   append_to_response?: string,
   cached: boolean = true // Control cache dynamically
 ): Promise<any> => {
+  // Check offline mode first - return mock data if enabled
+  if (isOfflineMode()) {
+    return getMockTMDBData(endpoint, append_to_response);
+  }
+
   let url = `${BASE_URL}/${endpoint}&api_key=${API_KEY}`;
 
   if (append_to_response) {

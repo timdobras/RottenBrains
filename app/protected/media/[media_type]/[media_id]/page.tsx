@@ -3,6 +3,7 @@ import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 import MoreOptions from '@/components/features/media/MoreOptions';
 import GoBackArrow from '@/components/features/navigation/GoBackArrow';
 import { fetchMediaData } from '@/lib/client/fetchMediaData';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import { getMediaCredits, getMediaDetails, getVideos } from '@/lib/tmdb';
 import { transformRuntime } from '@/lib/utils';
@@ -203,7 +204,7 @@ export default async function mediaPage({ params }: { params: Params }) {
             <div className="flex h-auto flex-col gap-4 md:h-[50vh] md:flex-row md:gap-8">
               <div className="h-full">
                 <img
-                  src={`https://image.tmdb.org/t/p/w500${media.poster_path}`}
+                  src={getTMDBImageUrl(media.poster_path, 'w500') || ''}
                   alt=""
                   className="h-full rounded-[4px] drop-shadow-lg"
                 />

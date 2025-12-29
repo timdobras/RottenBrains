@@ -28,13 +28,15 @@ const Navbar = ({ children }: any) => {
 
   return (
     <nav
-      className={`fixed top-0 z-30 hidden h-20 px-4 py-4 transition-all duration-300 ${
-        isSidebarOpen ? 'left-52 w-[calc(100vw-208px)]' : 'left-24 w-[calc(100vw-96px)]'
-      } justify-center bg-background md:flex`}
+      className={`fixed top-0 z-30 hidden h-20 w-screen px-4 py-4 justify-center bg-background md:flex`}
     >
       <div className="flex w-full flex-col items-center">
         {/* This container holds all elements in a row */}
-        <div className="flex w-full items-center justify-between gap-4 pr-4">
+        <div className="flex w-full items-center justify-between gap-4 px-2">
+          <div>
+            <a href="/"><img className='h-8 aspect-square' src="/assets/images/logo_new_white.svg" alt="" /></a>
+
+          </div>
           {/* Middle Section: The search bar expands to fill available space */}
           <div className="h-full w-full flex-1">
             {/* <SearchBar link={true} user={true}></SearchBar> */}

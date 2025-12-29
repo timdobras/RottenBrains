@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Genre } from '@/components/features/home/GenreSelector';
 import movie_genres from '@/lib/constants/movie_genres.json';
 import tv_genres from '@/lib/constants/tv_genres.json';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { getGenreNameById } from '@/lib/utils';
 
 const TopMovieCarousel = ({ movies }: any) => {
@@ -49,6 +50,7 @@ const TopMovieCarousel = ({ movies }: any) => {
               media.media_type === 'movie'
                 ? `/protected/watch/${media.media_type}/${media.id}`
                 : `/protected/watch/${media.media_type}/${media.id}/1/1`;
+            console.log(media)
 
             return (
               <div
@@ -125,6 +127,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                         <h2 className="text-4xl font-bold text-white">
                           {media.title || media.name}
                         </h2>
+                        <img src="" alt="" />
                         <h3 className="line-clamp-[2] text-white md:line-clamp-[4] md:w-1/3">
                           {media.overview}
                         </h3>
@@ -151,7 +154,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                     </div>
                     <div className="gradient-explore absolute right-0 top-0 z-10 h-full w-full"></div>
                     <img
-                      src={`https://image.tmdb.org/t/p/w1280${media.backdrop_path}`}
+                      src={getTMDBImageUrl(media.backdrop_path, 'w1280') || ''}
                       alt=""
                       className="h-full w-full bg-background object-cover object-center"
                     />

@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { isDebugDisabled } from '@/lib/mocks/config';
 
 const VPNDebugPanel = () => {
+  // Don't render debug panel in offline mode or when debug is disabled
+  if (isDebugDisabled()) {
+    return null;
+  }
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [savedIPs, setSavedIPs] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { getMediaDetails } from '@/lib/tmdb';
 
 type MediaInfoProps = {
@@ -37,7 +38,7 @@ const MediaInfoComponent = async ({ media_type, media_id, season_number }: Media
               <p>{media.vote_average.toFixed(1)}</p>
             </div>
             <img
-              src={`https://image.tmdb.org/t/p/w500${media.poster_path}`}
+              src={getTMDBImageUrl(media.poster_path, 'w500') || ''}
               alt=""
               width="300"
               height="450"

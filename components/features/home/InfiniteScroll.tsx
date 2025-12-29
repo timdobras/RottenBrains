@@ -68,7 +68,7 @@ const InfiniteScrollHome: React.FC<InfiniteScrollHomeProps> = ({
 
   return (
     <section className="flex w-full flex-col justify-center gap-4 px-4 md:p-0" ref={targetRef}>
-      <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8 md:gap-4">
+      <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-8 md:gap-4">
         {mediaItems && mediaItems.length > 0 ? (
           mediaItems.map((mediaItem, index) => {
             if (index === 6 || (index % 24 === 0 && index !== 0)) {

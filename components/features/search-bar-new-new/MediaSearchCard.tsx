@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { getGenreNameById, getHrefFromMedia } from '@/lib/utils';
 
 export type SearchCardProps = {
@@ -15,7 +16,7 @@ const MediaSearchCard = ({ media, onClick }: SearchCardProps) => {
     >
       {media.poster_path && media.poster_path !== '' ? (
         <img
-          src={`https://image.tmdb.org/t/p/w200${media.poster_path}`}
+          src={getTMDBImageUrl(media.poster_path, 'w200') || ''}
           alt=""
           className="aspect-square h-24 flex-shrink-0 overflow-hidden rounded-[8px] object-cover object-center md:h-full"
         />

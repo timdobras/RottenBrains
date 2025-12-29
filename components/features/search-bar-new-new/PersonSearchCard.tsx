@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { SearchCardProps } from './MediaSearchCard';
 
 const PersonSearchCard = ({ media: person, onClick }: SearchCardProps) => {
@@ -10,7 +11,7 @@ const PersonSearchCard = ({ media: person, onClick }: SearchCardProps) => {
     >
       {person.profile_path && person.profile_path !== '' ? (
         <img
-          src={`https://image.tmdb.org/t/p/w200${person.profile_path}`}
+          src={getTMDBImageUrl(person.profile_path, 'w200') || ''}
           alt=""
           className="aspect-square h-full flex-shrink-0 overflow-hidden rounded-[8px] object-cover object-center"
         />

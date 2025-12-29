@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { getPersonCredits, getPersonDetails, getPersonImages } from '@/lib/tmdb';
 
 type Params = Promise<{ person_id: number }>;
@@ -7,11 +8,12 @@ type Params = Promise<{ person_id: number }>;
 const page = async ({ params }: { params: Params }) => {
   const { person_id } = await params;
   const person_details = await getPersonDetails(person_id);
+  const profileImageUrl = getTMDBImageUrl(person_details.profile_path, 'w500');
   return (
     <div className="py-4 md:w-screen">
       <div>
         <img
-          src={`https://image.tmdb.org/t/p/w500${person_details.profile_path}`}
+          src={profileImageUrl || ''}
           alt=""
           className="mask2 absolute top-0 h-[300vh] w-screen overflow-hidden object-cover opacity-30 blur-[100px] md:h-[150vh]"
         />
@@ -34,7 +36,7 @@ const page = async ({ params }: { params: Params }) => {
             <div className="flex h-auto flex-col gap-4 md:h-[45%] md:flex-row md:gap-8">
               <div className="max-h-full">
                 <img
-                  src={`https://image.tmdb.org/t/p/w500${person_details.profile_path}`}
+                  src={profileImageUrl || ''}
                   alt=""
                   className="h-full rounded-[4px] drop-shadow-lg"
                 />

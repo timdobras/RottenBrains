@@ -1,4 +1,5 @@
 import React, { FC } from 'react';
+import { getTMDBImageUrl } from '@/lib/mocks/config';
 
 interface ImageWithFallbackProps {
   imageUrl?: string | null; // The URL of the image
@@ -15,9 +16,11 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
   fallbackIcon = '/assets/images/logo_new_black.svg',
   quality = 'w500', // Default image quality (w500, w780, w1280, etc.) - w500 for most thumbnails
 }) => {
-  return imageUrl ? (
+  const fullImageUrl = getTMDBImageUrl(imageUrl, quality);
+
+  return fullImageUrl ? (
     <img
-      src={`https://image.tmdb.org/t/p/${quality}${imageUrl}`}
+      src={fullImageUrl}
       alt={altText}
       className="aspect-[16/9] h-full w-full overflow-hidden bg-foreground/10"
     />
