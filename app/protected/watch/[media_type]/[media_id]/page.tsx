@@ -20,7 +20,7 @@ import { getMediaDetails, getRecommendations } from '@/lib/tmdb';
 
 export async function generateMetadata({ params }: any) {
   const media_id = parseInt(params.media_id, 10);
-  const media_type = 'movie';
+  const media_type = params.media_type;
 
   let mediaData;
   try {
@@ -45,10 +45,9 @@ export async function generateMetadata({ params }: any) {
     } Enjoy watching and sharing with friends today!`,
   };
 }
-type Params = Promise<{ media_id: number }>;
+type Params = Promise<{ media_id: number; media_type: string }>;
 export default async function mediaPage({ params }: { params: Params }) {
-  const { media_id } = await params;
-  const media_type = 'movie';
+  const { media_id, media_type } = await params;
 
   const user = await getCurrentUser();
 
@@ -60,7 +59,7 @@ export default async function mediaPage({ params }: { params: Params }) {
 
   // Fetch media details for recommendations
   const recommendationMediaDetails = await Promise.all(
-    recommendations.results.map((rec: any) => getMediaDetails(rec.media_type || 'movie', rec.id))
+    recommendations.results.map((rec: any) => getMediaDetails(rec.media_type || media_type, rec.id))
   );
 
   return (
@@ -80,7 +79,7 @@ export default async function mediaPage({ params }: { params: Params }) {
             <VideoEmbed />
             <WatchPageDetails
               media={media}
-              media_type="movie"
+              media_type={media_type}
               media_id={media_id}
             ></WatchPageDetails>
           </div>

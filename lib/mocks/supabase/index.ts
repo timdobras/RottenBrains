@@ -245,7 +245,7 @@ function createMockQueryBuilder(table: string): any {
       return builder;
     },
     // Make it thenable (Promise-like)
-    then(resolve: (result: MockResult<any>) => void, reject?: (error: any) => void) {
+    then(resolve: (result: MockResult<any>) => void, reject?: ((error: any) => void)) {
       try {
         const result = executeQuery();
         resolve(result);
@@ -254,7 +254,7 @@ function createMockQueryBuilder(table: string): any {
       }
     },
     // Support async/await
-    catch(reject: (error: any) => void) {
+    catch(reject: ((error: any) => void)) {
       return builder;
     },
     finally(callback: () => void) {
@@ -379,10 +379,10 @@ function handleMockRPC(fnName: string, params: any): any {
 // Mock realtime channel
 function createMockChannel(channelName: string): any {
   return {
-    on: (event: string, filter: any, callback: Function) => {
+    on: (event: string, filter: any, callback: (...args: any[]) => any) => {
       return createMockChannel(channelName);
     },
-    subscribe: (callback?: Function) => {
+    subscribe: (callback?: (...args: any[]) => any) => {
       if (callback) callback('SUBSCRIBED');
       return createMockChannel(channelName);
     },
@@ -469,7 +469,7 @@ const createMockAuth = () => ({
       data: { user: { id: MOCK_CURRENT_USER_ID, ...attributes } },
       error: null,
     }),
-  onAuthStateChange: (callback: Function) => {
+  onAuthStateChange: (callback: (...args: any[]) => any) => {
     callback('SIGNED_IN', {
       user: { id: MOCK_CURRENT_USER_ID, email: 'john@example.com' },
     });

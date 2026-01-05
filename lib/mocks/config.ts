@@ -16,6 +16,11 @@ export function isDebugDisabled(): boolean {
   );
 }
 
+export function isVPNDetectionDisabled(): boolean {
+  // VPN detection can be disabled separately from other debug features
+  return process.env.NEXT_PUBLIC_DISABLE_VPN_DETECTION === 'true';
+}
+
 export function getOfflineModeStatus() {
   return {
     enabled: isOfflineMode(),

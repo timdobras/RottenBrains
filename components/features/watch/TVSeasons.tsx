@@ -52,6 +52,7 @@ const TVShowDetails = async ({
         <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8 md:gap-4">
           {episodes.map((episode: any) => (
             <MediaCardServer
+              key={episode.id}
               media_type={'tv'}
               media_id={tv_show_id}
               user_id={user_id}

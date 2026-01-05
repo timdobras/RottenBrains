@@ -1,11 +1,13 @@
 'use client';
+import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { getFollowers, getFollowing, getPostCount } from '@/lib/supabase/clientQueries';
 import { IUser } from '@/types';
-import SearchUserCard from '../search-bar/SearchUserCard';
+import UserSearchCard from '../search-bar/UserSearchCard';
 import Modal from './Modal';
 
 const FollowInfo = ({ user }: any) => {
+  const router = useRouter();
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [followersCount, setFollowersCount] = useState(0);
@@ -68,7 +70,10 @@ const FollowInfo = ({ user }: any) => {
         <ul className="flex flex-col gap-2">
           {followers.map((user: any) => (
             <li key={user.id}>
-              <SearchUserCard user={user}></SearchUserCard>
+              <UserSearchCard
+                media={user}
+                onClick={() => router.push(`/protected/user/${user.id}`)}
+              />
             </li>
           ))}
         </ul>
@@ -82,7 +87,10 @@ const FollowInfo = ({ user }: any) => {
         <ul className="flex flex-col gap-2">
           {following.map((user: any) => (
             <li key={user.id}>
-              <SearchUserCard user={user}></SearchUserCard>
+              <UserSearchCard
+                media={user}
+                onClick={() => router.push(`/protected/user/${user.id}`)}
+              />
             </li>
           ))}
         </ul>

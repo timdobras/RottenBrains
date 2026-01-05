@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { WifiOff, Shield, X, Settings, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { logger } from '@/lib/logger';
-import { isDebugDisabled } from '@/lib/mocks/config';
+import { isVPNDetectionDisabled } from '@/lib/mocks/config';
 
 interface VPNStatus {
   isUsingVPN: boolean | null;
@@ -114,10 +114,10 @@ const VPNWarningProduction = () => {
   // - Dismissed
   // - No status (localhost)
   // - Not a known IP (using VPN)
-  // - Debug is disabled (offline mode)
-  if (loading || dismissed || !vpnStatus || !vpnStatus.isKnownIP || isDebugDisabled()) {
-    // Show development notice if on localhost (but not if debug is disabled)
-    if (!loading && !vpnStatus && process.env.NODE_ENV === 'development' && !isDebugDisabled()) {
+  // - VPN detection is disabled via env variable
+  if (loading || dismissed || !vpnStatus || !vpnStatus.isKnownIP || isVPNDetectionDisabled()) {
+    // Show development notice if on localhost (but not if VPN detection is disabled)
+    if (!loading && !vpnStatus && process.env.NODE_ENV === 'development' && !isVPNDetectionDisabled()) {
       return (
         <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600/90 text-white p-2 text-center text-sm">
           <AlertTriangle className="inline h-4 w-4 mr-2" />

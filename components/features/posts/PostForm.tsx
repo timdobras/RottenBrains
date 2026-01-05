@@ -243,7 +243,7 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
     <div className="mx-auto mt-10 flex w-full max-w-4xl flex-col text-foreground">
       <div className="w-[300px] self-center py-4 md:w-[500px]">
         <p className="py-2 text-center text-lg font-semibold">Search for a Movie or TV Show</p>
-        <SearchBar media={media} setMedia={setMedia}></SearchBar>
+        <SearchBar onMediaSelect={setMedia}></SearchBar>
       </div>
       <div className="flex flex-col items-center md:flex-row">
         <div className="m-auto h-[450px] w-[300px] overflow-hidden rounded-xl bg-foreground/10 shadow-lg">

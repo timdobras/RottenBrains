@@ -2,13 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { isDebugDisabled } from '@/lib/mocks/config';
+import { isVPNDetectionDisabled } from '@/lib/mocks/config';
 
-const VPNDebugPanel = () => {
-  // Don't render debug panel in offline mode or when debug is disabled
-  if (isDebugDisabled()) {
-    return null;
-  }
+// This component contains the actual logic and hooks
+const VPNDebugPanelContent = () => {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [savedIPs, setSavedIPs] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -152,6 +149,14 @@ const VPNDebugPanel = () => {
       </div>
     </div>
   );
+};
+
+// This is the parent component that conditionally renders the content
+const VPNDebugPanel = () => {
+  if (isVPNDetectionDisabled()) {
+    return null;
+  }
+  return <VPNDebugPanelContent />;
 };
 
 export default VPNDebugPanel;

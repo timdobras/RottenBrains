@@ -247,7 +247,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
           Known IP Addresses (Non-VPN)
         </h3>
         <p className="text-sm text-foreground/70">
-          Add your home, work, or other known public IP addresses. You'll be warned when browsing without a VPN from these locations.
+          Add your home, work, or other known public IP addresses. You&apos;ll be warned when browsing without a VPN from these locations.
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">

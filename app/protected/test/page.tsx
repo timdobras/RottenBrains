@@ -2,54 +2,45 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getUserFromDB } from '@/lib/supabase/serverQueries';
 
-export interface User {
-  id: string;
-  email: string;
-  // Define other user details here
-}
-interface Props {
-  user: User | null;
-}
-
-const getUser = async () => {
-  const user: User | null = null;
+const TestPage = async () => {
   const supabase = await createClient();
-  // Fetch user data from Supabase using the session cookie
   const { data: supabaseUser, error } = await supabase.auth.getUser();
 
-  if (error) {
-    console.error('Error fetching user:', error.message);
-    return {
-      redirect: {
-        destination: '/login', // Redirect to login page if user is not authenticated
-        permanent: false,
-      },
-    };
+  if (error || !supabaseUser) {
+    redirect('/login');
   }
 
-  if (supabaseUser) {
-    const dbUser = await getUserFromDB(supabaseUser.user.id);
-    if (!dbUser) {
-      const { error: insertError } = await supabase
-        .from('users') // Replace 'profiles' with your actual table name
-        .insert([
-          {
-            id: supabaseUser.user.id, // Use the user's unique ID from the sign-up
-            email: supabaseUser.user.email,
-            username: supabaseUser.user.user_metadata.name,
-            name: supabaseUser.user.user_metadata.full_name,
-            image_url: supabaseUser.user.user_metadata.picture,
-            // Add any other fields you need to store
-          },
-        ]);
-      if (insertError) {
-        console.error('Error inserting user profile:', insertError.message);
-      }
+  const dbUser = await getUserFromDB(supabaseUser.user.id);
+  if (!dbUser) {
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert([
+        {
+          id: supabaseUser.user.id,
+          email: supabaseUser.user.email,
+          username: supabaseUser.user.user_metadata.name,
+          name: supabaseUser.user.user_metadata.full_name,
+          image_url: supabaseUser.user.user_metadata.picture,
+        },
+      ]);
+    if (insertError) {
+      console.error('Error inserting user profile:', insertError.message);
+      // Optional: handle insert error, maybe redirect to an error page
     }
-    redirect('/');
   }
 
-  return <div>HI</div>;
+  // If the original intent was to redirect authenticated users away from this test page:
+  redirect('/');
+
+  // If the page should display something for the authenticated user,
+  // you would return JSX here instead of the redirect above.
+  // For example:
+  // return (
+  //   <div>
+  //     <h1>Test Page</h1>
+  //     <p>Welcome, {supabaseUser.user.email}</p>
+  //   </div>
+  // );
 };
 
-export default getUser;
+export default TestPage;

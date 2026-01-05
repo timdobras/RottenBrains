@@ -1,13 +1,12 @@
 'use client';
 
-import { SupabaseClient } from '@supabase/supabase-js';
-import { User } from '@supabase/supabase-js';
+import { SupabaseClient, User } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { createClient } from '../supabase/client';
 
 const supabase: SupabaseClient = createClient();
 
-export default function fetchUserData() {
+export default function useUserData() {
   // Define the state with an explicit type
   const [user, setUser] = useState<User | null>(null);
 

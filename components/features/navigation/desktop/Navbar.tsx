@@ -7,7 +7,7 @@ import { useSidebar } from '@/hooks/SidebarContext';
 import useLocalStorage from '@/hooks/useLocalStorage';
 import { useUser } from '@/hooks/UserContext';
 import NotificationButton from '../../notifications/NotificationButton';
-import SearchBar from '../../search-bar-new-new/SearchBar';
+import SearchBar from '../../search-bar/SearchBar';
 import ProfilePictureNew from './ProfilePictureNew';
 
 const Navbar = ({ children }: any) => {
@@ -34,7 +34,7 @@ const Navbar = ({ children }: any) => {
         {/* This container holds all elements in a row */}
         <div className="flex w-full items-center justify-between gap-4 px-2">
           <div>
-            <a href="/"><img className='h-8 aspect-square' src="/assets/images/logo_new_white.svg" alt="" /></a>
+            <Link href="/"><img className='h-8 aspect-square' src="/assets/images/logo_new_white.svg" alt="" /></Link>
 
           </div>
           {/* Middle Section: The search bar expands to fill available space */}

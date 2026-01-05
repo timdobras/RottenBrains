@@ -38,7 +38,7 @@ const NavSearchIconWithOverlay: React.FC = () => {
               X
             </button>
             <div className="z-30 mt-12 w-full">
-              <SearchBar ref={searchBarRef} link={true} user={true} />
+              <SearchBar ref={searchBarRef} />
             </div>
           </div>
         </div>

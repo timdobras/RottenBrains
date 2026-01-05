@@ -10,12 +10,6 @@ interface MyRedirectModalProps {
 }
 export default function PostModal({ userId, isOpen, children }: MyRedirectModalProps) {
   const router = useRouter();
-
-  if (!isOpen) return null;
-
-  const handleClose = () => {
-    router.replace(`/protected/user/${userId}`);
-  };
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -25,6 +19,13 @@ export default function PostModal({ userId, isOpen, children }: MyRedirectModalP
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleClose = () => {
+    router.replace(`/protected/user/${userId}`);
+  };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">

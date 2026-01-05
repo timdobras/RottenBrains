@@ -8,9 +8,9 @@ import { searchUsers } from '@/lib/client/searchUsers';
 import { searchMulti } from '@/lib/tmdb';
 import { debounce, SearchCache } from '@/lib/utils/debounce';
 import NavAdMobile from '../../ads/NavAdMobile';
-import MediaSearchCard from '../../search-bar-new-new/MediaSearchCard';
-import PersonSearchCard from '../../search-bar-new-new/PersonSearchCard';
-import UserSearchCard from '../../search-bar-new-new/UserSearchCard';
+import MediaSearchCard from '../../search-bar/MediaSearchCard';
+import PersonSearchCard from '../../search-bar/PersonSearchCard';
+import UserSearchCard from '../../search-bar/UserSearchCard';
 
 const searchCache = new SearchCache<any[]>(5);
 

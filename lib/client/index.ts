@@ -4,7 +4,7 @@ import { ExploreTabProps, MediaPageProps } from '@/types';
 import { fetchExploreData } from './fetchExploreData';
 import { fetchMediaData } from './fetchMediaData';
 
-export function getExploreData({ action }: ExploreTabProps) {
+export function useExploreData({ action }: ExploreTabProps) {
   const [data, setData] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -27,7 +27,7 @@ export function getExploreData({ action }: ExploreTabProps) {
   return { data, loading };
 }
 
-export function getMediaData({ media_type, media_id }: MediaPageProps) {
+export function useMediaData({ media_type, media_id }: MediaPageProps) {
   const [data, setData] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
