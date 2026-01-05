@@ -17,8 +17,7 @@ import HomeNav from '../components/features/navigation/desktop/Navbar';
 import './globals.css';
 import { cookies } from 'next/headers';
 import { ThemeProvider } from 'next-themes';
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import PlausibleAnalytics from '@/components/common/PlausibleAnalytics';
 
 export const metadata = {
   title: 'Rotten Brains | Stream movies and TV for free in HD quality.',
@@ -107,9 +106,7 @@ export default async function NotProtectedLayout({ children }: { children: React
                 {/* <LegalConsent /> */}
                 <Toaster />
                 {/* <IubendaScripts /> */}
-                <Analytics />
-                <SpeedInsights />
-                {/* <GoogleAnalytics gtag={"G-06SFYC5DWK"} /> */}
+                <PlausibleAnalytics domain="rotten-brains.com" src="https://plausible.timdobras.com/js/pa-OqFKUXucfmn6bLkFR0Gu1.js" />
                 {/* <GoogleAdsense pId="4557341861686356" /> */}
               </VideoProvider>
             </ThemeProvider>
