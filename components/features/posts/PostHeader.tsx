@@ -54,4 +54,4 @@ const PostHeader = ({ creator, post, user_id }: PostHeaderProps) => {
   );
 };
 
-export default PostHeader;
+export default React.memo(PostHeader);

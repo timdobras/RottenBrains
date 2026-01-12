@@ -2,104 +2,73 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { IUser } from '@/types';
-import { useRouter } from 'next/navigation';
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-  useMemo,
-  useCallback,
-} from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { logger } from '@/lib/logger';
 
 interface UserContextType {
   user: IUser | null;
-  loading: boolean;
-  refreshUser: () => Promise<void>;
+  isLoading: boolean;
+  refreshUser: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const UserProvider = ({ children, initialUser }: { children: ReactNode; initialUser?: IUser }) => {
-  const [user, setUser] = useState<IUser | null>(initialUser || null);
-  const [loading, setLoading] = useState(true);
+const fetchUser = async () => {
   const supabase = createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
 
-  const router = useRouter();
+  if (!authUser) {
+    return null;
+  }
 
-  // Memoize refreshUser to prevent unnecessary re-renders
-  const refreshUser = useCallback(async () => {
-    try {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
+  const { data: userData, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', authUser.id)
+    .single();
 
-      if (!authUser) {
-        setUser(null);
-        return;
-      }
+  if (error) {
+    logger.error('Error fetching user data:', error);
+    throw error;
+  }
 
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
+  return userData as IUser;
+};
 
-      if (error) {
-        logger.error('Error fetching user data:', error);
-        setUser(null);
-        return;
-      }
+const UserProvider = ({ children, initialUser }: { children: ReactNode; initialUser?: IUser }) => {
+  const queryClient = useQueryClient();
 
-      setUser(userData as IUser);
-    } catch (error) {
-      logger.error('Error in refreshUser:', error);
-      setUser(null);
-    }
-  }, [supabase]);
+  const { data: user, isLoading } = useQuery<IUser | null>({
+    queryKey: ['user'],
+    queryFn: fetchUser,
+    initialData: initialUser,
+  });
 
   useEffect(() => {
-    // Set initial loading state based on whether we have initial user
-    if (initialUser) {
-      setLoading(false);
-    }
-
+    const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       logger.debug('Auth state changed:', event);
-
-      if (session?.user) {
-        // Only fetch user data if user ID changed
-        if (!user || String(user.id) !== session.user.id) {
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (error) {
-            logger.error('Error fetching user on auth change:', error);
-            setUser(null);
-          } else {
-            setUser((userData as IUser) || null);
-          }
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     });
 
-    return () => subscription.unsubscribe();
-  }, [supabase, initialUser, user, refreshUser]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [queryClient]);
 
-  // Memoize context value to prevent unnecessary re-renders
+  const refreshUser = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['user'] });
+  }, [queryClient]);
+
   const contextValue = useMemo(
-    () => ({ user, loading, refreshUser }),
-    [user, loading, refreshUser]
+    () => ({ user: user || null, isLoading, refreshUser }),
+    [user, isLoading, refreshUser]
   );
 
   return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;

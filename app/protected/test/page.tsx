@@ -12,17 +12,15 @@ const TestPage = async () => {
 
   const dbUser = await getUserFromDB(supabaseUser.user.id);
   if (!dbUser) {
-    const { error: insertError } = await supabase
-      .from('users')
-      .insert([
-        {
-          id: supabaseUser.user.id,
-          email: supabaseUser.user.email,
-          username: supabaseUser.user.user_metadata.name,
-          name: supabaseUser.user.user_metadata.full_name,
-          image_url: supabaseUser.user.user_metadata.picture,
-        },
-      ]);
+    const { error: insertError } = await supabase.from('users').insert([
+      {
+        id: supabaseUser.user.id,
+        email: supabaseUser.user.email,
+        username: supabaseUser.user.user_metadata.name,
+        name: supabaseUser.user.user_metadata.full_name,
+        image_url: supabaseUser.user.user_metadata.picture,
+      },
+    ]);
     if (insertError) {
       console.error('Error inserting user profile:', insertError.message);
       // Optional: handle insert error, maybe redirect to an error page

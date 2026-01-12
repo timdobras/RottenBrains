@@ -224,3 +224,44 @@ export const hideFromContinueWatchingSchema = z.object({
 });
 
 export type HideFromContinueWatching = z.infer<typeof hideFromContinueWatchingSchema>;
+
+/**
+ * API Request validation schemas
+ */
+
+/**
+ * Update genres schema - for /api/updateGenres endpoint
+ */
+export const updateGenresSchema = z.object({
+  genreIds: z
+    .array(z.number().int().positive())
+    .min(1, 'At least one genre is required')
+    .max(50, 'Maximum 50 genres allowed'),
+  mediaType: z.enum(['movie', 'tv']),
+});
+
+export type UpdateGenres = z.infer<typeof updateGenresSchema>;
+
+/**
+ * IP address validation schema - for /api/check-ip endpoint
+ * Uses Zod's built-in IP validation
+ */
+export const ipAddressSchema = z.object({
+  ip: z.string().ip({ message: 'Invalid IP address format' }),
+});
+
+export type IPAddress = z.infer<typeof ipAddressSchema>;
+
+/**
+ * Save watch time schema - for /api/saveWatchTime endpoint
+ */
+export const saveWatchTimeSchema = z.object({
+  time_spent: z.number().nonnegative(),
+  percentage_watched: z.string().regex(/^\d+(\.\d+)?$/, 'Must be a valid number string'),
+  media_type: z.enum(['movie', 'tv']),
+  media_id: z.number().int().positive(),
+  season_number: z.number().int().positive().nullable().optional(),
+  episode_number: z.number().int().positive().nullable().optional(),
+});
+
+export type SaveWatchTime = z.infer<typeof saveWatchTimeSchema>;

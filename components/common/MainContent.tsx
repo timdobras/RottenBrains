@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSidebar } from '@/hooks/SidebarContext';
 import VideoShell from '@/hooks/VideoShell';
-import TopLoader from '../features/loaders/TopLoader';
 import Sidebar from '../features/navigation/desktop/Sidebar';
 import NavBottom from '../features/navigation/mobile/NavBottom';
 

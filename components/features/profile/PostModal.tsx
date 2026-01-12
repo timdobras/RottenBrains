@@ -26,7 +26,6 @@ export default function PostModal({ userId, isOpen, children }: MyRedirectModalP
     router.replace(`/protected/user/${userId}`);
   };
 
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm">
       <dialog

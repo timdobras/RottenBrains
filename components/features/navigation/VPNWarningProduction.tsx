@@ -36,7 +36,7 @@ const VPNWarningProduction = () => {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-        }
+        },
       });
 
       if (response.ok) {
@@ -46,7 +46,7 @@ const VPNWarningProduction = () => {
           currentIP: data.currentIP,
           isKnownIP: data.isKnownIP,
           detectionMethod: data.detectionMethod,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         // Don't show warning for localhost
@@ -117,12 +117,16 @@ const VPNWarningProduction = () => {
   // - VPN detection is disabled via env variable
   if (loading || dismissed || !vpnStatus || !vpnStatus.isKnownIP || isVPNDetectionDisabled()) {
     // Show development notice if on localhost (but not if VPN detection is disabled)
-    if (!loading && !vpnStatus && process.env.NODE_ENV === 'development' && !isVPNDetectionDisabled()) {
+    if (
+      !loading &&
+      !vpnStatus &&
+      process.env.NODE_ENV === 'development' &&
+      !isVPNDetectionDisabled()
+    ) {
       return (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-blue-600/90 text-white p-2 text-center text-sm">
-          <AlertTriangle className="inline h-4 w-4 mr-2" />
-          VPN Detection: Disabled on localhost. Will work in production.
-          {' '}
+        <div className="fixed left-0 right-0 top-0 z-50 bg-blue-600/90 p-2 text-center text-sm text-white">
+          <AlertTriangle className="mr-2 inline h-4 w-4" />
+          VPN Detection: Disabled on localhost. Will work in production.{' '}
           <Link href="/protected/settings" className="underline">
             Manage IPs →
           </Link>
@@ -142,9 +146,7 @@ const VPNWarningProduction = () => {
               <WifiOff className="h-4 w-4 text-yellow-500" />
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
-              <span className="text-sm font-medium text-yellow-100">
-                No VPN Detected
-              </span>
+              <span className="text-sm font-medium text-yellow-100">No VPN Detected</span>
               <span className="text-xs text-yellow-200/80 sm:text-sm">
                 {vpnStatus.savedIPInfo?.label
                   ? `Connected from ${vpnStatus.savedIPInfo.label}`

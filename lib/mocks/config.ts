@@ -10,10 +10,7 @@ export function isOfflineMode(): boolean {
 
 export function isDebugDisabled(): boolean {
   // Debug is disabled if explicitly set OR if in offline mode
-  return (
-    process.env.NEXT_PUBLIC_DISABLE_DEBUG === 'true' ||
-    isOfflineMode()
-  );
+  return process.env.NEXT_PUBLIC_DISABLE_DEBUG === 'true' || isOfflineMode();
 }
 
 export function isVPNDetectionDisabled(): boolean {
@@ -38,7 +35,10 @@ export function getOfflineModeStatus() {
  * @param imagePath - The image path (e.g., "/abc123.jpg")
  * @param size - The image size (e.g., "w500", "w1280", "w185")
  */
-export function getTMDBImageUrl(imagePath: string | null | undefined, size: string = 'w500'): string | null {
+export function getTMDBImageUrl(
+  imagePath: string | null | undefined,
+  size: string = 'w500'
+): string | null {
   if (!imagePath) return null;
 
   if (isOfflineMode()) {

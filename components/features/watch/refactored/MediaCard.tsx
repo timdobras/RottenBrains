@@ -50,8 +50,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, media_type }) => {
               ? media.release_date.slice(0, 4)
               : 0
             : media.first_air_date
-            ? media.first_air_date.slice(0, 4)
-            : 0}
+              ? media.first_air_date.slice(0, 4)
+              : 0}
         </p>
       </div>
     </Link>

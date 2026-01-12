@@ -3,6 +3,7 @@
 ## The Challenge
 
 When developing locally (localhost), we can't get your real public IP from request headers because:
+
 - The request comes from your browser to localhost (127.0.0.1)
 - There's no proxy or CDN in between to add your real IP to headers
 - Your browser doesn't know its own public IP
@@ -10,9 +11,11 @@ When developing locally (localhost), we can't get your real public IP from reque
 ## How It Works
 
 ### In Production (Deployed Site)
+
 ✅ **NO external services needed!**
 
 When deployed to Vercel/Netlify/etc:
+
 1. User visits your site
 2. Request goes through CDN/proxy (Cloudflare, Vercel, etc.)
 3. CDN adds real IP to headers (`x-forwarded-for`, `cf-connecting-ip`, etc.)
@@ -24,9 +27,11 @@ User (Real IP) → CDN/Proxy (adds IP to headers) → Your Server (reads headers
 ```
 
 ### In Development (Localhost)
+
 ⚠️ **External service needed ONLY for testing**
 
 When running locally:
+
 1. Browser makes request to localhost
 2. No proxy = no real IP in headers
 3. We detect localhost and:
@@ -40,6 +45,7 @@ Your Browser → Localhost (no real IP available) → External service (gets rea
 ## Better Solutions for Local Testing
 
 ### Option 1: Mock IP Testing (Recommended)
+
 Instead of external services, test with fake IPs:
 
 ```javascript
@@ -48,6 +54,7 @@ Instead of external services, test with fake IPs:
 ```
 
 ### Option 2: Environment Variable
+
 Set a test IP in `.env.local`:
 
 ```env
@@ -55,6 +62,7 @@ TEST_IP_ADDRESS=your.real.ip.here
 ```
 
 ### Option 3: Disable for Development
+
 Simply skip VPN detection in development:
 
 ```javascript
@@ -72,12 +80,14 @@ if (process.env.NODE_ENV === 'development') {
 ## Privacy & Security
 
 ### Production (Good ✅)
+
 - IP comes from request headers
 - No external API calls
 - No privacy concerns
 - Fast and reliable
 
 ### Development (Current)
+
 - Makes ONE request to ipify.org
 - Only in development mode
 - Has 3-second timeout
@@ -95,6 +105,7 @@ For production readiness, I recommend:
 ## How to Test Without External Services
 
 ### Method 1: URL Parameter
+
 ```bash
 # Test with a fake "known" IP
 http://localhost:3000?test_ip=8.8.8.8
@@ -104,6 +115,7 @@ http://localhost:3000?test_ip=YOUR_REAL_IP_HERE
 ```
 
 ### Method 2: Use ngrok or similar
+
 ```bash
 # Install ngrok
 npm install -g ngrok
@@ -115,6 +127,7 @@ ngrok http 3000
 ```
 
 ### Method 3: Deploy to staging
+
 Deploy to Vercel preview branch - real IPs will work
 
 ## Summary

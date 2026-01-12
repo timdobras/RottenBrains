@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import MediaCardOverlay from '@/components/features/media/MediaCardOverlay';
 import {
   formatDate,
@@ -46,27 +46,38 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   media_id = media_id || media.media_id || media.id || undefined;
   watch_time = watch_time || media.watch_time || 0;
 
-  const genreIds: bigint[] = media?.genres?.map((genre: any) => genre.id) || [];
+  const genreIds: bigint[] = useMemo(
+    () => media?.genres?.map((genre: any) => genre.id) || [],
+    [media?.genres]
+  );
 
+  // Date-based badges - computed client-side only to avoid hydration mismatch
   const releaseDate = media.release_date || media.air_date || media.first_air_date;
+  const [dateBadges, setDateBadges] = useState({ isNew: false, isSoon: false, isNewEpisodes: false });
 
-  const dayDifference = releaseDate
-    ? (new Date().getTime() - new Date(releaseDate).getTime()) / (1000 * 3600 * 24)
-    : undefined;
-
-  const dayDifferenceTv =
-    media_type === 'tv' && media.last_air_date
-      ? (new Date().getTime() - new Date(media.last_air_date).getTime()) / (1000 * 3600 * 24)
+  useEffect(() => {
+    const now = Date.now();
+    const dayDifference = releaseDate
+      ? (now - new Date(releaseDate).getTime()) / (1000 * 3600 * 24)
       : undefined;
+    const dayDifferenceTv =
+      media_type === 'tv' && media.last_air_date
+        ? (now - new Date(media.last_air_date).getTime()) / (1000 * 3600 * 24)
+        : undefined;
 
-  const isNew = dayDifference !== undefined && dayDifference > 0 && dayDifference <= 30;
-  const isSoon = dayDifference !== undefined && dayDifference < 0;
-  const isNewEpisodes =
-    media_type === 'tv' &&
-    dayDifference !== undefined &&
-    dayDifference >= 30 &&
-    dayDifferenceTv !== undefined &&
-    dayDifferenceTv < 30;
+    setDateBadges({
+      isNew: dayDifference !== undefined && dayDifference > 0 && dayDifference <= 30,
+      isSoon: dayDifference !== undefined && dayDifference < 0,
+      isNewEpisodes:
+        media_type === 'tv' &&
+        dayDifference !== undefined &&
+        dayDifference >= 30 &&
+        dayDifferenceTv !== undefined &&
+        dayDifferenceTv < 30,
+    });
+  }, [releaseDate, media.last_air_date, media_type]);
+
+  const { isNew, isSoon, isNewEpisodes } = dateBadges;
 
   const mediaTitle = media.title || media.name;
 
@@ -87,7 +98,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   return (
     <article className="group relative flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[512px]">
       <div
-        className="pointer-events-none absolute inset-0 rounded-[8px] opacity-0 scale-100 transition-all duration-300 group-hover:opacity-20 group-hover:scale-110"
+        className="pointer-events-none absolute inset-0 scale-100 rounded-[8px] opacity-0 transition-all duration-300 group-hover:scale-110 group-hover:opacity-20"
         style={{ backgroundColor: mediaColor }}
         suppressHydrationWarning
       />
@@ -172,4 +183,4 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   );
 };
 
-export default MediaCardUI;
+export default React.memo(MediaCardUI);

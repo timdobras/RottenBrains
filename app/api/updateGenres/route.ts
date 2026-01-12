@@ -1,15 +1,30 @@
 import { NextResponse } from 'next/server';
 import { updateGenreStats } from '@/lib/supabase/serverQueries';
+import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   try {
-    const { genreIds, mediaType, userId } = await request.json();
+    const supabase = await createClient();
 
-    if (!genreIds || !mediaType || !userId) {
+    // Verify authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { genreIds, mediaType } = await request.json();
+
+    if (!genreIds || !mediaType) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    const response = await updateGenreStats({ genreIds, mediaType, userId });
+    // Use authenticated user ID instead of client-provided userId
+    const response = await updateGenreStats({ genreIds, mediaType, userId: user.id });
 
     if (response.success) {
       return NextResponse.json({ message: 'Genre stats updated successfully' });
@@ -19,7 +34,8 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-  } catch (_error) {
+  } catch (error) {
+    logger.error('Error updating genres:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

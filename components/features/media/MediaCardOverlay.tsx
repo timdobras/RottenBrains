@@ -62,4 +62,4 @@ const MediaCardOverlay: FC<MediaCardOverlayProps> = ({
   );
 };
 
-export default MediaCardOverlay;
+export default React.memo(MediaCardOverlay);

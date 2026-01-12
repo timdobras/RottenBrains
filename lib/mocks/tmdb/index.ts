@@ -30,18 +30,12 @@ import {
   searchPerson,
   mockPeoplePopular,
 } from './people';
-import {
-  movieGenres,
-  tvGenres,
-} from './genres';
+import { movieGenres, tvGenres } from './genres';
 
 /**
  * Main router function that maps TMDB API endpoints to mock data
  */
-export function getMockTMDBData(
-  endpoint: string,
-  appendToResponse?: string
-): any {
+export function getMockTMDBData(endpoint: string, appendToResponse?: string): any {
   // Remove leading slash if present
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
 
@@ -81,11 +75,14 @@ export function getMockTMDBData(
 
 function parseQueryString(queryString: string): Record<string, string> {
   if (!queryString) return {};
-  return queryString.split('&').reduce((acc, pair) => {
-    const [key, value] = pair.split('=');
-    if (key) acc[decodeURIComponent(key)] = decodeURIComponent(value || '');
-    return acc;
-  }, {} as Record<string, string>);
+  return queryString.split('&').reduce(
+    (acc, pair) => {
+      const [key, value] = pair.split('=');
+      if (key) acc[decodeURIComponent(key)] = decodeURIComponent(value || '');
+      return acc;
+    },
+    {} as Record<string, string>
+  );
 }
 
 function handleTrending(segments: string[]): any {
@@ -105,14 +102,22 @@ function handleTrending(segments: string[]): any {
   return getTrendingMovies();
 }
 
-function handleMovie(segments: string[], appendToResponse?: string, queryParams?: Record<string, string>): any {
+function handleMovie(
+  segments: string[],
+  appendToResponse?: string,
+  queryParams?: Record<string, string>
+): any {
   const [idOrAction, subAction] = segments;
 
   switch (idOrAction) {
-    case 'popular': return getPopularMovies();
-    case 'now_playing': return getNowPlayingMovies();
-    case 'top_rated': return getTopRatedMovies();
-    case 'upcoming': return getNowPlayingMovies();
+    case 'popular':
+      return getPopularMovies();
+    case 'now_playing':
+      return getNowPlayingMovies();
+    case 'top_rated':
+      return getTopRatedMovies();
+    case 'upcoming':
+      return getNowPlayingMovies();
   }
 
   const movieId = parseInt(idOrAction);
@@ -123,25 +128,38 @@ function handleMovie(segments: string[], appendToResponse?: string, queryParams?
 
   if (subAction) {
     switch (subAction) {
-      case 'credits': return movie.credits || { cast: [], crew: [] };
-      case 'videos': return movie.videos || { results: [] };
-      case 'images': return movie.images || { backdrops: [], posters: [] };
-      case 'recommendations': return getRecommendations('movie');
-      case 'similar': return getSimilar('movie');
+      case 'credits':
+        return movie.credits || { cast: [], crew: [] };
+      case 'videos':
+        return movie.videos || { results: [] };
+      case 'images':
+        return movie.images || { backdrops: [], posters: [] };
+      case 'recommendations':
+        return getRecommendations('movie');
+      case 'similar':
+        return getSimilar('movie');
     }
   }
 
   return movie;
 }
 
-function handleTv(segments: string[], appendToResponse?: string, queryParams?: Record<string, string>): any {
+function handleTv(
+  segments: string[],
+  appendToResponse?: string,
+  queryParams?: Record<string, string>
+): any {
   const [idOrAction, subAction, subId] = segments;
 
   switch (idOrAction) {
-    case 'popular': return getPopularTv();
-    case 'airing_today': return getAiringToday();
-    case 'on_the_air': return getAiringToday();
-    case 'top_rated': return getTopRatedTv();
+    case 'popular':
+      return getPopularTv();
+    case 'airing_today':
+      return getAiringToday();
+    case 'on_the_air':
+      return getAiringToday();
+    case 'top_rated':
+      return getTopRatedTv();
   }
 
   const tvId = parseInt(idOrAction);
@@ -152,11 +170,16 @@ function handleTv(segments: string[], appendToResponse?: string, queryParams?: R
 
   if (subAction) {
     switch (subAction) {
-      case 'credits': return tvShow.credits || { cast: [], crew: [] };
-      case 'videos': return tvShow.videos || { results: [] };
-      case 'images': return tvShow.images || { backdrops: [], posters: [] };
-      case 'recommendations': return getRecommendations('tv');
-      case 'similar': return getSimilar('tv');
+      case 'credits':
+        return tvShow.credits || { cast: [], crew: [] };
+      case 'videos':
+        return tvShow.videos || { results: [] };
+      case 'images':
+        return tvShow.images || { backdrops: [], posters: [] };
+      case 'recommendations':
+        return getRecommendations('tv');
+      case 'similar':
+        return getSimilar('tv');
       case 'season':
         const seasonNum = parseInt(subId);
         if (!isNaN(seasonNum)) return getSeasonDetails(tvId, seasonNum);
@@ -175,13 +198,16 @@ function handlePerson(segments: string[]): any {
 
   if (subAction) {
     switch (subAction) {
-      case 'movie_credits': return getPersonMovieCredits(personId);
-      case 'tv_credits': return getPersonTvCredits(personId);
+      case 'movie_credits':
+        return getPersonMovieCredits(personId);
+      case 'tv_credits':
+        return getPersonTvCredits(personId);
       case 'combined_credits':
         const movie = getPersonMovieCredits(personId);
         const tv = getPersonTvCredits(personId);
         return { cast: [...(movie.cast || []), ...(tv.cast || [])], crew: [] };
-      case 'images': return getPersonImages(personId);
+      case 'images':
+        return getPersonImages(personId);
     }
   }
 
@@ -205,7 +231,10 @@ function handleSearch(segments: string[], queryParams: Record<string, string>): 
     case 'movie':
       return {
         page: 1,
-        results: filterByQuery(mockMovies, 'title').map((m: any) => ({ ...m, media_type: 'movie' })),
+        results: filterByQuery(mockMovies, 'title').map((m: any) => ({
+          ...m,
+          media_type: 'movie',
+        })),
         total_pages: 1,
         total_results: 20,
       };
@@ -219,9 +248,15 @@ function handleSearch(segments: string[], queryParams: Record<string, string>): 
     case 'person':
       return searchPerson(query);
     case 'multi':
-      const movies = filterByQuery(mockMovies, 'title').slice(0, 5).map((m: any) => ({ ...m, media_type: 'movie' }));
-      const tv = filterByQuery(mockTvShows, 'name').slice(0, 5).map((t: any) => ({ ...t, media_type: 'tv' }));
-      const people = searchPerson(query).results.slice(0, 3).map((p: any) => ({ ...p, media_type: 'person' }));
+      const movies = filterByQuery(mockMovies, 'title')
+        .slice(0, 5)
+        .map((m: any) => ({ ...m, media_type: 'movie' }));
+      const tv = filterByQuery(mockTvShows, 'name')
+        .slice(0, 5)
+        .map((t: any) => ({ ...t, media_type: 'tv' }));
+      const people = searchPerson(query)
+        .results.slice(0, 3)
+        .map((p: any) => ({ ...p, media_type: 'person' }));
       return {
         page: 1,
         results: [...movies, ...tv, ...people],
@@ -240,7 +275,9 @@ function handleDiscover(segments: string[], queryParams: Record<string, string>)
   if (mediaType === 'movie') {
     let results = [...mockMovies];
     if (genreIds.length > 0) {
-      results = results.filter((m: any) => m.genre_ids?.some((id: number) => genreIds.includes(id)));
+      results = results.filter((m: any) =>
+        m.genre_ids?.some((id: number) => genreIds.includes(id))
+      );
     }
     return {
       page: 1,
@@ -252,7 +289,9 @@ function handleDiscover(segments: string[], queryParams: Record<string, string>)
   if (mediaType === 'tv') {
     let results = [...mockTvShows];
     if (genreIds.length > 0) {
-      results = results.filter((t: any) => t.genre_ids?.some((id: number) => genreIds.includes(id)));
+      results = results.filter((t: any) =>
+        t.genre_ids?.some((id: number) => genreIds.includes(id))
+      );
     }
     return {
       page: 1,

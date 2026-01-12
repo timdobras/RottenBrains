@@ -24,7 +24,8 @@ export function useVideo() {
   return useContext(VideoContext);
 }
 
-export default function VideoProvider({ children }: any) {
+export default function VideoProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<VideoState>({ mode: 'mini' });
+
   return <VideoContext.Provider value={{ state, setState }}>{children}</VideoContext.Provider>;
 }

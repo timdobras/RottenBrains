@@ -31,7 +31,9 @@ const ReplyCard: FC<FollowCardProps> = ({ notification }) => {
         </p>
         <p className="">{notification.comment.content}</p>
         <div className="rounded-[16px] bg-foreground/10 p-4">
-          <p className="line-clamp-3 text-foreground/50">&quot;{notification.parent_comment.content}&quot;</p>
+          <p className="line-clamp-3 text-foreground/50">
+            &quot;{notification.parent_comment.content}&quot;
+          </p>
         </div>
         <p className="text-sm text-foreground/50">{getRelativeTime(notification.created_at)}</p>
       </Link>

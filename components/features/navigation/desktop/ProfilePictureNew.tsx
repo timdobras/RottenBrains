@@ -61,7 +61,7 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
             <p className="text-end text-sm">{user.name}</p>
             <p className="text-end text-xs text-foreground/50">@{user.username}</p>
           </div>
-                    <img
+          <img
             src={user.image_url}
             alt="User Avatar"
             className={`aspect-square h-full rounded-full ${imageSize}`}

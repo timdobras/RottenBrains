@@ -7,7 +7,10 @@ interface Props {
   src?: string;
 }
 
-const PlausibleAnalytics: React.FC<Props> = ({ domain, src = 'https://plausible.io/js/script.js' }) => {
+const PlausibleAnalytics: React.FC<Props> = ({
+  domain,
+  src = 'https://plausible.io/js/script.js',
+}) => {
   return (
     <>
       <script defer data-domain={domain} src={src}></script>

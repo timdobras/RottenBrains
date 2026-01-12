@@ -31,9 +31,11 @@ async function downloadMovies() {
 
   // Combine and dedupe to get ~50 unique movies
   const allMovies = new Map();
-  [...popular.results, ...trending.results, ...nowPlaying.results, ...topRated.results].forEach(movie => {
-    allMovies.set(movie.id, movie);
-  });
+  [...popular.results, ...trending.results, ...nowPlaying.results, ...topRated.results].forEach(
+    (movie) => {
+      allMovies.set(movie.id, movie);
+    }
+  );
 
   // Get detailed info for top 50
   const movieIds = Array.from(allMovies.keys()).slice(0, 50);
@@ -72,9 +74,11 @@ async function downloadTvShows() {
 
   // Combine and dedupe
   const allShows = new Map();
-  [...popular.results, ...trending.results, ...airingToday.results, ...topRated.results].forEach(show => {
-    allShows.set(show.id, show);
-  });
+  [...popular.results, ...trending.results, ...airingToday.results, ...topRated.results].forEach(
+    (show) => {
+      allShows.set(show.id, show);
+    }
+  );
 
   // Get detailed info for top 50
   const showIds = Array.from(allShows.keys()).slice(0, 50);
@@ -107,12 +111,14 @@ async function downloadPeople() {
   const popular = await fetchFromTMDB('person/popular?page=1');
 
   // Get detailed info for top 20 people
-  const peopleIds = popular.results.slice(0, 20).map(p => p.id);
+  const peopleIds = popular.results.slice(0, 20).map((p) => p.id);
 
   const detailedPeople = [];
   for (const id of peopleIds) {
     try {
-      const details = await fetchFromTMDB(`person/${id}?append_to_response=movie_credits,tv_credits,images`);
+      const details = await fetchFromTMDB(
+        `person/${id}?append_to_response=movie_credits,tv_credits,images`
+      );
       detailedPeople.push(details);
       process.stdout.write('.');
     } catch (error) {
@@ -148,7 +154,8 @@ function generateMoviesFile(data) {
 // Detailed movie data (with credits, videos, images)
 export const mockMovieDetails: Record<number, any> = ${JSON.stringify(
     data.movies.reduce((acc, movie) => ({ ...acc, [movie.id]: movie }), {}),
-    null, 2
+    null,
+    2
   )};
 
 // List data for various endpoints
@@ -204,7 +211,8 @@ function generateTvShowsFile(data) {
 // Detailed TV show data (with credits, videos, images)
 export const mockTvDetails: Record<number, any> = ${JSON.stringify(
     data.shows.reduce((acc, show) => ({ ...acc, [show.id]: show }), {}),
-    null, 2
+    null,
+    2
   )};
 
 // List data for various endpoints
@@ -288,7 +296,8 @@ function generatePeopleFile(data) {
 // Detailed person data (with credits, images)
 export const mockPersonDetails: Record<number, any> = ${JSON.stringify(
     data.people.reduce((acc, person) => ({ ...acc, [person.id]: person }), {}),
-    null, 2
+    null,
+    2
   )};
 
 export const mockPeoplePopular = ${JSON.stringify(data.popular, null, 2)};
@@ -363,28 +372,16 @@ async function main() {
 
     console.log('Writing files...');
 
-    fs.writeFileSync(
-      path.join(mocksDir, 'movies.ts'),
-      generateMoviesFile(movieData)
-    );
+    fs.writeFileSync(path.join(mocksDir, 'movies.ts'), generateMoviesFile(movieData));
     console.log('  - movies.ts');
 
-    fs.writeFileSync(
-      path.join(mocksDir, 'tv-shows.ts'),
-      generateTvShowsFile(tvData)
-    );
+    fs.writeFileSync(path.join(mocksDir, 'tv-shows.ts'), generateTvShowsFile(tvData));
     console.log('  - tv-shows.ts');
 
-    fs.writeFileSync(
-      path.join(mocksDir, 'people.ts'),
-      generatePeopleFile(peopleData)
-    );
+    fs.writeFileSync(path.join(mocksDir, 'people.ts'), generatePeopleFile(peopleData));
     console.log('  - people.ts');
 
-    fs.writeFileSync(
-      path.join(mocksDir, 'genres.ts'),
-      generateGenresFile(genreData)
-    );
+    fs.writeFileSync(path.join(mocksDir, 'genres.ts'), generateGenresFile(genreData));
     console.log('  - genres.ts');
 
     console.log('\nDone! Downloaded:');
@@ -393,7 +390,6 @@ async function main() {
     console.log(`  - ${peopleData.people.length} people with details`);
     console.log(`  - ${genreData.movieGenres.length} movie genres`);
     console.log(`  - ${genreData.tvGenres.length} TV genres`);
-
   } catch (error) {
     console.error('Error downloading TMDB data:', error);
     process.exit(1);

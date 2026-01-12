@@ -35,23 +35,25 @@ function downloadImage(imagePath, size = 'w500') {
     const url = `${TMDB_IMAGE_BASE}/${size}${imagePath}`;
 
     const file = fs.createWriteStream(localPath);
-    https.get(url, (response) => {
-      if (response.statusCode === 200) {
-        response.pipe(file);
-        file.on('finish', () => {
+    https
+      .get(url, (response) => {
+        if (response.statusCode === 200) {
+          response.pipe(file);
+          file.on('finish', () => {
+            file.close();
+            resolve(filename);
+          });
+        } else {
           file.close();
-          resolve(filename);
-        });
-      } else {
+          fs.unlink(localPath, () => {});
+          resolve(null);
+        }
+      })
+      .on('error', (err) => {
         file.close();
         fs.unlink(localPath, () => {});
         resolve(null);
-      }
-    }).on('error', (err) => {
-      file.close();
-      fs.unlink(localPath, () => {});
-      resolve(null);
-    });
+      });
   });
 }
 
@@ -104,7 +106,9 @@ async function downloadAllImages() {
     if (match[1] && match[1].startsWith('/')) logos.add(match[1]);
   }
 
-  console.log(`Found ${posters.size} posters, ${backdrops.size} backdrops, ${profiles.size} profiles, ${logos.size} logos\n`);
+  console.log(
+    `Found ${posters.size} posters, ${backdrops.size} backdrops, ${profiles.size} profiles, ${logos.size} logos\n`
+  );
 
   // Download posters (w500)
   console.log('Downloading posters...');

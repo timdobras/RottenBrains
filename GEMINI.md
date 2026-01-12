@@ -1,4 +1,3 @@
-
 # RottenBrains Project Context
 
 ## Project Overview
@@ -15,9 +14,11 @@ RottenBrains is a social media platform designed for movie and TV show enthusias
 To get the project up and running, use the following commands:
 
 - **Development**: `npm run dev`
+
   - Runs the app in development mode. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 - **Build**: `npm run build`
+
   - Builds the app for production.
 
 - **Start**: `npm run start`

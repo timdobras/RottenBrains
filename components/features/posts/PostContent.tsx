@@ -45,4 +45,4 @@ const PostContent = ({ media, post, post_link }: PostContentProps) => {
   );
 };
 
-export default PostContent;
+export default React.memo(PostContent);

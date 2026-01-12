@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const ipifyResponse = await fetch(`https://api.ipify.org?format=json&_t=${Date.now()}`, {
-      cache: 'no-store'
+      cache: 'no-store',
     });
     const ipifyData = await ipifyResponse.json();
     externalIPs.ipify = ipifyData.ip;
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const ipapiResponse = await fetch(`https://ipapi.co/json/?_t=${Date.now()}`, {
-      cache: 'no-store'
+      cache: 'no-store',
     });
     const ipapiData = await ipapiResponse.json();
     externalIPs.ipapi = ipapiData.ip;
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const ipinfoResponse = await fetch(`https://ipinfo.io/json?_t=${Date.now()}`, {
-      cache: 'no-store'
+      cache: 'no-store',
     });
     const ipinfoData = await ipinfoResponse.json();
     externalIPs.ipinfo = ipinfoData.ip;
@@ -47,6 +47,6 @@ export async function GET(request: NextRequest) {
     },
     externalServices: externalIPs,
     timestamp: new Date().toISOString(),
-    info: 'Test different VPN states and refresh to see if IP changes'
+    info: 'Test different VPN states and refresh to see if IP changes',
   });
 }

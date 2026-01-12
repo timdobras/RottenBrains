@@ -60,7 +60,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
       setNewIP(data.ip);
 
       // Check if this IP is in the saved list
-      const isSaved = ipAddresses.some(addr => addr.ip_address === data.ip);
+      const isSaved = ipAddresses.some((addr) => addr.ip_address === data.ip);
       if (!isSaved) {
         toast({
           title: 'Current IP Detected',
@@ -103,14 +103,12 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('user_ip_addresses')
-        .insert({
-          user_id: userId,
-          ip_address: newIP,
-          label: newLabel || null,
-          is_trusted: true,
-        });
+      const { error } = await supabase.from('user_ip_addresses').insert({
+        user_id: userId,
+        ip_address: newIP,
+        label: newLabel || null,
+        is_trusted: true,
+      });
 
       if (error) throw error;
 
@@ -145,10 +143,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
   // Delete IP address
   const deleteIPAddress = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('user_ip_addresses')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('user_ip_addresses').delete().eq('id', id);
 
       if (error) throw error;
 
@@ -198,7 +193,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
     detectCurrentIP();
   }, [userId]);
 
-  const isCurrentIPSaved = ipAddresses.some(addr => addr.ip_address === currentIP);
+  const isCurrentIPSaved = ipAddresses.some((addr) => addr.ip_address === currentIP);
 
   return (
     <div className="space-y-6">
@@ -247,7 +242,8 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
           Known IP Addresses (Non-VPN)
         </h3>
         <p className="text-sm text-foreground/70">
-          Add your home, work, or other known public IP addresses. You&apos;ll be warned when browsing without a VPN from these locations.
+          Add your home, work, or other known public IP addresses. You&apos;ll be warned when
+          browsing without a VPN from these locations.
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -281,9 +277,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
         {ipAddresses.length === 0 ? (
           <div className="rounded-lg border border-foreground/10 p-8 text-center">
             <WifiOff className="mx-auto h-8 w-8 text-foreground/30" />
-            <p className="mt-2 text-sm text-foreground/50">
-              No IP addresses saved yet
-            </p>
+            <p className="mt-2 text-sm text-foreground/50">No IP addresses saved yet</p>
             <p className="mt-1 text-xs text-foreground/40">
               Add your known public IP addresses to get VPN warnings
             </p>
@@ -303,11 +297,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
                       : 'bg-yellow-500/20 text-yellow-500'
                   }`}
                 >
-                  {ip.is_trusted ? (
-                    <Shield className="h-4 w-4" />
-                  ) : (
-                    <WifiOff className="h-4 w-4" />
-                  )}
+                  {ip.is_trusted ? <Shield className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
                 </button>
                 <div>
                   <div className="flex items-center gap-2">

@@ -61,8 +61,8 @@ export default function OfflinePage() {
         <h1 className="mb-4 text-3xl font-bold text-foreground">You&apos;re offline</h1>
 
         <p className="mb-2 max-w-md text-muted-foreground">
-          It looks like you&apos;ve lost your internet connection. Some features may not be available
-          until you reconnect.
+          It looks like you&apos;ve lost your internet connection. Some features may not be
+          available until you reconnect.
         </p>
 
         <p className="mb-8 text-sm text-muted-foreground">

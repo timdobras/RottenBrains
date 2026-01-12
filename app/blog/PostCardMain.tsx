@@ -23,15 +23,13 @@ interface Post {
 const PostCardMain: React.FC<{ post: Post }> = ({ post }) => {
   const [avgColor, setAvgColor] = useState('#3b82f6');
 
-  const randomImage =
-    post.images.length > 0
-      ? post.images[Math.floor(Math.random() * Math.min(4, post.images.length))]
-      : post.thumbnail;
+  // Use first image instead of random to avoid hydration mismatch
+  const displayImage = post.images.length > 0 ? post.images[0] : post.thumbnail;
 
   useEffect(() => {
     const fac = new FastAverageColor();
     fac
-      .getColorAsync(randomImage, { crossOrigin: 'anonymous' })
+      .getColorAsync(displayImage, { crossOrigin: 'anonymous' })
       .then((color) => {
         setAvgColor(color.hex);
       })
@@ -40,7 +38,7 @@ const PostCardMain: React.FC<{ post: Post }> = ({ post }) => {
       });
 
     return () => fac.destroy();
-  }, [randomImage]);
+  }, [displayImage]);
 
   const content = post.content.replace(/\\n/g, '\n');
 

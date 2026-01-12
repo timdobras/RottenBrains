@@ -5,6 +5,7 @@ import {
   getTrendingMovies,
   getTrendingTV,
 } from '../tmdb/index';
+import { logger } from '@/lib/logger';
 
 export async function fetchExploreData(action: string) {
   const actionFunctionMapping: {
@@ -25,7 +26,7 @@ export async function fetchExploreData(action: string) {
   try {
     return await fetchFunction();
   } catch (err) {
-    console.error(`Failed to fetch data for action: ${action}`, err);
+    logger.error(`Failed to fetch explore data for action: ${action}`, err);
     throw err;
   }
 }

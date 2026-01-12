@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/UserContext';
 import { followUser, getFollowStatus, unFollowUser } from '@/lib/client/updateFollowingData';
 
@@ -8,42 +8,49 @@ interface SaveButtonProps {
 }
 
 const FollowButton: React.FC<SaveButtonProps> = ({ user_to_follow_id }) => {
-  const [followed, setFollowed] = useState(false);
-
   const { user } = useUser();
-  let userId: string;
-  if (user) {
-    userId = user.id.toString();
-  }
+  const userId = user?.id.toString();
+  const queryClient = useQueryClient();
 
-  const handleFollow = async () => {
-    if (userId) {
-      try {
-        if (followed) {
-          await unFollowUser(userId!, user_to_follow_id);
-        } else {
-          await followUser(userId!, user_to_follow_id);
-        }
-        setFollowed(!followed);
-      } catch (error) {
-        console.error('Error following or unfollowing user:', error);
+  const { data: followed, isLoading } = useQuery({
+    queryKey: ['followStatus', userId, user_to_follow_id],
+    queryFn: () => {
+      if (!userId) return false;
+      return getFollowStatus(userId, user_to_follow_id);
+    },
+    enabled: !!userId,
+  });
+
+  const { mutate: toggleFollow } = useMutation({
+    mutationFn: async (isFollowed: boolean) => {
+      if (!userId) return;
+      if (isFollowed) {
+        await unFollowUser(userId, user_to_follow_id);
+      } else {
+        await followUser(userId, user_to_follow_id);
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followStatus', userId, user_to_follow_id] });
+    },
+  });
+
+  const handleFollow = () => {
+    if (userId && followed !== undefined) {
+      toggleFollow(followed);
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (user) {
-        const isUserFollowed = await getFollowStatus(user.id.toString(), user_to_follow_id); // Assuming getSavedStatus is asynchronous
-        setFollowed(isUserFollowed);
-      }
-    };
+  if (!userId) {
+    return null; // Or a login prompt
+  }
 
-    fetchData();
-  }, [user_to_follow_id, handleFollow]);
-
-  if (userId! === null) {
-    return null; // Return null or a loading indicator until user data is fetched
+  if (isLoading) {
+    return (
+      <div className="z-10 items-center gap-2 rounded-full bg-foreground/10 px-6 py-2 drop-shadow-lg">
+        Loading...
+      </div>
+    );
   }
 
   return (

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ExploreTabProps, MediaPageProps } from '@/types';
 import { fetchExploreData } from './fetchExploreData';
 import { fetchMediaData } from './fetchMediaData';
+import { logger } from '@/lib/logger';
 
 export function useExploreData({ action }: ExploreTabProps) {
   const [data, setData] = useState<any>();
@@ -15,7 +16,7 @@ export function useExploreData({ action }: ExploreTabProps) {
         const result = await fetchExploreData(action);
         setData(result);
       } catch (err) {
-        console.error('Failed to fetch data', err);
+        logger.error('Failed to fetch explore data', err);
       } finally {
         setLoading(false);
       }
@@ -38,7 +39,7 @@ export function useMediaData({ media_type, media_id }: MediaPageProps) {
         const result = await fetchMediaData(media_type, media_id);
         setData(result);
       } catch (err) {
-        console.error('Failed to fetch data', err);
+        logger.error('Failed to fetch media data', err);
       } finally {
         setLoading(false);
       }

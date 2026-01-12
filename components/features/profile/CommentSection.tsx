@@ -33,7 +33,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
 
   const [viewportDimensions, setViewportDimensions] = useState({
     top: 40,
-    height: window.innerHeight,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
   });
 
   const fetchComments = async () => {

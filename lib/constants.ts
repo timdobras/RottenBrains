@@ -149,6 +149,7 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   RECENT_SEARCHES: 'recent_searches',
   WATCH_PREFERENCES: 'watch_preferences',
+  MINIPLAYER_STATE: 'miniplayer_state',
 } as const;
 
 /**

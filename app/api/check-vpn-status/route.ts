@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -46,25 +49,28 @@ export async function GET(request: NextRequest) {
     let detectionMethod = 'headers';
 
     // Check if we're on localhost
-    const isLocalhost = clientIP === '::ffff:127.0.0.1' ||
-                       clientIP === '127.0.0.1' ||
-                       clientIP === '::1' ||
-                       clientIP === 'localhost' ||
-                       clientIP === 'unknown';
+    const isLocalhost =
+      clientIP === '::ffff:127.0.0.1' ||
+      clientIP === '127.0.0.1' ||
+      clientIP === '::1' ||
+      clientIP === 'localhost' ||
+      clientIP === 'unknown';
 
     if (isLocalhost) {
       isDevelopment = true;
       logger.debug('Localhost detected. In production, real IP would be available from headers.');
 
-      // Option 1: Allow testing with a mock IP from query params (for development only)
-      const testIP = request.nextUrl.searchParams.get('test_ip');
-      if (testIP) {
-        clientIP = testIP;
-        detectionMethod = 'test_param';
-        logger.debug('Using test IP from query param:', clientIP);
+      // Only allow test_ip parameter in development environment
+      if (process.env.NODE_ENV === 'development') {
+        const testIP = request.nextUrl.searchParams.get('test_ip');
+        if (testIP) {
+          clientIP = testIP;
+          detectionMethod = 'test_param';
+          logger.debug('Using test IP from query param:', clientIP);
+        }
       }
-      // Option 2: In development, allow manual IP override via environment variable
-      else if (process.env.NODE_ENV === 'development') {
+      // Allow manual IP override via environment variable in development (if test_ip not set)
+      if (process.env.NODE_ENV === 'development' && detectionMethod !== 'test_param') {
         // Check for manual IP in environment variable
         const manualIP = process.env.NEXT_PUBLIC_TEST_IP;
         if (manualIP) {
@@ -72,7 +78,9 @@ export async function GET(request: NextRequest) {
           detectionMethod = 'env_variable';
           logger.debug('Using manual test IP from env:', clientIP);
         } else {
-          logger.debug('Localhost detected. In production, real IP will be available from headers.');
+          logger.debug(
+            'Localhost detected. In production, real IP will be available from headers.'
+          );
           logger.debug('To test locally, add NEXT_PUBLIC_TEST_IP=your.ip.here to .env.local');
           clientIP = 'localhost';
           detectionMethod = 'localhost';
@@ -86,8 +94,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         isUsingVPN: null,
         currentIP: null,
-        message: 'Unable to detect IP address'
+        message: 'Unable to detect IP address',
       });
+    }
+
+    // Skip database check for localhost - can't query with invalid inet format
+    if (clientIP === 'localhost') {
+      const response = NextResponse.json({
+        isUsingVPN: null,
+        currentIP: 'localhost',
+        isKnownIP: false,
+        isDevelopment: true,
+        detectionMethod: 'localhost',
+        savedIPInfo: null,
+        message: 'Running on localhost - VPN detection disabled. Set NEXT_PUBLIC_TEST_IP in .env.local to test.',
+        timestamp: Date.now(),
+      });
+
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      response.headers.set('Pragma', 'no-cache');
+      response.headers.set('Expires', '0');
+      response.headers.set('Surrogate-Control', 'no-store');
+
+      return response;
     }
 
     // Check if this IP is in the user's saved non-VPN IPs
@@ -103,7 +132,7 @@ export async function GET(request: NextRequest) {
       userId: user.id,
       clientIP,
       foundIP: !!savedIPs,
-      dbError: dbError?.code
+      dbError: dbError?.code,
     });
 
     if (dbError && dbError.code !== 'PGRST116') {
@@ -122,14 +151,16 @@ export async function GET(request: NextRequest) {
       isKnownIP,
       isDevelopment,
       detectionMethod,
-      savedIPInfo: isKnownIP ? {
-        label: savedIPs.label,
-        created_at: savedIPs.created_at
-      } : null,
+      savedIPInfo: isKnownIP
+        ? {
+            label: savedIPs.label,
+            created_at: savedIPs.created_at,
+          }
+        : null,
       message: isKnownIP
         ? `Connected from known IP${savedIPs.label ? ` (${savedIPs.label})` : ''}`
         : 'Connected from unknown IP - consider using a VPN',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Set headers to prevent any caching
@@ -139,13 +170,9 @@ export async function GET(request: NextRequest) {
     response.headers.set('Surrogate-Control', 'no-store');
 
     return response;
-
   } catch (error) {
     logger.error('Error in check-vpn-status:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -155,7 +182,10 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -168,25 +198,31 @@ export async function POST(request: NextRequest) {
     const forwarded = request.headers.get('x-forwarded-for');
     const realIP = request.headers.get('x-real-ip');
 
-    let clientIP = forwarded ? forwarded.split(',')[0].trim() :
-                   realIP ||
-                   'unknown';
+    let clientIP = forwarded ? forwarded.split(',')[0].trim() : realIP || 'unknown';
 
     // If we're on localhost, try to get the real public IP
-    if (clientIP === '::ffff:127.0.0.1' || clientIP === '127.0.0.1' || clientIP === '::1' || clientIP === 'unknown') {
+    if (
+      clientIP === '::ffff:127.0.0.1' ||
+      clientIP === '127.0.0.1' ||
+      clientIP === '::1' ||
+      clientIP === 'unknown'
+    ) {
       try {
         const ipResponse = await fetch('https://api.ipify.org?format=json');
         const ipData = await ipResponse.json();
         clientIP = ipData.ip;
       } catch (error) {
-        console.error('Error fetching public IP:', error);
+        logger.error('Error fetching public IP:', error);
       }
     }
 
     if (clientIP === 'unknown') {
-      return NextResponse.json({
-        error: 'Unable to detect IP address'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Unable to detect IP address',
+        },
+        { status: 400 }
+      );
     }
 
     // Save the IP address
@@ -196,16 +232,19 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         ip_address: clientIP,
         label: label || null,
-        is_trusted: true
+        is_trusted: true,
       })
       .select()
       .single();
 
     if (error) {
       if (error.code === '23505') {
-        return NextResponse.json({
-          error: 'This IP address is already saved'
-        }, { status: 409 });
+        return NextResponse.json(
+          {
+            error: 'This IP address is already saved',
+          },
+          { status: 409 }
+        );
       }
       throw error;
     }
@@ -213,14 +252,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data,
-      message: 'IP address saved successfully'
+      message: 'IP address saved successfully',
     });
-
   } catch (error) {
     logger.error('Error saving IP address:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

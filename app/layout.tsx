@@ -19,6 +19,8 @@ import { cookies } from 'next/headers';
 import { ThemeProvider } from 'next-themes';
 import PlausibleAnalytics from '@/components/common/PlausibleAnalytics';
 
+import Providers from '@/components/providers/Providers';
+
 export const metadata = {
   title: 'Rotten Brains | Stream movies and TV for free in HD quality.',
   description:
@@ -80,39 +82,41 @@ export default async function NotProtectedLayout({ children }: { children: React
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <UserProvider initialUser={initialUser}>
-        <SidebarProvider>
-          <body className="custom-scrollbar max-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground transition-all duration-300">
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <VideoProvider>
-                <OfflineIndicator />
-                <OfflineModeIndicator />
-                <TopLoader />
-                {initialUser && <VPNWarningProduction />}
-                {initialUser && process.env.NODE_ENV === 'development' && <VPNDebugPanel />}
-                <header>
-                  <div className="hidden md:flex">
-                    <HomeNav></HomeNav>
-                  </div>
-                </header>
-                <MainContent>{children}</MainContent>
-                <div
-                  id="player-root"
-                  className="fixed bottom-16 right-2 z-50 aspect-[16/9] w-[60vw] overflow-hidden bg-background transition-all duration-200 md:bottom-2 md:z-20 md:h-64 md:w-auto md:rounded-[8px]"
-                />
-                <footer></footer>
-                {/* <CookieConsent /> */}
-                {/* <OneTapComponent /> */}
-                {/* <LegalConsent /> */}
-                <Toaster />
-                {/* <IubendaScripts /> */}
-                <PlausibleAnalytics domain="rotten-brains.com" src="https://plausible.timdobras.com/js/pa-OqFKUXucfmn6bLkFR0Gu1.js" />
-                {/* <GoogleAdsense pId="4557341861686356" /> */}
-              </VideoProvider>
-            </ThemeProvider>
-          </body>
-        </SidebarProvider>
-      </UserProvider>
+      <body className="custom-scrollbar max-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground transition-all duration-300">
+        <Providers>
+          <UserProvider initialUser={initialUser}>
+            <SidebarProvider>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <VideoProvider>
+                  <OfflineIndicator />
+                  <OfflineModeIndicator />
+                  <TopLoader />
+                  {initialUser && <VPNWarningProduction />}
+                  {initialUser && process.env.NODE_ENV === 'development' && <VPNDebugPanel />}
+                  <header>
+                    <div className="hidden md:flex">
+                      <HomeNav></HomeNav>
+                    </div>
+                  </header>
+                  <MainContent>{children}</MainContent>
+                  <div id="player-root" />
+                  <footer></footer>
+                  {/* <CookieConsent /> */}
+                  {/* <OneTapComponent /> */}
+                  {/* <LegalConsent /> */}
+                  <Toaster />
+                  {/* <IubendaScripts /> */}
+                  <PlausibleAnalytics
+                    domain="rotten-brains.com"
+                    src="https://plausible.timdobras.com/js/pa-OqFKUXucfmn6bLkFR0Gu1.js"
+                  />
+                  {/* <GoogleAdsense pId="4557341861686356" /> */}
+                </VideoProvider>
+              </ThemeProvider>
+            </SidebarProvider>
+          </UserProvider>
+        </Providers>
+      </body>
     </html>
   );
 }

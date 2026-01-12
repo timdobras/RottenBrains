@@ -3,6 +3,7 @@ import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
 import { twMerge } from 'tailwind-merge';
 import movieGenres from '@/lib/constants/movie_genres.json';
 import tvGenres from '@/lib/constants/tv_genres.json';
+import { logger } from '@/lib/logger';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -22,7 +23,7 @@ export function formatDate(inputDate: string): string {
     return format(date, 'do MMMM yyyy');
   } catch (error) {
     // Log the error for debugging
-    console.error('Error formatting date:', error);
+    logger.error('Error formatting date:', error);
 
     // Return a user-friendly fallback
     return 'Invalid date';
@@ -32,15 +33,13 @@ export function formatDate(inputDate: string): string {
 export function transformRuntime(minutes: number): string {
   const hours: number = Math.floor(minutes / 60);
   const remainingMinutes: number = minutes % 60;
-  const seconds: number = Math.floor(Math.random() * 60); // Random seconds between 0 and 59
 
   const formattedMinutes: string = remainingMinutes.toString().padStart(2, '0');
-  const formattedSeconds: string = seconds.toString().padStart(2, '0');
   if (hours > 0) {
     const formattedHours: string = hours.toString();
-    return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+    return `${formattedHours}:${formattedMinutes}`;
   } else {
-    return `${formattedMinutes}:${formattedSeconds}`;
+    return `${formattedMinutes}m`;
   }
 }
 
@@ -89,7 +88,7 @@ export function getRelativeTime(dateString: string): string {
 
     return formatDistanceToNow(date, { addSuffix: true });
   } catch (error: unknown) {
-    console.error('Error in getRelativeTime:', error);
+    logger.error('Error in getRelativeTime:', error);
     // Return a fallback string, or you could re-throw the error if desired
     return 'Invalid date';
   }

@@ -36,8 +36,8 @@ const page = () => {
           </li>
           <li>
             <strong>3.3.</strong> Nevertheless, certain information might be kept locally in your
-            browser for specific functional needs. This data doesn&apos;t belong to us; it stays on your
-            device.
+            browser for specific functional needs. This data doesn&apos;t belong to us; it stays on
+            your device.
           </li>
         </ul>
 
@@ -85,12 +85,13 @@ const page = () => {
             documentation of your browser.
           </li>
           <li>
-            <strong>6.2. Clearing Data:</strong> Using your browser&apos;s options, you may always remove
-            all locally saved data from our website.
+            <strong>6.2. Clearing Data:</strong> Using your browser&apos;s options, you may always
+            remove all locally saved data from our website.
           </li>
           <li>
             <strong>6.3. Disabling Local Storage:</strong> You can disable local storage in your
-            browser&apos;s options, though this is not advised as it might affect how the site functions.
+            browser&apos;s options, though this is not advised as it might affect how the site
+            functions.
           </li>
         </ul>
 

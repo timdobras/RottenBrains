@@ -5,7 +5,4 @@
 
 export { isOfflineMode, getOfflineModeStatus } from './config';
 export { getMockTMDBData } from './tmdb';
-export {
-  createMockServerClient,
-  createMockBrowserClient,
-} from './supabase';
+export { createMockServerClient, createMockBrowserClient } from './supabase';

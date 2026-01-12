@@ -1,6 +1,7 @@
 # Safe Database Migration Guide for VPN Detection Feature
 
 ## Prerequisites
+
 - Make sure you have the Supabase CLI installed
 - Have access to your Supabase project dashboard
 
@@ -18,6 +19,7 @@ Before making any changes, create a backup:
 The migration file is located at: `supabase/migrations/20250106_create_user_ip_addresses.sql`
 
 This migration will:
+
 - Create a new table `user_ip_addresses` (won't affect existing tables)
 - Add Row Level Security policies
 - Create indexes for performance
@@ -70,6 +72,7 @@ After applying, verify everything worked:
 1. In Supabase Dashboard, go to Table Editor
 2. Check that `user_ip_addresses` table exists
 3. Verify the columns:
+
    - id (uuid)
    - user_id (uuid)
    - ip_address (inet)
@@ -86,6 +89,7 @@ After applying, verify everything worked:
 ## Step 6: Test the Feature
 
 1. Run your app locally:
+
 ```bash
 npm run dev
 ```
@@ -110,18 +114,22 @@ DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 ## Troubleshooting
 
 ### Error: "permission denied for schema public"
+
 - Make sure you're using the correct database role
 - Check your Supabase project settings
 
 ### Error: "relation already exists"
+
 - The table might already exist
 - Check Table Editor to see if it's already there
 
 ### RLS policies not working
+
 - Make sure RLS is enabled on the table
 - Verify your user is authenticated when testing
 
 ### IP detection not working
+
 - Check browser console for errors
 - Verify the API endpoint `/api/check-vpn-status` is accessible
 - Check that your Supabase environment variables are set correctly
@@ -129,6 +137,7 @@ DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 ## Important Notes
 
 1. **This migration is SAFE** because it:
+
    - Only creates new objects
    - Doesn't modify existing tables
    - Doesn't delete any data
@@ -141,6 +150,7 @@ DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 ## Next Steps
 
 After successful migration:
+
 1. Test the IP management in Settings
 2. Add some known IPs
 3. Check if VPN warning appears correctly
@@ -149,6 +159,7 @@ After successful migration:
 ## Support
 
 If you encounter any issues:
+
 1. Check the Supabase logs (Dashboard → Logs)
 2. Review the browser console for errors
 3. Verify all environment variables are set correctly

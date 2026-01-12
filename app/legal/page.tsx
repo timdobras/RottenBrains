@@ -60,9 +60,9 @@ const page = () => {
       </ul>
       <h2 className="mt-6 text-xl font-semibold">6. Disclaimer of Warranties</h2>
       <p className="text-base font-normal">
-        <strong>rotten-brains.com</strong> is provided on an &quot;as-is&quot; basis, without warranties of
-        any kind. We make no guarantees regarding the availability, quality, or reliability of the
-        third-party content accessible via our platform.
+        <strong>rotten-brains.com</strong> is provided on an &quot;as-is&quot; basis, without
+        warranties of any kind. We make no guarantees regarding the availability, quality, or
+        reliability of the third-party content accessible via our platform.
       </p>
       <h2 className="mt-6 text-xl font-semibold">7. Changes to This Disclaimer</h2>
       <p className="text-base font-normal">

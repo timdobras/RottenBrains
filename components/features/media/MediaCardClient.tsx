@@ -1,11 +1,13 @@
 // components/features/media/HomeMediaCardClient.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQueries } from '@tanstack/react-query';
 import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
 import { getWatchTime } from '@/lib/supabase/clientQueries';
 import { getMediaDetails, getEpisodeDetails } from '@/lib/tmdb';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface MediaCardClientProps {
   media_type: string;
@@ -26,55 +28,51 @@ const MediaCardClient: React.FC<MediaCardClientProps> = ({
   user_id,
   rounded,
 }) => {
-  const [media, setMedia] = useState<any>(null);
-  const [watchTime, setWatchTime] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-
-  // 1) fetch TMDB data
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const data =
+  // Parallel data fetching with React Query - eliminates waterfall
+  const [mediaQuery, watchTimeQuery] = useQueries({
+    queries: [
+      {
+        queryKey:
+          season_number && episode_number
+            ? queryKeys.media.episode(media_id, season_number, episode_number)
+            : queryKeys.media.details(media_type, media_id),
+        queryFn: () =>
           media_type === 'movie'
-            ? await getMediaDetails(media_type, media_id)
+            ? getMediaDetails(media_type, media_id)
             : season_number && episode_number
-              ? await getEpisodeDetails(media_id, season_number, episode_number)
-              : await getMediaDetails(media_type, media_id);
+              ? getEpisodeDetails(media_id, season_number, episode_number)
+              : getMediaDetails(media_type, media_id),
+        staleTime: 1000 * 60 * 60 * 24, // 24 hours - TMDB data is static
+      },
+      {
+        queryKey: queryKeys.watchHistory.watchTime(
+          user_id ?? '',
+          media_type,
+          media_id,
+          season_number,
+          episode_number
+        ),
+        queryFn: () => getWatchTime(user_id!, media_type, media_id, season_number, episode_number),
+        enabled: !!user_id,
+        staleTime: 1000 * 30, // 30 seconds - watch time can change
+      },
+    ],
+  });
 
-        if (alive) setMedia(data);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [media_type, media_id, season_number, episode_number]);
-
-  // 2) fetch watch-time (after TMDB data is in place)
-  useEffect(() => {
-    if (!user_id) return;
-    (async () => {
-      const wt = await getWatchTime(user_id, media_type, media_id, season_number, episode_number);
-      setWatchTime(wt ?? 0);
-    })();
-  }, [user_id, media_type, media_id, season_number, episode_number]);
-
-  // 3) skeleton while loading / error
-  if (loading || !media) {
+  // Show skeleton while loading media data
+  if (mediaQuery.isLoading || !mediaQuery.data) {
     return <HomeMediaCardSkeleton />;
   }
 
-  // 4) final render via the shared UI component
+  // Render the media card with data
   return (
     <MediaCardUI
-      media={media}
+      media={mediaQuery.data}
       media_type={media_type}
       media_id={media_id}
       season_number={season_number}
       episode_number={episode_number}
-      watch_time={watchTime}
+      watch_time={watchTimeQuery.data ?? 0}
       quality={quality}
       user_id={user_id}
       rounded={rounded}

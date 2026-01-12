@@ -1,4 +1,5 @@
 import { fetchFromApi } from './tmdbApi';
+import { logger } from '@/lib/logger';
 
 export const discoverMovies = async () => {
   return fetchFromApi(
@@ -120,7 +121,7 @@ export const getMediaDetails = async (
     }
   } catch (error: any) {
     // Log the error for debugging purposes
-    console.error(
+    logger.error(
       `Error fetching details for media_type: ${media_type}, media_id: ${media_id}`,
       error
     );
@@ -144,7 +145,7 @@ export const fetchMediaDetails = async (mediaItems: any) => {
 
     return mediaDetails;
   } catch (error) {
-    console.error('Error fetching media details:', error);
+    logger.error('Error fetching media details:', error);
     return [];
   }
 };
@@ -157,7 +158,7 @@ export const fetchHistoryMediaDetails = async (mediaItems: any) => {
     const mediaDetails = await Promise.all(requests);
     return mediaDetails;
   } catch (error) {
-    console.error('Error fetching media details:', error);
+    logger.error('Error fetching history media details:', error);
     return [];
   }
 };
@@ -218,7 +219,7 @@ export const getGenreInfo = async (genreId: number) => {
     try {
       return fetchFromApi(`genre/tv/${genreId}`);
     } catch (error) {
-      console.warn('GenreId isnt movie or TV genre:', error);
+      logger.warn('GenreId isnt movie or TV genre:', error);
     }
   }
 };
@@ -239,7 +240,7 @@ export async function getLastEpisodeFromTMDB(tvId: number): Promise<any | null> 
       episode_number: episode_number,
     };
   } catch (err) {
-    console.error('getLastEpisodeFromTMDB error:', err);
+    logger.error('getLastEpisodeFromTMDB error:', err);
     return null;
   }
 }

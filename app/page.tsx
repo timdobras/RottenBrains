@@ -1,9 +1,4 @@
 import { ErrorBoundary } from '@/components/common/ErrorBoundry';
-import Banner_90x728 from '@/components/features/ads/Banner_90x728';
-import MobileBannerPem from '@/components/features/ads/Fullscreen';
-import AdBanner from '@/components/features/ads/GoogleDisplayAd';
-import MobileBannerExoAlt from '@/components/features/ads/Message';
-import MobileBannerExo42 from '@/components/features/ads/Notification';
 import GenreSelector from '@/components/features/home/GenreSelector';
 import HorizontalScroll from '@/components/features/home/HorizontalScroll';
 import InfiniteScrollHome from '@/components/features/home/InfiniteScroll';
@@ -11,9 +6,8 @@ import MediaCardUI from '@/components/features/media/MediaCardUI';
 import NavTop from '@/components/features/navigation/mobile/NavTop';
 import HomePostCardUI from '@/components/features/posts/HomePostCardUI';
 import { MobileVideoProvider } from '@/hooks/MobileVideoContext';
-import VideoContextSetter from '@/hooks/VideoContextSetter';
 import { fetchPostsData } from '@/lib/server/fetchPostsData';
-import { fetchContinueWatching, fetchNewEpisodes } from '@/lib/server/homeFunctions';
+import { fetchContinueWatching } from '@/lib/server/homeFunctions';
 import {
   getCurrentUser,
   getTopMovieGenresForUser,
@@ -56,21 +50,13 @@ export default async function Page() {
             <section className="mt-14 md:mt-0">
               <p className="mb-4 hidden font-medium md:flex md:text-lg">Continue Watching</p>
               {continue_watching.length > 0 ? (
-                <>
-                  {/* <VideoContextSetter
-                    media_type={continue_watching[0].media_type}
-                    media_id={continue_watching[0].media_id}
-                    episode_number={continue_watching[0].episode_number}
-                    season_number={continue_watching[0].season_number}
-                  /> */}
-                  <HorizontalScroll>
-                    {continue_watching.map((media: any) => (
-                      <div key={media.id} className="snap-start scroll-ml-4 md:scroll-ml-8">
-                        <MediaCardUI media={media} user_id={user.id} rounded showRemoveButton />
-                      </div>
-                    ))}
-                  </HorizontalScroll>
-                </>
+                <HorizontalScroll>
+                  {continue_watching.map((media: any) => (
+                    <div key={media.id} className="snap-start scroll-ml-4 md:scroll-ml-8">
+                      <MediaCardUI media={media} user_id={user.id} rounded showRemoveButton />
+                    </div>
+                  ))}
+                </HorizontalScroll>
               ) : (
                 <div className="flex w-full items-center justify-center p-8">
                   You have no watch history yet. Start watching something!

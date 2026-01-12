@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { upsertWatchHistory } from '@/lib/supabase/serverQueries';
+import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 
 interface WatchTimeData {
   time_spent: number;
   percentage_watched: string;
-  user_id: string;
   media_type: string;
   media_id: number;
   season_number?: number | null;
@@ -14,11 +14,23 @@ interface WatchTimeData {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Verify authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Parse request body
     const data: WatchTimeData = await req.json();
 
     logger.debug('Received watch time request:', {
-      user_id: data.user_id,
+      user_id: user.id,
       media_type: data.media_type,
       media_id: data.media_id,
       time_spent: data.time_spent,
@@ -28,15 +40,14 @@ export async function POST(req: NextRequest) {
     });
 
     // Validate required fields
-    if (!data.user_id || !data.media_type || !data.media_id) {
+    if (!data.media_type || !data.media_id) {
       logger.error('Missing required fields in saveWatchTime:', {
-        hasUserId: !!data.user_id,
         hasMediaType: !!data.media_type,
         hasMediaId: !!data.media_id,
         receivedData: data,
       });
       return NextResponse.json(
-        { message: 'Missing required fields: user_id, media_type, and media_id are required' },
+        { message: 'Missing required fields: media_type and media_id are required' },
         { status: 400 }
       );
     }
@@ -50,7 +61,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (typeof data.percentage_watched !== 'string' || !/^\d+(\.\d+)?$/.test(data.percentage_watched)) {
+    if (
+      typeof data.percentage_watched !== 'string' ||
+      !/^\d+(\.\d+)?$/.test(data.percentage_watched)
+    ) {
       logger.error('Invalid percentage_watched value:', data.percentage_watched);
       return NextResponse.json(
         { message: 'percentage_watched must be a valid number string' },
@@ -59,16 +73,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Convert string parameters to numbers if needed
-    const media_id = typeof data.media_id === 'string' ? parseInt(data.media_id, 10) : data.media_id;
+    const media_id =
+      typeof data.media_id === 'string' ? parseInt(data.media_id, 10) : data.media_id;
     const season_number = data.season_number
-      ? (typeof data.season_number === 'string' ? parseInt(data.season_number, 10) : data.season_number)
+      ? typeof data.season_number === 'string'
+        ? parseInt(data.season_number, 10)
+        : data.season_number
       : null;
     const episode_number = data.episode_number
-      ? (typeof data.episode_number === 'string' ? parseInt(data.episode_number, 10) : data.episode_number)
+      ? typeof data.episode_number === 'string'
+        ? parseInt(data.episode_number, 10)
+        : data.episode_number
       : null;
 
     const result = await upsertWatchHistory(
-      data.user_id,
+      user.id,
       data.media_type,
       media_id,
       data.time_spent,
@@ -79,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     logger.debug('Watch time saved successfully:', {
       action: result.action,
-      user_id: data.user_id,
+      user_id: user.id,
       media_id: data.media_id,
       media_type: data.media_type,
     });
@@ -102,7 +121,7 @@ export async function POST(req: NextRequest) {
       {
         success: false,
         message: 'Error saving watch time',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

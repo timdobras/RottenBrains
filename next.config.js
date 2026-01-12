@@ -6,6 +6,8 @@ const withSerwist = require('@serwist/next').default({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Set the project root to avoid warnings about multiple lockfiles
+  outputFileTracingRoot: __dirname,
   serverExternalPackages: ['sharp'],
   eslint: {
     // Warning: This allows production builds to successfully complete even if

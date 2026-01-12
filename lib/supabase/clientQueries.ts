@@ -7,6 +7,19 @@ import { fetchMediaData } from '../client/fetchMediaData';
 import { getMediaDetails } from '../tmdb';
 import { createClient } from './client';
 
+// Re-export types and utility functions from utils for backwards compatibility
+export type { Episode, User, WatchListItem, UpdateGenreStatsParams, NewEpisode } from './utils';
+export { ensureAtLeastFiveGenres } from './utils';
+
+// Re-export server functions that client components may need
+export {
+  getWatchTime,
+  getWatchListSpecific,
+  getTopMovieGenresForUser,
+  getTopTvGenresForUser,
+  updateGenreStats,
+} from './serverQueries';
+
 const supabase = createClient();
 
 export const getUserPosts = async (
@@ -128,14 +141,14 @@ export const getCommentReplies = async (comment_id: string): Promise<any | null>
 
 export const uploadProfilePicture = async (file: File, userId: string | undefined) => {
   if (!userId) {
-    console.error('User not found or not authenticated');
+    logger.error('User not found or not authenticated');
     return false;
   }
 
   // Validate MIME type
   const validMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
   if (!validMimeTypes.includes(file.type)) {
-    console.error(`Unsupported MIME type: ${file.type}`);
+    logger.error(`Unsupported MIME type: ${file.type}`);
     return false;
   }
 
@@ -163,21 +176,21 @@ export const uploadProfilePicture = async (file: File, userId: string | undefine
 
     return true;
   } catch (error) {
-    console.error('Error uploading profile picture:', error);
+    logger.error('Error uploading profile picture:', error);
     return false;
   }
 };
 
 export const uploadBackdropPicture = async (file: File, userId: string | undefined) => {
   if (!userId) {
-    console.error('User not found or not authenticated');
+    logger.error('User not found or not authenticated');
     return false;
   }
 
   // Validate MIME type
   const validMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
   if (!validMimeTypes.includes(file.type)) {
-    console.error(`Unsupported MIME type: ${file.type}`);
+    logger.error(`Unsupported MIME type: ${file.type}`);
     return false;
   }
 
@@ -207,7 +220,7 @@ export const uploadBackdropPicture = async (file: File, userId: string | undefin
 
     return true;
   } catch (error) {
-    console.error('Error uploading profile picture:', error);
+    logger.error('Error uploading backdrop picture:', error);
     return false;
   }
 };
@@ -239,7 +252,7 @@ export async function getFollowers(id: string): Promise<any | null> {
 
     return { followers_count, followers };
   } catch (error) {
-    console.error('Error in getFollowers:', error);
+    logger.error('Error in getFollowers:', error);
     return null;
   }
 }
@@ -271,23 +284,24 @@ export async function getFollowing(id: string): Promise<any | null> {
 
     return { following_count, following };
   } catch (error) {
-    console.error('Error in getFollowing:', error);
+    logger.error('Error in getFollowing:', error);
     return null;
   }
 }
 
 export async function getPostCount(id: string): Promise<any | null> {
   try {
+    // Use 'id' and head: true for efficient count-only query (no data fetched)
     const { error, count: post_count } = await supabase
       .from('posts')
-      .select('*', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('creatorid', id);
 
     if (error) throw error;
 
     return { post_count };
   } catch (error) {
-    console.error('Error in getPostCount:', error);
+    logger.error('Error in getPostCount:', error);
     return null;
   }
 }
@@ -301,13 +315,13 @@ export const getWatchHistoryForUser = async (user_id: string, limit: number, off
     });
 
     if (error) {
-      console.error('Error fetching watch history:', error);
+      logger.error('Error fetching watch history:', error);
       throw new Error(error.message);
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getWatchHistoryForUser:', error);
+    logger.error('Error in getWatchHistoryForUser:', error);
     throw error;
   }
 };
@@ -326,37 +340,15 @@ export async function getBatchWatchedItemsForUser(userId: string, batch: any[]) 
     });
 
     if (error) {
-      console.error('Error fetching batch watched items:', error);
+      logger.error('Error fetching batch watched items:', error);
       return [];
     }
     return data; // Return the watched items array
   } catch (err) {
-    console.error('Unexpected error in getBatchWatchedItemsForUser:', err);
+    logger.error('Unexpected error in getBatchWatchedItemsForUser:', err);
     return [];
   }
 }
-
-export const getWatchTime = async (
-  user_id: string,
-  media_type: string,
-  media_id: number,
-  season_number?: number | null,
-  episode_number?: number | null
-) => {
-  try {
-    const { data, error } = await supabase.rpc('get_percentage_watched', {
-      p_user_id: user_id,
-      p_media_type: media_type,
-      p_media_id: media_id,
-      p_season_number: season_number || null,
-      p_episode_number: episode_number || null,
-    });
-
-    return data;
-  } catch (error) {
-    console.log('Error in getWatchTime:', error);
-  }
-};
 
 export const addToWatchList = async (
   user_id: string,
@@ -374,155 +366,8 @@ export const addToWatchList = async (
     });
     return data;
   } catch (error) {
-    console.log('Catch Error:', error);
+    logger.warn('Error in addToWatchList:', error);
   }
-};
-
-export const getWatchListSpecific = async (
-  user_id: string,
-  limit: number,
-  offset: number,
-  watch_list_type: string
-) => {
-  try {
-    const { data, error } = await supabase.rpc('get_watch_list_specific', {
-      p_user_id: user_id,
-      p_limit: limit,
-      p_offset: offset,
-      p_watch_list_type: watch_list_type,
-    });
-
-    if (error) {
-      console.error('Error fetching watch later:', error);
-      throw new Error(error.message);
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error in getWatchHistoryForUser:', error);
-    throw error;
-  }
-};
-
-/**
- * Combine user's feed genres with recommended to ensure at least 5 total.
- */
-export function ensureAtLeastFiveGenres(
-  userFeed: { genre_code: string; media_type: 'movie' | 'tv' }[],
-  recommended: { genre_code: string; value: number }[],
-  mediaType: 'movie' | 'tv'
-) {
-  // Sort recommended by highest value first (descending)
-  recommended.sort((a, b) => b.value - a.value);
-
-  // Start with the user’s feed genres
-  const finalGenres = [...userFeed];
-
-  // If user has fewer than 5, fill with recommended
-  if (finalGenres.length < 5) {
-    for (const rec of recommended) {
-      // Avoid duplicates by checking genre_code
-      if (!finalGenres.some((item) => item.genre_code === rec.genre_code)) {
-        finalGenres.push({
-          genre_code: rec.genre_code,
-          media_type: mediaType,
-        });
-      }
-      if (finalGenres.length >= 5) break;
-    }
-  }
-
-  return finalGenres;
-}
-
-/**
- * Get Top Movie Genres for a User.
- * Returns at least 5 total (combining user feed_genres + recommended).
- */
-export const getTopMovieGenresForUser = async (userId?: string, user?: IUser) => {
-  const user_id = user ? user.id : userId;
-  try {
-    // 1. Get recommended from your Supabase RPC
-    const { data: recommended, error } = await supabase.rpc('get_top_movie_genres_for_user', {
-      p_user_id: user_id,
-    });
-
-    if (error) throw new Error(error.message);
-
-    // 2. Get user’s current movie feed_genres (if available)
-    const userFeedGenres = user?.feed_genres || [];
-    const userMovieFeedGenres = userFeedGenres.filter((g) => g.media_type === 'movie');
-
-    // 3. Combine user feed_genres with recommended to ensure at least 5
-    const final = ensureAtLeastFiveGenres(userMovieFeedGenres, recommended || [], 'movie');
-
-    // 4. Return the merged array
-    return final;
-  } catch (error) {
-    console.error('Error in getTopMovieGenresForUser:', error);
-    throw error;
-  }
-};
-
-/**
- * Get Top TV Genres for a User.
- * Returns at least 5 total (combining user feed_genres + recommended).
- */
-export const getTopTvGenresForUser = async (userId?: string, user?: IUser) => {
-  const user_id = user ? user.id : userId;
-  try {
-    // 1. Get recommended from your Supabase RPC
-    const { data: recommended, error } = await supabase.rpc('get_top_tv_genres_for_user', {
-      p_user_id: user_id,
-    });
-
-    if (error) throw new Error(error.message);
-
-    // 2. Get user’s current tv feed_genres
-    const userFeedGenres = user?.feed_genres || [];
-    const userTvFeedGenres = userFeedGenres.filter((g) => g.media_type === 'tv');
-
-    // 3. Combine user feed_genres with recommended to ensure at least 5
-    const final = ensureAtLeastFiveGenres(userTvFeedGenres, recommended || [], 'tv');
-
-    return final;
-  } catch (error) {
-    console.error('Error in getTopTvGenresForUser:', error);
-    throw error;
-  }
-};
-
-export interface UpdateGenreStatsParams {
-  genreIds: bigint[];
-  mediaType: string;
-  userId: string;
-}
-
-export async function updateGenreStats({ genreIds, mediaType, userId }: UpdateGenreStatsParams) {
-  const { data, error } = await supabase.rpc('update_genre_stats', {
-    genre_ids: genreIds,
-    media_type: mediaType,
-    user_id: userId,
-  });
-
-  if (error) {
-    console.error('Error updating genre stats:', error);
-    throw new Error('Failed to update genre stats');
-  } else {
-    console.log('added genres');
-  }
-
-  return data;
-}
-
-export type Episode = {
-  media_id: number;
-  media_type: string;
-  season_number: number;
-  episode_number: number;
-  next_episode: boolean; // Indicates if this is the next episode
-  next_season_number?: number | null;
-  next_episode_number?: number | null;
 };
 
 export async function removeFromWatchList(id: string) {
@@ -532,33 +377,16 @@ export async function removeFromWatchList(id: string) {
     .eq('id', id);
 
   if (error) {
-    console.error('Error removing watch list item:', error.message);
+    logger.error('Error removing watch list item:', error.message);
     throw error;
   }
   return data;
-}
-
-export interface User {
-  id: string;
-}
-export interface WatchListItem {
-  media_id: number;
 }
 
 export interface LastEpisodeInfo {
   lastAirDate: string;
   season: number;
   episode: number;
-}
-
-export interface NewEpisode {
-  user_id: string;
-  tv_id: number;
-  last_air_date: string; // or Date, depending on how you store it
-  season: number;
-  episode: number;
-  updated_at?: string;
-  created_at?: string;
 }
 
 export async function updateUserFeedGenres(userId: string, feedGenres: FeedGenre[]) {
@@ -588,37 +416,106 @@ export async function fetchUserNotifications(
   });
 
   if (error) throw error;
+  if (!data || data.length === 0) return [];
 
-  // Process notifications in parallel
-  const notificationsWithMedia = await Promise.all(
-    data.map(async (notification: any) => {
-      // Check if notification requires media data
-      if (['like', 'comment', 'new_post', 'new_episode'].includes(notification.notification_type)) {
-        try {
-          let episode_data;
-          const media_data = await getMediaDetails(
-            notification.post?.media_type || notification.media_type,
-            notification.post?.media_id || notification.media_id
-          );
-          console.log(notification.season_number, notification.episode_number);
-          if (notification.media_type === 'tv') {
-            episode_data = await getMediaDetails(
-              notification.media_type,
-              notification.media_id,
-              notification.season_number,
-              notification.episode_number
-            );
-            return { ...notification, media_data, episode_data };
-          }
-          return { ...notification, media_data };
-        } catch (error) {
-          console.error('Error fetching media data:', error);
-          return notification; // Return original notification if media fetch fails
+  // Extract unique media items to batch fetch (deduplicates API calls)
+  const mediaMap = new Map<string, { media_type: string; media_id: number }>();
+  const episodeMap = new Map<
+    string,
+    { media_type: string; media_id: number; season_number: number; episode_number: number }
+  >();
+
+  data.forEach((notification: any) => {
+    if (['like', 'comment', 'new_post', 'new_episode'].includes(notification.notification_type)) {
+      const mediaType = notification.post?.media_type || notification.media_type;
+      const mediaId = notification.post?.media_id || notification.media_id;
+      const mediaKey = `${mediaType}-${mediaId}`;
+
+      if (!mediaMap.has(mediaKey)) {
+        mediaMap.set(mediaKey, { media_type: mediaType, media_id: mediaId });
+      }
+
+      // Track episode data for TV notifications
+      if (
+        notification.media_type === 'tv' &&
+        notification.season_number != null &&
+        notification.episode_number != null
+      ) {
+        const episodeKey = `${notification.media_type}-${notification.media_id}-${notification.season_number}-${notification.episode_number}`;
+        if (!episodeMap.has(episodeKey)) {
+          episodeMap.set(episodeKey, {
+            media_type: notification.media_type,
+            media_id: notification.media_id,
+            season_number: notification.season_number,
+            episode_number: notification.episode_number,
+          });
         }
       }
-      return notification;
-    })
-  );
+    }
+  });
 
-  return notificationsWithMedia;
+  // Batch fetch media and episode data in parallel
+  const [mediaResults, episodeResults] = await Promise.all([
+    Promise.all(
+      Array.from(mediaMap.entries()).map(async ([key, item]) => {
+        try {
+          const mediaData = await getMediaDetails(item.media_type, item.media_id);
+          return { key, data: mediaData };
+        } catch (err) {
+          logger.warn('Error fetching media for notification:', key);
+          return { key, data: null };
+        }
+      })
+    ),
+    Promise.all(
+      Array.from(episodeMap.entries()).map(async ([key, item]) => {
+        try {
+          const epData = await getMediaDetails(
+            item.media_type,
+            item.media_id,
+            item.season_number,
+            item.episode_number
+          );
+          return { key, data: epData };
+        } catch (err) {
+          logger.warn('Error fetching episode for notification:', key);
+          return { key, data: null };
+        }
+      })
+    ),
+  ]);
+
+  // Build lookup maps
+  const mediaDataMap = new Map<string, any>();
+  mediaResults.forEach(({ key, data }) => {
+    if (data) mediaDataMap.set(key, data);
+  });
+
+  const episodeDataMap = new Map<string, any>();
+  episodeResults.forEach(({ key, data }) => {
+    if (data) episodeDataMap.set(key, data);
+  });
+
+  // Map notifications with their media data
+  return data.map((notification: any) => {
+    if (['like', 'comment', 'new_post', 'new_episode'].includes(notification.notification_type)) {
+      const mediaType = notification.post?.media_type || notification.media_type;
+      const mediaId = notification.post?.media_id || notification.media_id;
+      const mediaKey = `${mediaType}-${mediaId}`;
+      const media_data = mediaDataMap.get(mediaKey);
+
+      if (
+        notification.media_type === 'tv' &&
+        notification.season_number != null &&
+        notification.episode_number != null
+      ) {
+        const episodeKey = `${notification.media_type}-${notification.media_id}-${notification.season_number}-${notification.episode_number}`;
+        const episode_data = episodeDataMap.get(episodeKey);
+        return { ...notification, media_data, episode_data };
+      }
+
+      return { ...notification, media_data };
+    }
+    return notification;
+  });
 }

@@ -1,4 +1,5 @@
 import { getMovieDetails, getTVDetails } from '../tmdb/index';
+import { logger } from '@/lib/logger';
 
 // utils/fetchMediaData.ts
 export async function fetchMediaData(media_type: string, media_id: number) {
@@ -17,7 +18,7 @@ export async function fetchMediaData(media_type: string, media_id: number) {
   try {
     return await fetchFunction(media_id);
   } catch (err) {
-    console.error('Failed to fetch data', err);
+    logger.error('Failed to fetch media data', err);
     throw err;
   }
 }

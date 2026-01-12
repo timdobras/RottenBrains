@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '../supabase/client';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient();
 
@@ -10,10 +11,8 @@ export const followUser = async (userId: string, user_to_follow_id: string) => {
     .insert([{ user_id: userId, following_id: user_to_follow_id }]);
 
   if (error) {
-    console.error('Error saving post:', error.message);
+    logger.error('Error following user:', error.message);
     return;
-  } else {
-    console.log('Post saved:', data);
   }
 
   return { data, error };
@@ -27,9 +26,7 @@ export const unFollowUser = async (userId: string, user_to_follow_id: string) =>
     .eq('following_id', user_to_follow_id);
 
   if (error) {
-    console.error('Error removing save:', error.message);
-  } else {
-    console.log('Save removed:');
+    logger.error('Error unfollowing user:', error.message);
   }
 
   return { data, error };

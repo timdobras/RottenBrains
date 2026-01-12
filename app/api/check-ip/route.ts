@@ -9,7 +9,10 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,10 +23,28 @@ export async function POST(request: NextRequest) {
     const { ip } = body;
 
     if (!ip) {
-      return NextResponse.json({
-        error: 'IP address is required',
-        isKnownIP: false
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'IP address is required',
+          isKnownIP: false,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate IP format (IPv4 or IPv6)
+    const ipv4Regex =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{0,4}$|^[0-9a-fA-F]{1,4}::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{0,4}$/;
+
+    if (!ipv4Regex.test(ip) && !ipv6Regex.test(ip)) {
+      return NextResponse.json(
+        {
+          error: 'Invalid IP address format',
+          isKnownIP: false,
+        },
+        { status: 400 }
+      );
     }
 
     logger.debug(`[Check-IP] Checking if ${ip} is in saved list for user ${user.id}`);
@@ -51,20 +72,18 @@ export async function POST(request: NextRequest) {
       ip,
       isKnownIP,
       isUsingVPN: !isKnownIP,
-      savedIPInfo: isKnownIP ? {
-        label: savedIPs.label,
-        created_at: savedIPs.created_at
-      } : null,
+      savedIPInfo: isKnownIP
+        ? {
+            label: savedIPs.label,
+            created_at: savedIPs.created_at,
+          }
+        : null,
       message: isKnownIP
         ? `Connected from known IP${savedIPs.label ? ` (${savedIPs.label})` : ''}`
-        : 'Connected from unknown IP - consider using a VPN'
+        : 'Connected from unknown IP - consider using a VPN',
     });
-
   } catch (error) {
     logger.error('Error in check-ip:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

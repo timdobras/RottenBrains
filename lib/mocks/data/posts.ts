@@ -51,7 +51,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'movie',
     media_id: 129, // Spirited Away
     rating: 9,
-    review: 'Absolutely incredible! Spirited Away exceeded all my expectations. The animation is breathtaking and the storytelling is top-notch. A must-watch for any anime fan.',
+    review:
+      'Absolutely incredible! Spirited Away exceeded all my expectations. The animation is breathtaking and the storytelling is top-notch. A must-watch for any anime fan.',
     created_at: '2024-12-15T14:30:00Z',
     updated_at: '2024-12-15T14:30:00Z',
     likes_count: 24,
@@ -63,7 +64,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'movie',
     media_id: 155, // The Dark Knight
     rating: 10,
-    review: 'The Dark Knight is a masterpiece. Heath Ledger\'s Joker performance is legendary. The atmosphere is perfectly crafted and the story keeps you on the edge of your seat.',
+    review:
+      "The Dark Knight is a masterpiece. Heath Ledger's Joker performance is legendary. The atmosphere is perfectly crafted and the story keeps you on the edge of your seat.",
     created_at: '2024-12-14T20:00:00Z',
     updated_at: '2024-12-14T20:00:00Z',
     likes_count: 42,
@@ -75,7 +77,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'tv',
     media_id: 1396, // Breaking Bad
     rating: 10,
-    review: 'Breaking Bad is a masterpiece of television. The storytelling, acting, and production value are all exceptional. The final season wrapped up everything perfectly.',
+    review:
+      'Breaking Bad is a masterpiece of television. The storytelling, acting, and production value are all exceptional. The final season wrapped up everything perfectly.',
     created_at: '2024-12-13T10:15:00Z',
     updated_at: '2024-12-13T10:15:00Z',
     likes_count: 89,
@@ -87,7 +90,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'movie',
     media_id: 238, // The Godfather
     rating: 9,
-    review: 'The Godfather is timeless. The performances, especially Marlon Brando, are unforgettable. A true classic that everyone should watch at least once.',
+    review:
+      'The Godfather is timeless. The performances, especially Marlon Brando, are unforgettable. A true classic that everyone should watch at least once.',
     created_at: '2024-12-12T16:45:00Z',
     updated_at: '2024-12-12T16:45:00Z',
     likes_count: 56,
@@ -99,7 +103,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'movie',
     media_id: 278, // Shawshank Redemption
     rating: 10,
-    review: 'The Shawshank Redemption is one of the greatest films ever made. The story of hope and friendship is incredibly moving.',
+    review:
+      'The Shawshank Redemption is one of the greatest films ever made. The story of hope and friendship is incredibly moving.',
     created_at: '2024-12-11T09:00:00Z',
     updated_at: '2024-12-11T09:00:00Z',
     likes_count: 31,
@@ -111,7 +116,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'tv',
     media_id: 1399, // Game of Thrones
     rating: 8,
-    review: 'Game of Thrones is an epic fantasy series. Despite the controversial ending, the earlier seasons are some of the best television ever produced.',
+    review:
+      'Game of Thrones is an epic fantasy series. Despite the controversial ending, the earlier seasons are some of the best television ever produced.',
     created_at: '2024-12-10T21:30:00Z',
     updated_at: '2024-12-10T21:30:00Z',
     likes_count: 67,
@@ -123,7 +129,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'movie',
     media_id: 424, // Schindler's List
     rating: 10,
-    review: 'Schindler\'s List is powerful and heartbreaking. Spielberg\'s direction and Liam Neeson\'s performance are extraordinary.',
+    review:
+      "Schindler's List is powerful and heartbreaking. Spielberg's direction and Liam Neeson's performance are extraordinary.",
     created_at: '2024-12-09T12:00:00Z',
     updated_at: '2024-12-09T12:00:00Z',
     likes_count: 18,
@@ -135,7 +142,8 @@ export const mockPosts: MockPost[] = [
     media_type: 'tv',
     media_id: 456, // The Simpsons
     rating: 8,
-    review: 'The Simpsons is iconic. The earlier seasons are comedy gold and the show has influenced so much of pop culture.',
+    review:
+      'The Simpsons is iconic. The earlier seasons are comedy gold and the show has influenced so much of pop culture.',
     created_at: '2024-12-08T15:20:00Z',
     updated_at: '2024-12-08T15:20:00Z',
     likes_count: 45,
@@ -204,13 +212,8 @@ export const getMockPostsByUser = (userId: string): MockPost[] => {
   return mockPosts.filter((p) => p.user_id === userId);
 };
 
-export const getMockPostsByMedia = (
-  mediaType: 'movie' | 'tv',
-  mediaId: number
-): MockPost[] => {
-  return mockPosts.filter(
-    (p) => p.media_type === mediaType && p.media_id === mediaId
-  );
+export const getMockPostsByMedia = (mediaType: 'movie' | 'tv', mediaId: number): MockPost[] => {
+  return mockPosts.filter((p) => p.media_type === mediaType && p.media_id === mediaId);
 };
 
 export const getMockCommentsForPost = (postId: string): MockComment[] => {
@@ -251,9 +254,21 @@ export const getMockFeedPosts = (userId: string): MockFeedPost[] => {
     const isSaved = mockSaves.some((s) => s.user_id === userId && s.post_id === post.id);
 
     // Mock creator data based on post's user_id
-    const creatorData = post.user_id === 'mock-user-1'
-      ? { id: 'mock-user-1', name: 'John Developer', username: 'john_dev', image_url: 'https://ui-avatars.com/api/?name=John+Developer&background=6366f1&color=fff' }
-      : { id: 'mock-user-2', name: 'Jane Reviewer', username: 'jane_reviews', image_url: 'https://ui-avatars.com/api/?name=Jane+Reviewer&background=ec4899&color=fff' };
+    const creatorData =
+      post.user_id === 'mock-user-1'
+        ? {
+            id: 'mock-user-1',
+            name: 'John Developer',
+            username: 'john_dev',
+            image_url:
+              'https://ui-avatars.com/api/?name=John+Developer&background=6366f1&color=fff',
+          }
+        : {
+            id: 'mock-user-2',
+            name: 'Jane Reviewer',
+            username: 'jane_reviews',
+            image_url: 'https://ui-avatars.com/api/?name=Jane+Reviewer&background=ec4899&color=fff',
+          };
 
     return {
       post,

@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/lib/supabase/serverQueries';
 const page = async () => {
   const user = await getCurrentUser();
   return (
-    <div className="mx-auto h-full w-full max-w-4xl px-4 md:px-0 pb-64">
+    <div className="mx-auto h-full w-full max-w-4xl px-4 pb-64 md:px-0">
       <h1 className="my-4 text-xl font-semibold">Settings</h1>
       <NavThemeSwitch></NavThemeSwitch>
       <h1 className="my-4 text-lg font-semibold">Defaults</h1>

@@ -1,25 +1,51 @@
 import { getPostByIdNew, getPostsFromFollowedUsers } from '../supabase/serverQueries';
 import { fetchMediaData } from './fetchMediaData';
+import { logger } from '@/lib/logger';
 
 export async function fetchPostsData(user_id: string) {
   try {
     const posts = await getPostsFromFollowedUsers(user_id);
-    const postsMediaData = await Promise.all(
-      posts.map(async (post: any) => {
+    if (!posts || posts.length === 0) return [];
+
+    // Extract unique media items to avoid duplicate API calls
+    const mediaMap = new Map<string, { media_id: number; media_type: string }>();
+    posts.forEach((post: any) => {
+      const key = `${post.post.media_type}-${post.post.media_id}`;
+      if (!mediaMap.has(key)) {
+        mediaMap.set(key, { media_id: post.post.media_id, media_type: post.post.media_type });
+      }
+    });
+
+    // Batch fetch all unique media data
+    const mediaDataResults = await Promise.all(
+      Array.from(mediaMap.entries()).map(async ([key, item]) => {
         try {
-          const mediaData = await fetchMediaData(post.post.media_id, post.post.media_type);
-          return { post_data: post, media_data: mediaData };
+          const data = await fetchMediaData(item.media_id, item.media_type);
+          return { key, data };
         } catch (error) {
-          console.warn('Error fetching media data for post:', post, error);
-          // Return null or a fallback object if one fetch fails
-          return null;
+          logger.warn('Error fetching media data:', key, error);
+          return { key, data: null };
         }
       })
     );
-    // Filter out any failed (null) results
-    return postsMediaData.filter(Boolean);
+
+    // Build a lookup map for quick access
+    const mediaDataMap = new Map<string, any>();
+    mediaDataResults.forEach(({ key, data }) => {
+      if (data) mediaDataMap.set(key, data);
+    });
+
+    // Map posts with their media data
+    return posts
+      .map((post: any) => {
+        const key = `${post.post.media_type}-${post.post.media_id}`;
+        const mediaData = mediaDataMap.get(key);
+        if (!mediaData) return null;
+        return { post_data: post, media_data: mediaData };
+      })
+      .filter(Boolean);
   } catch (error) {
-    console.error('Error in fetchPostsData:', error);
+    logger.error('Error in fetchPostsData:', error);
     return []; // fallback value so the page can still render
   }
 }

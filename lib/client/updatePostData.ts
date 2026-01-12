@@ -2,11 +2,12 @@
 
 import { PostgrestSingleResponse } from '@supabase/supabase-js';
 import { createClient } from '../supabase/client';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient();
 
 const handleError = (operation: string, error: any) => {
-  console.error(`Error during ${operation}:`, error.message);
+  logger.error(`Error during ${operation}:`, error.message);
 };
 
 export const savePost = async (
@@ -18,7 +19,6 @@ export const savePost = async (
       .from('saves')
       .insert([{ user_id: userId, post_id: postId }]);
     if (error) throw error;
-    console.log('Post saved:', data);
     return { data, error: null };
   } catch (error) {
     handleError('savePost', error);
@@ -37,7 +37,6 @@ export const removeSave = async (
       .eq('user_id', userId)
       .eq('post_id', postId);
     if (error) throw error;
-    console.log('Save removed');
     return { data, error: null };
   } catch (error) {
     handleError('removeSave', error);
@@ -68,7 +67,6 @@ export const likePost = async (
       .from('likes')
       .insert([{ user_id: userId, post_id: postId }]);
     if (error) throw error;
-    console.log('Post liked:', data);
 
     const { error: incrementError } = await supabase.rpc('increment_likes', {
       post_id: postId,
@@ -93,7 +91,6 @@ export const removeLike = async (
       .eq('user_id', userId)
       .eq('post_id', postId);
     if (error) throw error;
-    console.log('Like removed');
 
     const { error: decrementError } = await supabase.rpc('decrement_likes', {
       post_id: postId,

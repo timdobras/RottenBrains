@@ -1,41 +1,51 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { getFollowers, getFollowing, getPostCount } from '@/lib/supabase/clientQueries';
+import { queryKeys } from '@/lib/queryKeys';
 import { IUser } from '@/types';
 import UserSearchCard from '../search-bar/UserSearchCard';
 import Modal from './Modal';
 
-const FollowInfo = ({ user }: any) => {
+interface FollowInfoProps {
+  user: IUser;
+}
+
+const FollowInfo = ({ user }: FollowInfoProps) => {
   const router = useRouter();
-  const [followers, setFollowers] = useState([]);
-  const [following, setFollowing] = useState([]);
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [postCount, setPostCount] = useState(0);
   const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
   const [isFollowingModalOpen, setIsFollowingModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { followers, followers_count } = await getFollowers(user.id);
-        setFollowers(followers);
-        setFollowersCount(followers_count);
+  // Convert user.id to string for API calls (IUser.id is number, APIs expect string)
+  const userId = useMemo(() => String(user.id), [user.id]);
 
-        const { following, following_count } = await getFollowing(user.id);
-        setFollowing(following);
-        setFollowingCount(following_count);
+  // Parallel data fetching with React Query - eliminates waterfall
+  const [followersQuery, followingQuery, postCountQuery] = useQueries({
+    queries: [
+      {
+        queryKey: queryKeys.profile.followers(userId),
+        queryFn: () => getFollowers(userId),
+        staleTime: 1000 * 60, // 1 minute
+      },
+      {
+        queryKey: queryKeys.profile.following(userId),
+        queryFn: () => getFollowing(userId),
+        staleTime: 1000 * 60,
+      },
+      {
+        queryKey: queryKeys.profile.postCount(userId),
+        queryFn: () => getPostCount(userId),
+        staleTime: 1000 * 60,
+      },
+    ],
+  });
 
-        const { post_count } = await getPostCount(user.id);
-        setPostCount(post_count);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    fetchData();
-  }, [user.id]);
+  const followers = followersQuery.data?.followers ?? [];
+  const followersCount = followersQuery.data?.followers_count ?? 0;
+  const following = followingQuery.data?.following ?? [];
+  const followingCount = followingQuery.data?.following_count ?? 0;
+  const postCount = postCountQuery.data?.post_count ?? 0;
 
   return (
     <div className="text-sm text-foreground/50">
@@ -68,7 +78,7 @@ const FollowInfo = ({ user }: any) => {
         title="Followers"
       >
         <ul className="flex flex-col gap-2">
-          {followers.map((user: any) => (
+          {followers.map((user: { id: string }) => (
             <li key={user.id}>
               <UserSearchCard
                 media={user}
@@ -85,7 +95,7 @@ const FollowInfo = ({ user }: any) => {
         title="Following"
       >
         <ul className="flex flex-col gap-2">
-          {following.map((user: any) => (
+          {following.map((user: { id: string }) => (
             <li key={user.id}>
               <UserSearchCard
                 media={user}

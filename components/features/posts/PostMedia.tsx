@@ -31,4 +31,4 @@ const PostMedia = ({ media, post, quality }: PostMediaProps) => {
   );
 };
 
-export default PostMedia;
+export default React.memo(PostMedia);

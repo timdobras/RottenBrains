@@ -1,4 +1,5 @@
 import { createClient } from '../supabase/client';
+import { logger } from '@/lib/logger';
 
 export const searchUsers = async (searchQuery: string) => {
   const supabase = createClient();
@@ -35,7 +36,7 @@ export const searchUsers = async (searchQuery: string) => {
 
     return ranked;
   } catch (error) {
-    console.error('Error in searchUsers:', error);
+    logger.error('Error in searchUsers:', error);
     return null;
   }
 };

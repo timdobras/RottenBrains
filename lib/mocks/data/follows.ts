@@ -65,21 +65,15 @@ export const mockNotifications: MockNotification[] = [
 
 // Helper functions
 export const isFollowing = (followerId: string, followingId: string): boolean => {
-  return mockFollows.some(
-    (f) => f.follower_id === followerId && f.following_id === followingId
-  );
+  return mockFollows.some((f) => f.follower_id === followerId && f.following_id === followingId);
 };
 
 export const getFollowers = (userId: string): string[] => {
-  return mockFollows
-    .filter((f) => f.following_id === userId)
-    .map((f) => f.follower_id);
+  return mockFollows.filter((f) => f.following_id === userId).map((f) => f.follower_id);
 };
 
 export const getFollowing = (userId: string): string[] => {
-  return mockFollows
-    .filter((f) => f.follower_id === userId)
-    .map((f) => f.following_id);
+  return mockFollows.filter((f) => f.follower_id === userId).map((f) => f.following_id);
 };
 
 export const getFollowerCount = (userId: string): number => {

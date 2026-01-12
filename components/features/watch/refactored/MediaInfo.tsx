@@ -36,14 +36,17 @@ const MediaInfo: React.FC<MediaInfoProps> = ({
         ? media.release_date.slice(0, 4)
         : '0'
       : episode?.air_date
-      ? episode.air_date
-      : '0';
+        ? episode.air_date
+        : '0';
 
   const media_overview = media_type === 'movie' ? media.overview : episode?.overview;
 
   return (
     <div className="flex flex-col gap-1">
-      <div className={`flex flex-col gap-2 ${!isDesktop ? 'cursor-pointer' : ''}`} onClick={onClick}>
+      <div
+        className={`flex flex-col gap-2 ${!isDesktop ? 'cursor-pointer' : ''}`}
+        onClick={onClick}
+      >
         <h2 className="text-lg font-semibold">
           {episode && season_number && episode_number
             ? `${episode.name} | ${
@@ -65,7 +68,9 @@ const MediaInfo: React.FC<MediaInfoProps> = ({
           </p>
         </div>
       </div>
-      {isDesktop && media_overview && <p className="line-clamp-2 text-sm text-foreground/50">{media_overview}</p>}
+      {isDesktop && media_overview && (
+        <p className="line-clamp-2 text-sm text-foreground/50">{media_overview}</p>
+      )}
       {!isDesktop && media_overview && <ToggleClamp text={media_overview} />}
     </div>
   );

@@ -3,12 +3,7 @@
  * Mimics the Supabase client interface with proper TypeScript compatibility
  */
 
-import {
-  mockUsers,
-  MOCK_CURRENT_USER_ID,
-  getMockUserById,
-  searchMockUsers,
-} from '../data/users';
+import { mockUsers, MOCK_CURRENT_USER_ID, getMockUserById, searchMockUsers } from '../data/users';
 import {
   mockPosts,
   mockComments,
@@ -23,10 +18,7 @@ import {
   getMockWatchHistoryForUser,
   getMockWatchProgress,
 } from '../data/watch-history';
-import {
-  mockFollows,
-  mockNotifications,
-} from '../data/follows';
+import { mockFollows, mockNotifications } from '../data/follows';
 
 // Type for mock query result - matches Supabase response structure
 interface MockResult<T> {
@@ -245,7 +237,7 @@ function createMockQueryBuilder(table: string): any {
       return builder;
     },
     // Make it thenable (Promise-like)
-    then(resolve: (result: MockResult<any>) => void, reject?: ((error: any) => void)) {
+    then(resolve: (result: MockResult<any>) => void, reject?: (error: any) => void) {
       try {
         const result = executeQuery();
         resolve(result);
@@ -254,7 +246,7 @@ function createMockQueryBuilder(table: string): any {
       }
     },
     // Support async/await
-    catch(reject: ((error: any) => void)) {
+    catch(reject: (error: any) => void) {
       return builder;
     },
     finally(callback: () => void) {
@@ -267,10 +259,7 @@ function createMockQueryBuilder(table: string): any {
 }
 
 // Filter data based on query filters
-function filterData<T extends Record<string, any>>(
-  data: T[],
-  filters: Record<string, any>
-): T[] {
+function filterData<T extends Record<string, any>>(data: T[], filters: Record<string, any>): T[] {
   return data.filter((item) => {
     for (const [key, value] of Object.entries(filters)) {
       if (key.endsWith('_neq')) {
@@ -348,17 +337,17 @@ function handleMockRPC(fnName: string, params: any): any {
         case 'get_top_movie_genres_for_user':
           // Return some default movie genres
           data = [
-            { genre_code: '28', count: 5 },  // Action
+            { genre_code: '28', count: 5 }, // Action
             { genre_code: '878', count: 4 }, // Sci-Fi
-            { genre_code: '18', count: 3 },  // Drama
+            { genre_code: '18', count: 3 }, // Drama
           ];
           break;
         case 'get_top_tv_genres_for_user':
           // Return some default TV genres
           data = [
-            { genre_code: '18', count: 5 },    // Drama
+            { genre_code: '18', count: 5 }, // Drama
             { genre_code: '10765', count: 4 }, // Sci-Fi & Fantasy
-            { genre_code: '80', count: 3 },    // Crime
+            { genre_code: '80', count: 3 }, // Crime
           ];
           break;
         case 'get_continue_watching':
@@ -366,7 +355,7 @@ function handleMockRPC(fnName: string, params: any): any {
           break;
         default:
           console.warn(`[Mock Supabase] Unknown RPC: ${fnName}`);
-          data = [];  // Return empty array instead of null
+          data = []; // Return empty array instead of null
       }
 
       resolve(createSuccessResponse(data));
@@ -462,8 +451,7 @@ const createMockAuth = () => ({
       },
       error: null,
     }),
-  resetPasswordForEmail: (email: string) =>
-    Promise.resolve({ data: {}, error: null }),
+  resetPasswordForEmail: (email: string) => Promise.resolve({ data: {}, error: null }),
   updateUser: (attributes: any) =>
     Promise.resolve({
       data: { user: { id: MOCK_CURRENT_USER_ID, ...attributes } },
@@ -480,17 +468,13 @@ const createMockAuth = () => ({
 // Mock storage object
 const createMockStorage = () => ({
   from: (bucket: string) => ({
-    upload: (path: string, file: any) =>
-      Promise.resolve({ data: { path }, error: null }),
-    download: (path: string) =>
-      Promise.resolve({ data: new Blob(), error: null }),
+    upload: (path: string, file: any) => Promise.resolve({ data: { path }, error: null }),
+    download: (path: string) => Promise.resolve({ data: new Blob(), error: null }),
     getPublicUrl: (path: string) => ({
       data: { publicUrl: `https://mock-storage.com/${bucket}/${path}` },
     }),
-    remove: (paths: string[]) =>
-      Promise.resolve({ data: null, error: null }),
-    list: (path?: string) =>
-      Promise.resolve({ data: [], error: null }),
+    remove: (paths: string[]) => Promise.resolve({ data: null, error: null }),
+    list: (path?: string) => Promise.resolve({ data: [], error: null }),
   }),
 });
 

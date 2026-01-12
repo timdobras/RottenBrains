@@ -147,7 +147,9 @@ export default async function mediaPage({ params }: { params: Params }) {
                   genre_ids={genreIds}
                 ></MoreOptions> */}
               </div>
-              {media.tagline && <p className="text-sm italic opacity-50">&quot;{media.tagline}&quot;</p>}
+              {media.tagline && (
+                <p className="text-sm italic opacity-50">&quot;{media.tagline}&quot;</p>
+              )}
               <div className="">
                 <div className="flex h-full flex-col justify-between gap-2 md:flex-row md:items-center">
                   <div className="flex flex-row items-center gap-4 text-sm opacity-50">

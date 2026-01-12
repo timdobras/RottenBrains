@@ -33,4 +33,4 @@ const HomePostCardUI = ({ post_media_data, user_id, rounded = true }: HomePostCa
   );
 };
 
-export default HomePostCardUI;
+export default React.memo(HomePostCardUI);

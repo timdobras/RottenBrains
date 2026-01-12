@@ -31,7 +31,7 @@ const VPNWarningNew = () => {
       console.log('[VPN Check] Fetching current IP...');
       const timestamp = Date.now();
       const ipResponse = await fetch(`https://api.ipify.org?format=json&_=${timestamp}`, {
-        cache: 'no-store'
+        cache: 'no-store',
       });
 
       if (!ipResponse.ok) {
@@ -49,7 +49,7 @@ const VPNWarningNew = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ ip: currentIP }),
-        cache: 'no-store'
+        cache: 'no-store',
       });
 
       if (checkResponse.ok) {
@@ -59,7 +59,7 @@ const VPNWarningNew = () => {
           currentIP,
           isKnownIP: data.isKnownIP,
           isUsingVPN: data.isUsingVPN,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         setVpnStatus(data);
@@ -156,7 +156,7 @@ const VPNWarningNew = () => {
     loading,
     dismissed,
     vpnStatus,
-    shouldShow: !loading && !dismissed && vpnStatus && vpnStatus.isKnownIP === true
+    shouldShow: !loading && !dismissed && vpnStatus && vpnStatus.isKnownIP === true,
   });
 
   // Show warning when IP is known (not using VPN)
@@ -176,9 +176,7 @@ const VPNWarningNew = () => {
               <WifiOff className="h-4 w-4 text-yellow-500" />
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
-              <span className="text-sm font-medium text-yellow-100">
-                No VPN Detected
-              </span>
+              <span className="text-sm font-medium text-yellow-100">No VPN Detected</span>
               <span className="text-xs text-yellow-200/80 sm:text-sm">
                 {vpnStatus.savedIPInfo?.label
                   ? `Connected from ${vpnStatus.savedIPInfo.label}`
@@ -222,7 +220,8 @@ const VPNWarningNew = () => {
                 <div className="text-sm text-yellow-100/90">
                   <p className="mb-1 font-medium">Privacy Warning:</p>
                   <p className="text-xs leading-relaxed text-yellow-100/70">
-                    You&apos;re browsing from a known public IP address without a VPN. Your internet activity may be visible to your ISP and network administrator.
+                    You&apos;re browsing from a known public IP address without a VPN. Your internet
+                    activity may be visible to your ISP and network administrator.
                   </p>
                 </div>
               </div>

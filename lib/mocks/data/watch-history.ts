@@ -143,10 +143,7 @@ export const getMockBatchWatchProgress = (
   items.forEach(({ media_type, media_id }) => {
     const key = `${media_type}_${media_id}`;
     const watchItem = mockWatchHistory.find(
-      (w) =>
-        w.user_id === userId &&
-        w.media_type === media_type &&
-        w.media_id === media_id
+      (w) => w.user_id === userId && w.media_type === media_type && w.media_id === media_id
     );
     result[key] = watchItem?.percentage_watched || 0;
   });

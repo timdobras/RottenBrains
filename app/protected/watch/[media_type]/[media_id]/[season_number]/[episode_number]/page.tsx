@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import ScrollButtons from '@/components/common/ScrollButtons';
 import FixedAd from '@/components/features/ads/300x250Ad';
 import MobileBannerPem from '@/components/features/ads/Fullscreen';
@@ -16,9 +15,10 @@ import TVShowDetails from '@/components/features/watch/TVSeasons';
 import WatchDuration from '@/components/features/watch/WatchDuration';
 import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
 import VideoContextSetter from '@/hooks/VideoContextSetter';
-import { fetchMediaData } from '@/lib/client/fetchMediaData';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
-import { getEpisodeDetails, getMediaDetails } from '@/lib/tmdb';
+import { getCachedMediaDetails, getCachedEpisodeDetails } from '@/lib/tmdb/cachedFetchers';
+import { logger } from '@/lib/logger';
+
 type Params = Promise<{
   media_id: number;
   season_number: number;
@@ -27,19 +27,16 @@ type Params = Promise<{
 }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
-  const { media_id } = await params;
-  const { media_type } = await params;
-  const { season_number } = await params;
-  const { episode_number } = await params;
+  const { media_id, media_type, season_number, episode_number } = await params;
 
-  let mediaData;
+  let media;
   try {
-    mediaData = await fetchMediaData(media_type, media_id);
+    // Use cached fetcher - deduplicated with page() call
+    media = await getCachedMediaDetails(media_type, media_id);
   } catch (error) {
-    console.error('Error fetching media data:', error);
-    mediaData = null;
+    logger.error('Error fetching media data:', error);
+    media = null;
   }
-  const media = mediaData;
 
   if (!media) {
     return {
@@ -55,22 +52,23 @@ export async function generateMetadata({ params }: { params: Params }) {
 }
 
 export default async function mediaPage({ params }: { params: Params }) {
-  const { media_id } = await params;
-  const { media_type } = await params;
-  const { season_number } = await params;
-  const { episode_number } = await params;
+  const { media_id, media_type, season_number, episode_number } = await params;
 
-  const user = await getCurrentUser();
-  const media = await getMediaDetails(media_type, media_id);
+  // Parallel fetch user, media, and episode data
+  const [user, media, episode] = await Promise.all([
+    getCurrentUser(),
+    getCachedMediaDetails(media_type, media_id),
+    getCachedEpisodeDetails(media_id, season_number, episode_number),
+  ]);
+
   if (!media) {
     return <div>NO MEDIA FOUND</div>;
   }
-  const episode = await getEpisodeDetails(media_id, season_number, episode_number);
 
+  // Compute next episode (depends on media data)
   let nextEpisode = null;
 
-  if (media && media.seasons) {
-    // Find next episode
+  if (media.seasons) {
     const seasons = media.seasons.filter(
       (season: { season_number: number }) => season.season_number !== 0
     );
@@ -83,11 +81,11 @@ export default async function mediaPage({ params }: { params: Params }) {
 
     if (currentSeason && episode_number < currentSeason.episode_count) {
       // Next episode in the same season
-      nextEpisode = await getEpisodeDetails(media.id, season_number, Number(episode_number) + 1);
+      nextEpisode = await getCachedEpisodeDetails(media.id, season_number, Number(episode_number) + 1);
     } else if (currentSeasonIndex + 1 < seasons.length) {
       // First episode of the next season
       const nextSeasonNumber = seasons[currentSeasonIndex + 1].season_number;
-      nextEpisode = await getEpisodeDetails(media.id, nextSeasonNumber, 1);
+      nextEpisode = await getCachedEpisodeDetails(media.id, nextSeasonNumber, 1);
     }
   }
 
@@ -124,20 +122,15 @@ export default async function mediaPage({ params }: { params: Params }) {
           </div>
           <section className="flex flex-col gap-2 md:mt-0">
             {nextEpisode && (
-              <div className="flex flex-col gap-2 md:rounded-[8px] md:p-0">
-                <Link
-                  href={`/protected/watch/tv/${media.id}/${nextEpisode.season_number}/${nextEpisode.episode_number}`}
-                  className="px-4 md:px-0"
-                >
-                  <MediaCardServer
-                    media_type={'tv'}
-                    media_id={media.id}
-                    season_number={nextEpisode.season_number}
-                    episode_number={nextEpisode.episode_number}
-                    user_id={user?.id.toString()}
-                    rounded={true}
-                  />
-                </Link>
+              <div className="flex flex-col gap-2 px-4 md:rounded-[8px] md:p-0 md:px-0">
+                <MediaCardServer
+                  media_type={'tv'}
+                  media_id={media.id}
+                  season_number={nextEpisode.season_number}
+                  episode_number={nextEpisode.episode_number}
+                  user_id={user?.id.toString()}
+                  rounded={true}
+                />
               </div>
             )}
             {media_type === 'tv' && season_number && (

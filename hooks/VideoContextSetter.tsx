@@ -20,7 +20,7 @@ export default function VideoContextSetter({
   const { setState } = useVideo();
 
   useEffect(() => {
-    // enter “full” mode with the new media
+    // Enter "full" mode with the new media
     setState({
       media_type,
       media_id,
@@ -30,7 +30,7 @@ export default function VideoContextSetter({
     });
 
     return () => {
-      // revert to mini when unmounting
+      // Revert to mini when unmounting
       setState((s) => ({ ...s, mode: 'mini' }));
     };
   }, [media_type, media_id, season_number, episode_number, setState]);

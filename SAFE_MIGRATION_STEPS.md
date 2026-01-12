@@ -124,6 +124,7 @@ EXECUTE FUNCTION update_updated_at_column();
 ## How to Test Each Step
 
 After EACH step above:
+
 1. Go to Table Editor
 2. Check the `user_ip_addresses` table
 3. Try to insert a test row manually
@@ -142,12 +143,14 @@ DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 ## Testing the Feature Before Going Live
 
 1. **Test with your account first**:
+
    - Add the table
    - Go to your app's Settings page
    - Try adding an IP
    - See if it saves correctly
 
 2. **Check the Table Editor**:
+
    - Verify data is being saved
    - Check that user_id matches your user
 
@@ -159,6 +162,7 @@ DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 ## When You're Confident
 
 Once you've tested with your account and everything works:
+
 - The feature is ready for other users
 - No existing data or tables are affected
 - Users won't see any changes until they visit Settings

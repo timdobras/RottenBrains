@@ -76,7 +76,6 @@ export const searchMockUsers = (query: string): MockUser[] => {
   const lowerQuery = query.toLowerCase();
   return mockUsers.filter(
     (u) =>
-      u.name.toLowerCase().includes(lowerQuery) ||
-      u.username.toLowerCase().includes(lowerQuery)
+      u.name.toLowerCase().includes(lowerQuery) || u.username.toLowerCase().includes(lowerQuery)
   );
 };

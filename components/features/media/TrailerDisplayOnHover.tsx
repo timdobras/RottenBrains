@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 import { MobileVideoContext } from '@/hooks/MobileVideoContext';
 import { getVideos } from '@/lib/tmdb';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface HoverImageProps {
   imageUrl: string | null | undefined;
@@ -11,6 +13,23 @@ interface HoverImageProps {
   media_type: string; // "movie" or "tv"
   media_id: number;
   children?: React.ReactNode;
+}
+
+// Extract trailer URL from video data
+function extractTrailerUrl(data: { results?: Array<{ type?: string; site?: string; key?: string }> } | null): string | null {
+  if (!data || !Array.isArray(data.results) || data.results.length === 0) {
+    return null;
+  }
+
+  const trailer =
+    data.results.find((video) => video.type === 'Trailer' && video.site === 'YouTube') ||
+    data.results.find((video) => video.site === 'YouTube');
+
+  if (trailer && trailer.key && trailer.site === 'YouTube') {
+    return `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&cc_load_policy=1&cc_lang_pref=en`;
+  }
+
+  return null;
 }
 
 const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
@@ -22,14 +41,35 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [iframeVisible, setIframeVisible] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const { currentPlayingMediaId, registerHoverImage, unregisterHoverImage } =
     useContext(MobileVideoContext);
+
+  // Determine if we should fetch (on hover for desktop, on play for mobile)
+  const shouldFetch = useMemo(() => {
+    if (isMobileDevice) {
+      return currentPlayingMediaId === media_id;
+    }
+    return isHovered;
+  }, [isMobileDevice, currentPlayingMediaId, media_id, isHovered]);
+
+  // Use React Query for caching trailer data (1 hour staleTime)
+  const { data: videoData, isLoading: isFetching } = useQuery({
+    queryKey: queryKeys.media.videos(media_type, media_id),
+    queryFn: () => getVideos(media_type, media_id),
+    enabled: shouldFetch,
+    staleTime: 1000 * 60 * 60, // 1 hour - trailers don't change
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours cache
+  });
+
+  // Extract trailer URL from cached data
+  const videoUrl = useMemo(() => extractTrailerUrl(videoData), [videoData]);
+
+  // Show loading only when actively fetching
+  const isLoading = shouldFetch && isFetching && !videoData;
 
   // Detect if the device is mobile
   useEffect(() => {
@@ -52,44 +92,14 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
     };
   }, [media_id, registerHoverImage, unregisterHoverImage, isMobileDevice]);
 
-  // Fetch the video
-  const fetchVideo = async () => {
-    try {
-      const data = await getVideos(media_type, media_id);
-
-      if (data && Array.isArray(data.results) && data.results.length > 0) {
-        const trailer =
-          data.results.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube') ||
-          data.results.find((video: any) => video.site === 'YouTube');
-
-        if (trailer && trailer.key && trailer.site === 'YouTube') {
-          const videoUrl = `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&cc_load_policy=1&cc_lang_pref=en`;
-          setVideoUrl(videoUrl);
-        } else {
-          setVideoUrl(null);
-          setIsLoading(false);
-        }
-      } else {
-        setVideoUrl(null);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Failed to fetch video:', error);
-      setVideoUrl(null);
-      setIsLoading(false);
-    }
-  };
-
-  // Handle playing and stopping video based on currentPlayingMediaId
+  // Handle playing and stopping video based on currentPlayingMediaId (mobile)
   useEffect(() => {
     if (isMobileDevice) {
       if (currentPlayingMediaId === media_id) {
         // This component should play the video
         if (!showOverlay) {
-          setIsLoading(true);
           const timeoutId = setTimeout(() => {
             setShowOverlay(true);
-            fetchVideo();
           }, 1000);
           return () => {
             clearTimeout(timeoutId);
@@ -97,47 +107,29 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
         }
       } else {
         // This component should stop playing
-        if (showOverlay || isLoading) {
+        if (showOverlay) {
           setShowOverlay(false);
-          setIsLoading(false);
           setIframeVisible(false);
-          setVideoUrl(null);
         }
       }
     }
-  }, [currentPlayingMediaId, isMobileDevice, media_id]);
+  }, [currentPlayingMediaId, isMobileDevice, media_id, showOverlay]);
 
   // Desktop Hover Effect
   useEffect(() => {
     if (isMobileDevice) return;
 
-    const hoverTimeout: NodeJS.Timeout | null = null;
-
     if (isHovered) {
-      setIsLoading(true);
       setShowOverlay(true);
-      fetchVideo();
     } else {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-      }
       setShowOverlay(false);
-      setIsLoading(false);
       setIframeVisible(false);
-      setVideoUrl(null);
     }
-
-    return () => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-      }
-    };
   }, [isHovered, isMobileDevice]);
 
-  // Handle iframe load and add 0.2-second delay with fade-in effect
+  // Handle iframe load with fade-in effect
   const handleIframeLoad = () => {
     setIframeVisible(true);
-    setIsLoading(false);
   };
 
   return (

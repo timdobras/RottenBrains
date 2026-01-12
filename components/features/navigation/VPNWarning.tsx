@@ -33,8 +33,8 @@ const VPNWarning = () => {
         cache: 'no-store', // Always use no-store to get fresh data
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
+          Pragma: 'no-cache',
+        },
       });
 
       if (response.ok) {
@@ -47,7 +47,7 @@ const VPNWarning = () => {
           isUsingVPN: data.isUsingVPN,
           isDevelopment: data.isDevelopment,
           message: data.message,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         setVpnStatus(data);
@@ -146,11 +146,11 @@ const VPNWarning = () => {
     loading,
     dismissed,
     vpnStatus,
-    'currentIP': vpnStatus?.currentIP,
-    'isKnownIP': vpnStatus?.isKnownIP,
-    'isUsingVPN': vpnStatus?.isUsingVPN,
+    currentIP: vpnStatus?.currentIP,
+    isKnownIP: vpnStatus?.isKnownIP,
+    isUsingVPN: vpnStatus?.isUsingVPN,
     'should show warning': !loading && !dismissed && vpnStatus && vpnStatus.isKnownIP === true,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 
   // Show warning when:
@@ -167,14 +167,14 @@ const VPNWarning = () => {
       'dismissed?': dismissed,
       'no vpnStatus?': !vpnStatus,
       'isKnownIP not true?': vpnStatus?.isKnownIP !== true,
-      'Final decision': 'NOT SHOWING'
+      'Final decision': 'NOT SHOWING',
     });
     return null;
   }
 
   console.log('VPN Warning WILL SHOW!', {
     vpnStatus,
-    shouldShowWarning
+    shouldShowWarning,
   });
 
   return (
@@ -187,9 +187,7 @@ const VPNWarning = () => {
               <WifiOff className="h-4 w-4 text-yellow-500" />
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
-              <span className="text-sm font-medium text-yellow-100">
-                No VPN Detected
-              </span>
+              <span className="text-sm font-medium text-yellow-100">No VPN Detected</span>
               <span className="text-xs text-yellow-200/80 sm:text-sm">
                 {vpnStatus.savedIPInfo?.label
                   ? `Connected from ${vpnStatus.savedIPInfo.label}`
@@ -233,7 +231,8 @@ const VPNWarning = () => {
                 <div className="text-sm text-yellow-100/90">
                   <p className="mb-1 font-medium">Privacy Warning:</p>
                   <p className="text-xs leading-relaxed text-yellow-100/70">
-                    You&apos;re browsing from a known public IP address without a VPN. Your internet activity may be visible to your ISP and network administrator.
+                    You&apos;re browsing from a known public IP address without a VPN. Your internet
+                    activity may be visible to your ISP and network administrator.
                   </p>
                 </div>
               </div>

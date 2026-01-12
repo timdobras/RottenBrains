@@ -8,28 +8,27 @@ import NativeAd from '@/components/features/ads/Native';
 import NavAdMobile from '@/components/features/ads/NavAdMobile';
 import MobileBannerExo42 from '@/components/features/ads/Notification';
 import VideoAd from '@/components/features/ads/Video';
-import MediaCardServer from '@/components/features/media/MediaCardServer';
-import MediaCardSmall from '@/components/features/media/MediaCardSmall';
 import VideoEmbed from '@/components/features/watch/MediaEmbed';
+import RecommendationsSection from '@/components/features/watch/RecommendationsSection';
 import WatchDuration from '@/components/features/watch/WatchDuration';
 import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
 import VideoContextSetter from '@/hooks/VideoContextSetter';
-import { fetchMediaData } from '@/lib/client/fetchMediaData';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
-import { getMediaDetails, getRecommendations } from '@/lib/tmdb';
+import { getCachedMediaDetails } from '@/lib/tmdb/cachedFetchers';
+import { logger } from '@/lib/logger';
 
 export async function generateMetadata({ params }: any) {
   const media_id = parseInt(params.media_id, 10);
   const media_type = params.media_type;
 
-  let mediaData;
+  let media;
   try {
-    mediaData = await fetchMediaData(media_type, media_id);
+    // Use cached fetcher - deduplicated with page() call
+    media = await getCachedMediaDetails(media_type, media_id);
   } catch (error) {
-    console.error('Error fetching media data:', error);
-    mediaData = null;
+    logger.error('Error fetching media data:', error);
+    media = null;
   }
-  const media = mediaData;
 
   if (!media) {
     return {
@@ -49,18 +48,12 @@ type Params = Promise<{ media_id: number; media_type: string }>;
 export default async function mediaPage({ params }: { params: Params }) {
   const { media_id, media_type } = await params;
 
-  const user = await getCurrentUser();
+  // Parallel fetch user and media data
+  const [user, media] = await Promise.all([getCurrentUser(), getCachedMediaDetails(media_type, media_id)]);
 
-  const recommendations = await getRecommendations(media_type, media_id);
-  const media = await getMediaDetails(media_type, media_id);
   if (!media) {
     return <div>NO MEDIA FOUND</div>;
   }
-
-  // Fetch media details for recommendations
-  const recommendationMediaDetails = await Promise.all(
-    recommendations.results.map((rec: any) => getMediaDetails(rec.media_type || media_type, rec.id))
-  );
 
   return (
     <>
@@ -83,17 +76,7 @@ export default async function mediaPage({ params }: { params: Params }) {
               media_id={media_id}
             ></WatchPageDetails>
           </div>
-          <section className="grid w-full grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8 px-4 md:gap-4 md:px-0">
-            {recommendationMediaDetails.map((mediaDetail: any) => (
-              <MediaCardServer
-                key={mediaDetail.id}
-                media_type={mediaDetail.media_type || 'movie'}
-                media_id={mediaDetail.id}
-                user_id={user?.id}
-                rounded={true}
-              />
-            ))}
-          </section>
+          <RecommendationsSection mediaType={media_type} mediaId={media_id} userId={user?.id} />
         </div>
       </div>
     </>

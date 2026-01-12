@@ -11,11 +11,13 @@
 ## ✅ Completed Fixes
 
 ### 1. Import Order (Auto-fixed)
+
 - **Tool:** `npm run lint:fix`
 - **Issues fixed:** ~44 warnings
 - **Status:** ✅ Complete
 
 ### 2. Missing React Keys
+
 - **Issues fixed:** 6 errors → 0 errors
 - **Files fixed:**
   - `app/blog/PostCardMain.tsx` ✅
@@ -32,18 +34,20 @@
 ## 🔴 Remaining Errors: 24
 
 ### Unescaped Entities (18 errors)
+
 **Quick fix:** Replace quotes in JSX
 
-| File | Line | Issue |
-|------|------|-------|
-| `app/(auth)/login/page.tsx` | 46 | `'` needs escaping |
-| `app/cookie-policy/page.tsx` | 39, 61, 88, 93, 122 | `'` needs escaping |
-| `app/legal/page.tsx` | 63 (2x) | `"` needs escaping |
-| `app/page.tsx` | 56 (2x) | `"` needs escaping |
-| `app/protected/media/[media_type]/[media_id]/page.tsx` | 149 (2x) | `"` needs escaping |
-| `components/features/notifications/FollowCard.tsx` | 45, 44, 46 | `"` needs escaping |
+| File                                                   | Line                | Issue              |
+| ------------------------------------------------------ | ------------------- | ------------------ |
+| `app/(auth)/login/page.tsx`                            | 46                  | `'` needs escaping |
+| `app/cookie-policy/page.tsx`                           | 39, 61, 88, 93, 122 | `'` needs escaping |
+| `app/legal/page.tsx`                                   | 63 (2x)             | `"` needs escaping |
+| `app/page.tsx`                                         | 56 (2x)             | `"` needs escaping |
+| `app/protected/media/[media_type]/[media_id]/page.tsx` | 149 (2x)            | `"` needs escaping |
+| `components/features/notifications/FollowCard.tsx`     | 45, 44, 46          | `"` needs escaping |
 
 **Example fix:**
+
 ```typescript
 // Before
 <p>Don't forget</p>
@@ -53,10 +57,13 @@
 ```
 
 ### TypeScript Comment Issues (2 errors)
+
 **File:** `components/features/auth/GoogleOneTap.tsx`
+
 - Lines 61, 84: Need description for `@ts-expect-error`
 
 **Fix:**
+
 ```typescript
 // Before
 // @ts-expect-error
@@ -68,10 +75,13 @@ google.accounts.id.initialize({...});
 ```
 
 ### Comparison Operator (1 error)
+
 **File:** `components/features/watch/VidSrcIframe.tsx`
+
 - Line 54: Use `!==` instead of `!=`
 
 **Fix:**
+
 ```typescript
 // Before
 if (someValue != null)
@@ -81,7 +91,9 @@ if (someValue !== null)
 ```
 
 ### React Hooks Rule (3 errors)
+
 **File:** `components/features/posts/CommentCard.tsx`
+
 - Line 16: Hook called conditionally
 
 **Note:** This requires code refactoring, not just a simple fix.
@@ -91,6 +103,7 @@ if (someValue !== null)
 ## 🟡 Remaining Warnings: 383
 
 ### Top Categories:
+
 1. **Unused Variables** (~90): Remove or prefix with `_`
 2. **`any` Types** (~70): Replace with proper types
 3. **Console Statements** (~40): Use migration script
@@ -103,6 +116,7 @@ if (someValue !== null)
 ## 📋 Next Steps
 
 ### Immediate (Can do now):
+
 ```bash
 # 1. Fix unescaped entities (bulk replace)
 # Run this in your editor or manually fix the 18 instances
@@ -115,6 +129,7 @@ if (someValue !== null)
 ```
 
 ### Quick Wins:
+
 ```bash
 # 4. Run console.log migration
 ./scripts/migrate-to-logger.sh
@@ -132,6 +147,7 @@ npm run lint:fix
 **Progress:** 9% (38 issues fixed)
 
 **Estimated time to target:**
+
 - Fix remaining errors: 30 minutes
 - Run migration scripts: 10 minutes
 - Manual cleanup: 2-3 hours
