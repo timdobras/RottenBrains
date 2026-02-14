@@ -1,7 +1,13 @@
 import { getMovieRecommendationsForUser, getTvRecommendationsForUser } from '@/lib/recommendations';
 import { logger } from '@/lib/logger';
 import { getBatchWatchedItemsForUser } from '../supabase/clientQueries';
-import { fetchMediaData } from './fetchMediaData';
+import movieGenresJson from '@/lib/constants/movie_genres.json';
+import tvGenresJson from '@/lib/constants/tv_genres.json';
+
+// Build a static genre ID -> name lookup map at module level (one-time cost)
+const genreLookup = new Map<number, string>();
+movieGenresJson.genres.forEach((g) => genreLookup.set(g.id, g.name));
+tvGenresJson.genres.forEach((g) => genreLookup.set(g.id, g.name));
 
 const shuffleArray = (array: any[]) => {
   if (!array || array.length === 0) return [];
@@ -12,6 +18,20 @@ const shuffleArray = (array: any[]) => {
   }
   return shuffled;
 };
+
+/**
+ * Convert discover API genre_ids (number[]) to genres ({id, name}[])
+ * using our local static genre JSON files.
+ */
+function mapGenreIds(genreIds: number[]): { id: number; name: string }[] {
+  if (!genreIds) return [];
+  return genreIds
+    .map((id) => {
+      const name = genreLookup.get(id);
+      return name ? { id, name } : null;
+    })
+    .filter(Boolean) as { id: number; name: string }[];
+}
 
 export async function fetchInfiniteScrollHome(
   movie_genres: any,
@@ -41,49 +61,33 @@ export async function fetchInfiniteScrollHome(
 
   const combined = shuffleArray(combined_not_shuffled);
 
-  // Extract unique media items to avoid duplicate API calls
-  const mediaMap = new Map<string, { media_id: number; media_type: string }>();
-  combined.forEach((media: any) => {
-    const key = `${media.media_type}-${media.id}`;
-    if (!mediaMap.has(key)) {
-      mediaMap.set(key, { media_id: media.id, media_type: media.media_type });
-    }
-  });
-
-  // Batch fetch unique media data and watched items in parallel
-  const [mediaDataResults, watched_items] = await Promise.all([
-    Promise.all(
-      Array.from(mediaMap.entries()).map(async ([key, item]) => {
-        try {
-          const data = await fetchMediaData(item.media_id, item.media_type);
-          return { key, data };
-        } catch (error) {
-          logger.warn('Error fetching media data:', key, error);
-          return { key, data: null };
-        }
-      })
-    ),
-    getBatchWatchedItemsForUser(user_id, combined),
-  ]);
-
-  // Build a lookup map for quick access
-  const mediaDataMap = new Map<string, any>();
-  mediaDataResults.forEach(({ key, data }) => {
-    if (data) mediaDataMap.set(key, data);
-  });
+  // Fetch watched items to filter them out (single DB call)
+  const watched_items = await getBatchWatchedItemsForUser(user_id, combined);
 
   const watchedSet = new Set(
     (watched_items || []).map((item: any) => `${item.media_type}-${item.media_id}`)
   );
 
-  // Map combined items to their fetched data and filter out watched/null items
+  // Use discover response data directly instead of making ~40 individual TMDB detail calls.
+  // The discover endpoint already returns: id, title/name, overview, poster_path, backdrop_path,
+  // vote_average, release_date/first_air_date, genre_ids, popularity, etc.
+  // We just need to map genre_ids to genre objects using our local JSON.
   const unwatched_items = combined
     .map((media: any) => {
       const key = `${media.media_type}-${media.id}`;
-      const mediaData = mediaDataMap.get(key);
-      if (!mediaData) return null;
-      if (watchedSet.has(`${mediaData.media_type}-${mediaData.id}`)) return null;
-      return mediaData;
+      if (watchedSet.has(key)) return null;
+
+      // Map genre_ids from discover response to genre objects with names
+      const genres = mapGenreIds(media.genre_ids || []);
+
+      return {
+        ...media,
+        media_id: media.id,
+        genres,
+        // Discover data uses different field names for movies vs TV
+        // Normalize so MediaCardUI can handle both
+        watch_time: 0,
+      };
     })
     .filter(Boolean);
 

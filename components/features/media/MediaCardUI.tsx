@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useMemo, useState, useEffect } from 'react';
+import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 import MediaCardOverlay from '@/components/features/media/MediaCardOverlay';
 import {
   formatDate,
@@ -26,6 +27,7 @@ interface MediaCardProps {
   quality?: string;
   rounded?: boolean;
   showRemoveButton?: boolean;
+  disableTrailer?: boolean;
 }
 
 const MediaCardUI: React.FC<MediaCardProps> = ({
@@ -39,6 +41,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   user_id,
   rounded,
   showRemoveButton = false,
+  disableTrailer = false,
 }) => {
   season_number = season_number || media.season_number || undefined;
   episode_number = episode_number || media.episode_number || undefined;
@@ -53,7 +56,11 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
 
   // Date-based badges - computed client-side only to avoid hydration mismatch
   const releaseDate = media.release_date || media.air_date || media.first_air_date;
-  const [dateBadges, setDateBadges] = useState({ isNew: false, isSoon: false, isNewEpisodes: false });
+  const [dateBadges, setDateBadges] = useState({
+    isNew: false,
+    isSoon: false,
+    isNewEpisodes: false,
+  });
 
   useEffect(() => {
     const now = Date.now();
@@ -114,24 +121,45 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
             episode_number
           )}
         >
-          <HoverImage
-            imageUrl={getImageUrl(media, season_number, episode_number)}
-            altText={mediaTitle}
-            media_type={media_type || 'movie'}
-            media_id={media_id || 0}
-          >
-            <MediaCardOverlay
-              runtime={media.runtime}
-              number_of_episodes={media.number_of_episodes}
-              voteAverage={media.vote_average}
-              isNew={isNew}
-              isSoon={isSoon}
-              quality={quality}
-              isNewEpisodes={isNewEpisodes}
-              watchTime={watch_time}
-              transformRuntime={transformRuntime}
-            />
-          </HoverImage>
+          {disableTrailer ? (
+            <div className="relative w-full overflow-hidden">
+              <ImageWithFallback
+                imageUrl={getImageUrl(media, season_number, episode_number)}
+                altText={mediaTitle}
+                quality="w1280"
+              />
+              <MediaCardOverlay
+                runtime={media.runtime}
+                number_of_episodes={media.number_of_episodes}
+                voteAverage={media.vote_average}
+                isNew={isNew}
+                isSoon={isSoon}
+                quality={quality}
+                isNewEpisodes={isNewEpisodes}
+                watchTime={watch_time}
+                transformRuntime={transformRuntime}
+              />
+            </div>
+          ) : (
+            <HoverImage
+              imageUrl={getImageUrl(media, season_number, episode_number)}
+              altText={mediaTitle}
+              media_type={media_type || 'movie'}
+              media_id={media_id || 0}
+            >
+              <MediaCardOverlay
+                runtime={media.runtime}
+                number_of_episodes={media.number_of_episodes}
+                voteAverage={media.vote_average}
+                isNew={isNew}
+                isSoon={isSoon}
+                quality={quality}
+                isNewEpisodes={isNewEpisodes}
+                watchTime={watch_time}
+                transformRuntime={transformRuntime}
+              />
+            </HoverImage>
+          )}
         </Link>
         {showRemoveButton && user_id && media_type && media_id && (
           <RemoveFromContinueWatching

@@ -1,15 +1,6 @@
-import ScrollButtons from '@/components/common/ScrollButtons';
-import FixedAd from '@/components/features/ads/300x250Ad';
-import MobileBannerPem from '@/components/features/ads/Fullscreen';
-import AdBanner from '@/components/features/ads/GoogleDisplayAd';
-import MobileBannerExoAlt from '@/components/features/ads/Message';
-import MobileBannerExo from '@/components/features/ads/MobileBannerExo';
-import NativeAd from '@/components/features/ads/Native';
-import NavAdMobile from '@/components/features/ads/NavAdMobile';
-import MobileBannerExo42 from '@/components/features/ads/Notification';
-import VideoAd from '@/components/features/ads/Video';
+import { Suspense } from 'react';
+import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
 import MediaCardServer from '@/components/features/media/MediaCardServer';
-import MediaCardSmall from '@/components/features/media/MediaCardSmall';
 import VideoEmbed from '@/components/features/watch/MediaEmbed';
 import TVShowDetails from '@/components/features/watch/TVSeasons';
 import WatchDuration from '@/components/features/watch/WatchDuration';
@@ -18,6 +9,17 @@ import VideoContextSetter from '@/hooks/VideoContextSetter';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import { getCachedMediaDetails, getCachedEpisodeDetails } from '@/lib/tmdb/cachedFetchers';
 import { logger } from '@/lib/logger';
+
+// Skeleton for the episode list while it streams in
+function EpisodeListSkeleton() {
+  return (
+    <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-8 px-4 md:gap-4 md:px-0">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <HomeMediaCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
 
 type Params = Promise<{
   media_id: number;
@@ -81,7 +83,11 @@ export default async function mediaPage({ params }: { params: Params }) {
 
     if (currentSeason && episode_number < currentSeason.episode_count) {
       // Next episode in the same season
-      nextEpisode = await getCachedEpisodeDetails(media.id, season_number, Number(episode_number) + 1);
+      nextEpisode = await getCachedEpisodeDetails(
+        media.id,
+        season_number,
+        Number(episode_number) + 1
+      );
     } else if (currentSeasonIndex + 1 < seasons.length) {
       // First episode of the next season
       const nextSeasonNumber = seasons[currentSeasonIndex + 1].season_number;
@@ -120,28 +126,32 @@ export default async function mediaPage({ params }: { params: Params }) {
               episode={episode}
             ></WatchPageDetails>
           </div>
-          <section className="flex flex-col gap-2 md:mt-0">
-            {nextEpisode && (
-              <div className="flex flex-col gap-2 px-4 md:rounded-[8px] md:p-0 md:px-0">
-                <MediaCardServer
-                  media_type={'tv'}
-                  media_id={media.id}
-                  season_number={nextEpisode.season_number}
-                  episode_number={nextEpisode.episode_number}
+          <Suspense fallback={<EpisodeListSkeleton />}>
+            <section className="flex flex-col gap-2 md:mt-0">
+              {nextEpisode && (
+                <div className="flex flex-col gap-2 px-4 md:rounded-[8px] md:p-0 md:px-0">
+                  <MediaCardServer
+                    media_type={'tv'}
+                    media_id={media.id}
+                    season_number={nextEpisode.season_number}
+                    episode_number={nextEpisode.episode_number}
+                    user_id={user?.id.toString()}
+                    rounded={true}
+                    disableTrailer={true}
+                  />
+                </div>
+              )}
+              {media_type === 'tv' && season_number && (
+                <TVShowDetails
+                  tv_show_id={media_id}
+                  season_number={season_number}
                   user_id={user?.id.toString()}
-                  rounded={true}
+                  is_premium={user?.premium}
+                  tvDetails={media}
                 />
-              </div>
-            )}
-            {media_type === 'tv' && season_number && (
-              <TVShowDetails
-                tv_show_id={media_id}
-                season_number={season_number}
-                user_id={user?.id.toString()}
-                is_premium={user?.premium}
-              />
-            )}
-          </section>
+              )}
+            </section>
+          </Suspense>
         </div>
       </div>
     </>

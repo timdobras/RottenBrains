@@ -5,6 +5,7 @@ import Modal from '@/components/features/profile/Modal';
 import { useUser } from '@/hooks/UserContext';
 import movie_genres_json from '@/lib/constants/movie_genres.json';
 import tv_genres_json from '@/lib/constants/tv_genres.json';
+import { logger } from '@/lib/logger';
 import {
   getTopMovieGenresForUser,
   getTopTvGenresForUser,
@@ -33,9 +34,15 @@ interface FeedGenre {
 type GenreSelectorProps = {
   media_type?: string;
   genre_id?: number;
+  /** Pre-fetched recommended genres from server to avoid duplicate RPC calls */
+  initialRecommendedGenres?: RecommendedGenre[];
 };
 
-const GenreSelector: React.FC<GenreSelectorProps> = ({ media_type, genre_id }) => {
+const GenreSelector: React.FC<GenreSelectorProps> = ({
+  media_type,
+  genre_id,
+  initialRecommendedGenres,
+}) => {
   const { user } = useUser();
   const router = useRouter();
 
@@ -80,18 +87,32 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({ media_type, genre_id }) =
   // ---------------------------
   // 4. FETCH RECOMMENDED GENRES
   // ---------------------------
+  // Use server-provided genres if available (avoids duplicate RPC calls)
   useEffect(() => {
+    if (selectedCategory !== 'Recommended') return;
+
+    if (!user) {
+      setTopRecommendedGenres([]);
+      return;
+    }
+
+    // If we have pre-fetched genres from the server, use them directly
+    if (initialRecommendedGenres && initialRecommendedGenres.length > 0) {
+      setTopRecommendedGenres(initialRecommendedGenres);
+      return;
+    }
+
+    // Fallback: fetch client-side only if no server data was provided
+    // (e.g. when navigating client-side to a genre page and back)
     const fetchRecommendedGenres = async () => {
-      if (!user_id) return; // Make sure we have the user ID
+      if (!user_id) return;
       setLoading(true);
       try {
-        // Fetch top genres for this user from Supabase
         const [topMovies, topTVs] = await Promise.all([
           getTopMovieGenresForUser(undefined, user),
           getTopTvGenresForUser(undefined, user),
         ]);
 
-        // Combine movie and TV recommended genres
         const combinedGenres: RecommendedGenre[] = [
           ...(topMovies?.map((genre: any) => ({
             ...genre,
@@ -105,25 +126,14 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({ media_type, genre_id }) =
 
         setTopRecommendedGenres(combinedGenres);
       } catch (error) {
-        console.error('Error fetching recommended genres:', error);
+        logger.error('Error fetching recommended genres:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    const getGenresNoUser = async () => {
-      console.log('NO USER');
-      setTopRecommendedGenres([]);
-    };
-
-    if (selectedCategory === 'Recommended') {
-      if (user) {
-        fetchRecommendedGenres();
-      } else {
-        getGenresNoUser();
-      }
-    }
-  }, [user_id, selectedCategory]);
+    fetchRecommendedGenres();
+  }, [user_id, selectedCategory, initialRecommendedGenres]);
 
   // ---------------------------
   // 5. DISPLAYED GENRES

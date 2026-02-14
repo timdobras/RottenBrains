@@ -22,7 +22,14 @@ const MiniplayerSkeleton = () => (
 
 export default function VideoShell() {
   const { state, setState } = useVideo();
-  const { media_type, media_id, season_number, episode_number, mode, provider: ctxProvider } = state;
+  const {
+    media_type,
+    media_id,
+    season_number,
+    episode_number,
+    mode,
+    provider: ctxProvider,
+  } = state;
 
   const isMobile = useIsMobile();
   const [provider, setProvider] = useState(ctxProvider);
@@ -60,7 +67,15 @@ export default function VideoShell() {
     setIsIframeLoaded(false);
   }, [media_id, media_type, season_number, episode_number, provider]);
 
-  // Watch localStorage for provider changes
+  // Sync local provider state when VideoContext provider changes
+  // (e.g. from ProviderDropdown updating context)
+  useEffect(() => {
+    if (ctxProvider && ctxProvider !== provider) {
+      setProvider(ctxProvider);
+    }
+  }, [ctxProvider]);
+
+  // Watch localStorage for provider changes (fires from other tabs)
   useEffect(() => {
     const valid = (n: string | null) => n !== null && iframeLinks.some((l) => l.name === n);
 
@@ -270,7 +285,7 @@ export default function VideoShell() {
             <iframe
               src={src}
               allowFullScreen
-              loading="lazy"
+              loading="eager"
               style={{ width: '100%', height: '100%', border: 'none' }}
               onLoad={() => setIsIframeLoaded(true)}
             />
@@ -319,7 +334,13 @@ export default function VideoShell() {
               style={{ position: 'absolute', top: 6, left: 6 }}
               onMouseDown={handleResizeStart}
             >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path d="M21 21l-6-6m6 6v-6m0 6h-6M3 3l6 6M3 3v6m0-6h6" />
               </svg>
             </div>
@@ -336,7 +357,13 @@ export default function VideoShell() {
               className="flex h-7 w-7 items-center justify-center rounded-md border border-white/20 bg-black/80 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-neutral-700"
               onClick={(e) => e.stopPropagation()}
             >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path d="M15 3h6v6M14 10l7-7M9 21H3v-6M10 14l-7 7" />
               </svg>
             </Link>
@@ -348,7 +375,13 @@ export default function VideoShell() {
               }}
               className="flex h-7 w-7 items-center justify-center rounded-md border border-white/20 bg-black/80 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-red-600"
             >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>

@@ -1,4 +1,5 @@
-import { useRouter } from 'next/navigation';
+'use client';
+
 import React, { useState } from 'react';
 import {
   DropdownMenu,
@@ -6,16 +7,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
+import { useVideo } from '@/hooks/VideoProvider';
 import { iframeLinks } from '@/lib/constants/links';
 
 const ProviderDropdown = () => {
   const { toast } = useToast();
+  const { setState } = useVideo();
   const [open, setOpen] = useState(false);
   const handleProviderSelection = (providerName: string) => {
     localStorage.setItem('video_provider', providerName);
 
     const selectedProvider = iframeLinks.find((link) => link.name === providerName);
-    window.location.reload();
+    // Update VideoContext state instead of full page reload
+    setState((prev) => ({ ...prev, provider: providerName }));
     setOpen(!open);
     toast({
       title: 'Provider Changed',

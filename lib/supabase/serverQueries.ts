@@ -27,7 +27,9 @@ export async function getUserFromDB(id: string): Promise<{ user: IUser } | null>
   try {
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, username, email, image_url, backdrop_url, feed_genres, premium, bio, created_at')
+      .select(
+        'id, name, username, email, image_url, backdrop_url, feed_genres, premium, bio, created_at'
+      )
       .eq('id', id)
       .single();
 
@@ -52,7 +54,9 @@ export const getCurrentUser = cache(async () => {
 
   const { data: userData } = await supabase
     .from('users')
-    .select('id, name, username, email, image_url, backdrop_url, feed_genres, premium, bio, created_at')
+    .select(
+      'id, name, username, email, image_url, backdrop_url, feed_genres, premium, bio, created_at'
+    )
     .eq('id', user.id)
     .single();
 
@@ -70,7 +74,9 @@ export const getPostById = async (post_id: string): Promise<any | null> => {
   try {
     const { data, error } = await supabase
       .from('posts')
-      .select('id, created_at, creatorid, media_id, media_type, vote_user, review_user, total_likes, total_comments')
+      .select(
+        'id, created_at, creatorid, media_id, media_type, vote_user, review_user, total_likes, total_comments'
+      )
       .eq('id', post_id)
       .single();
     if (error) throw error;
@@ -129,87 +135,112 @@ export const upsertWatchHistory = async (
 
     logger.debug('Starting upsertWatchHistory with validated input:', validatedInput);
 
-    // Replace NULL with -1 for season_number and episode_number
     const normalizedSeasonNumber = season_number ?? -1;
     const normalizedEpisodeNumber = episode_number ?? -1;
-
-    // Parse new_percentage_watched to a float (already validated by Zod)
     const newPercentageFloat = parseFloat(new_percentage_watched);
 
-    // Step 1: Retrieve existing percentage_watched and time_spent
     const supabase = await getSupabaseClient();
-    const { data: existingData, error: fetchError } = await supabase
-      .from('watch_history')
-      .select('percentage_watched, time_spent')
-      .eq('user_id', user_id)
-      .eq('media_type', media_type)
-      .eq('media_id', media_id)
-      .eq('season_number', normalizedSeasonNumber)
-      .eq('episode_number', normalizedEpisodeNumber)
-      .single();
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      logger.error('Error fetching existing watch history:', fetchError);
-      throw new DatabaseError('Failed to fetch existing watch history');
-    }
-
-    // Calculate the total percentage watched
-    const existingPercentage = existingData?.percentage_watched || 0;
-    const updatedPercentage = Math.min(
-      Number(existingPercentage) + Number(newPercentageFloat),
-      100
-    ).toFixed(2);
-
-    // Calculate the total time spent (accumulate, don't replace)
-    const existingTimeSpent = existingData?.time_spent || 0;
-    const updatedTimeSpent = Number(existingTimeSpent) + Number(new_time_spent);
-
-    logger.debug('Accumulating watch time:', {
-      existingTimeSpent,
-      newTimeSpent: new_time_spent,
-      updatedTimeSpent,
-      existingPercentage,
-      newPercentage: newPercentageFloat,
-      updatedPercentage,
+    // Use atomic RPC — single round-trip, no read-then-write race condition
+    const { data, error } = await supabase.rpc('upsert_watch_history_atomic', {
+      p_user_id: user_id,
+      p_media_type: media_type,
+      p_media_id: media_id,
+      p_new_time_spent: new_time_spent,
+      p_new_percentage: newPercentageFloat,
+      p_season_number: normalizedSeasonNumber,
+      p_episode_number: normalizedEpisodeNumber,
     });
 
-    const updatedCreatedAt = new Date().toISOString();
-
-    // Step 2: Prepare the data to upsert
-    const watchHistoryData = {
-      user_id,
-      media_type,
-      media_id,
-      time_spent: updatedTimeSpent, // Use accumulated time, not just new time
-      percentage_watched: updatedPercentage,
-      season_number: normalizedSeasonNumber,
-      episode_number: normalizedEpisodeNumber,
-      created_at: updatedCreatedAt,
-      hidden_until: null, // Reset hidden_until when user watches again (column added via migration)
-    };
-
-    // Step 3: Perform the upsert operation
-    logger.debug('Performing upsert operation...');
-    const { data, error } = await supabase
-      .from('watch_history')
-      .upsert(watchHistoryData, {
-        onConflict: 'user_id,media_type,media_id,season_number,episode_number',
-      })
-      .select();
-
     if (error) {
-      logger.error('Error during upsert operation:', error);
+      // Fallback to manual upsert if the RPC doesn't exist yet (migration not applied)
+      if (error.code === '42883' || error.message?.includes('does not exist')) {
+        logger.warn('Atomic RPC not found, falling back to manual upsert');
+        return await upsertWatchHistoryFallback(
+          supabase,
+          user_id,
+          media_type,
+          media_id,
+          new_time_spent,
+          newPercentageFloat,
+          normalizedSeasonNumber,
+          normalizedEpisodeNumber
+        );
+      }
+      logger.error('Error in atomic upsert RPC:', error);
       throw new DatabaseError('Failed to upsert watch history');
     }
 
-    logger.debug('Upsert successful. Returned data:', data);
-
+    logger.debug('Atomic upsert successful:', data);
     return { success: true, action: 'upserted', data };
   } catch (error) {
     const errorInfo = handleAppError(error, 'upsertWatchHistory');
     throw error;
   }
 };
+
+/** Fallback for when the atomic RPC migration hasn't been applied yet */
+async function upsertWatchHistoryFallback(
+  supabase: any,
+  user_id: string,
+  media_type: string,
+  media_id: number,
+  new_time_spent: number,
+  newPercentageFloat: number,
+  normalizedSeasonNumber: number,
+  normalizedEpisodeNumber: number
+) {
+  const { data: existingData, error: fetchError } = await supabase
+    .from('watch_history')
+    .select('percentage_watched, time_spent')
+    .eq('user_id', user_id)
+    .eq('media_type', media_type)
+    .eq('media_id', media_id)
+    .eq('season_number', normalizedSeasonNumber)
+    .eq('episode_number', normalizedEpisodeNumber)
+    .single();
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    logger.error('Error fetching existing watch history:', fetchError);
+    throw new DatabaseError('Failed to fetch existing watch history');
+  }
+
+  const existingPercentage = existingData?.percentage_watched || 0;
+  const updatedPercentage = Math.min(
+    Number(existingPercentage) + Number(newPercentageFloat),
+    100
+  ).toFixed(2);
+
+  const existingTimeSpent = existingData?.time_spent || 0;
+  const updatedTimeSpent = Number(existingTimeSpent) + Number(new_time_spent);
+
+  const { data, error } = await supabase
+    .from('watch_history')
+    .upsert(
+      {
+        user_id,
+        media_type,
+        media_id,
+        time_spent: updatedTimeSpent,
+        percentage_watched: updatedPercentage,
+        season_number: normalizedSeasonNumber,
+        episode_number: normalizedEpisodeNumber,
+        created_at: new Date().toISOString(),
+        hidden_until: null,
+      },
+      {
+        onConflict: 'user_id,media_type,media_id,season_number,episode_number',
+      }
+    )
+    .select();
+
+  if (error) {
+    logger.error('Error during fallback upsert:', error);
+    throw new DatabaseError('Failed to upsert watch history');
+  }
+
+  return { success: true, action: 'upserted', data };
+}
 
 export const getWatchTime = async (
   user_id: string,
@@ -235,9 +266,10 @@ export const getWatchTime = async (
 };
 
 /**
- * Batch fetch watch times for multiple media items
- * Returns a Map keyed by media_id with watch time percentages
- * Uses a single RPC call instead of N separate calls for better performance
+ * Batch fetch watch times for multiple media items.
+ * Returns a Map keyed by composite string "media_type-media_id-season-episode"
+ * with watch time percentages.
+ * Uses a single RPC call instead of N separate calls for better performance.
  */
 export const getBatchWatchTimes = async (
   user_id: string,
@@ -247,8 +279,8 @@ export const getBatchWatchTimes = async (
     season_number?: number | null;
     episode_number?: number | null;
   }>
-): Promise<Map<number, number>> => {
-  const watchTimeMap = new Map<number, number>();
+): Promise<Map<string, number>> => {
+  const watchTimeMap = new Map<string, number>();
 
   if (!user_id || media_items.length === 0) {
     return watchTimeMap;
@@ -276,11 +308,21 @@ export const getBatchWatchTimes = async (
       return watchTimeMap;
     }
 
-    // Build the result map
+    // Build the result map with composite key to handle TV episodes
+    // (same media_id but different season/episode)
     if (data) {
-      data.forEach((row: { media_id: number; percentage_watched: number }) => {
-        watchTimeMap.set(row.media_id, row.percentage_watched || 0);
-      });
+      data.forEach(
+        (row: {
+          media_type: string;
+          media_id: number;
+          season_number: number;
+          episode_number: number;
+          percentage_watched: number;
+        }) => {
+          const key = `${row.media_type}-${row.media_id}-${row.season_number}-${row.episode_number}`;
+          watchTimeMap.set(key, row.percentage_watched || 0);
+        }
+      );
     }
 
     return watchTimeMap;
@@ -289,6 +331,16 @@ export const getBatchWatchTimes = async (
     return watchTimeMap;
   }
 };
+
+/** Helper to build a composite key for getBatchWatchTimes lookups */
+export async function watchTimeKey(
+  media_type: string,
+  media_id: number,
+  season_number?: number | null,
+  episode_number?: number | null
+): Promise<string> {
+  return `${media_type}-${media_id}-${season_number ?? -1}-${episode_number ?? -1}`;
+}
 
 export const getWatchListSpecific = async (
   user_id: string,

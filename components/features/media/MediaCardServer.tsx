@@ -13,6 +13,7 @@ interface MediaCardServerProps {
   quality?: string;
   user_id?: string;
   rounded?: boolean;
+  disableTrailer?: boolean;
 }
 
 const MediaCardServer: React.FC<MediaCardServerProps> = async ({
@@ -23,6 +24,7 @@ const MediaCardServer: React.FC<MediaCardServerProps> = async ({
   quality,
   user_id,
   rounded,
+  disableTrailer,
 }) => {
   try {
     // Fetch TMDB data and watch-time in parallel
@@ -51,6 +53,7 @@ const MediaCardServer: React.FC<MediaCardServerProps> = async ({
         quality={quality}
         user_id={user_id}
         rounded={rounded}
+        disableTrailer={disableTrailer}
       />
     );
   } catch {

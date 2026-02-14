@@ -46,7 +46,7 @@ export async function ExploreTab({
           episode_number: null,
         }))
       )
-    : new Map<number, number>();
+    : new Map<string, number>();
 
   // Batch fetch media details
   const mediaDetailsPromises = mediaItems.map((media: any) =>
@@ -74,7 +74,7 @@ export async function ExploreTab({
                 media={mediaDetail}
                 media_type={media.media_type}
                 media_id={media.id}
-                watch_time={watchTimesMap.get(media.id) || 0}
+                watch_time={watchTimesMap.get(`${media.media_type}-${media.id}--1--1`) || 0}
                 user_id={user?.id}
                 rounded
               />

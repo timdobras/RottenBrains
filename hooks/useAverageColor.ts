@@ -84,31 +84,50 @@ export function useAverageColor(imageUrl: string | undefined): string {
       return;
     }
 
-    const fac = new FastAverageColor();
+    let cancelled = false;
+    let fac: FastAverageColor | null = null;
 
-    fac
-      .getColorAsync(imageUrl, {
-        algorithm: 'sqrt', // Better perceptual accuracy
-        mode: 'precision', // More accurate but slightly slower
-        ignoredColor: [
-          [0, 0, 0, 255, 50], // Ignore black (with threshold)
-          [255, 255, 255, 255, 50], // Ignore white (with threshold)
-        ],
-      })
-      .then((result) => {
-        const [r, g, b] = result.value;
-        const normalizedColor = rgbToNormalizedHsl(r, g, b);
-        // Store in cache for future use
-        colorCache.set(imageUrl, normalizedColor);
-        setColor(normalizedColor);
-      })
-      .catch(() => {
-        setColor(DEFAULT_COLOR);
-      });
-
-    return () => {
-      fac.destroy();
+    const computeColor = () => {
+      fac = new FastAverageColor();
+      fac
+        .getColorAsync(imageUrl, {
+          algorithm: 'sqrt', // Better perceptual accuracy
+          mode: 'precision', // More accurate but slightly slower
+          ignoredColor: [
+            [0, 0, 0, 255, 50], // Ignore black (with threshold)
+            [255, 255, 255, 255, 50], // Ignore white (with threshold)
+          ],
+        })
+        .then((result) => {
+          if (cancelled) return;
+          const [r, g, b] = result.value;
+          const normalizedColor = rgbToNormalizedHsl(r, g, b);
+          // Store in cache for future use
+          colorCache.set(imageUrl, normalizedColor);
+          setColor(normalizedColor);
+        })
+        .catch(() => {
+          if (!cancelled) setColor(DEFAULT_COLOR);
+        });
     };
+
+    // Defer color extraction to idle time so it doesn't block interaction
+    if (typeof requestIdleCallback !== 'undefined') {
+      const idleId = requestIdleCallback(computeColor);
+      return () => {
+        cancelled = true;
+        cancelIdleCallback(idleId);
+        fac?.destroy();
+      };
+    } else {
+      // Fallback for browsers without requestIdleCallback (Safari)
+      const timeoutId = setTimeout(computeColor, 100);
+      return () => {
+        cancelled = true;
+        clearTimeout(timeoutId);
+        fac?.destroy();
+      };
+    }
   }, [imageUrl]);
 
   // Return default color during SSR and initial render to avoid hydration mismatch
