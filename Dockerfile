@@ -16,11 +16,11 @@ COPY . .
 # Next.js collects anonymous telemetry — disable it during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Dummy build-time env vars so Supabase client initialization doesn't fail
-# during static analysis. Real values are injected at runtime by Coolify.
-ARG NEXT_PUBLIC_SUPABASE_URL=http://placeholder.supabase.co
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
-ARG NEXT_PUBLIC_TMDB_API_KEY=placeholder
+# NEXT_PUBLIC_* vars must be provided at build time — Next.js inlines them
+# into client-side JS bundles. Pass them as --build-arg in CI/CD.
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_TMDB_API_KEY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_TMDB_API_KEY=$NEXT_PUBLIC_TMDB_API_KEY

@@ -14,7 +14,12 @@ build-image:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker build -t $IMAGE_TAG -t $IMAGE_TAG_SHA .
+    - >-
+      docker build
+      --build-arg NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+      --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+      --build-arg NEXT_PUBLIC_TMDB_API_KEY=$NEXT_PUBLIC_TMDB_API_KEY
+      -t $IMAGE_TAG -t $IMAGE_TAG_SHA .
     - docker push $IMAGE_TAG
     - docker push $IMAGE_TAG_SHA
   only:
