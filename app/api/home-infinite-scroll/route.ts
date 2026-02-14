@@ -4,6 +4,8 @@ import { fetchInfiniteScrollHome } from '@/lib/server/fetchInfiniteScrollHome';
 import { getPopular } from '@/lib/tmdb';
 import { logger } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Safely parse a JSON string containing genre objects
  * Returns an array of objects with genre_code property
@@ -15,8 +17,9 @@ function parseGenres(str: string | null): { genre_code: string }[] {
     if (!Array.isArray(parsed)) return [];
     // Filter to only valid genre objects and limit to prevent abuse
     return parsed
-      .filter((g): g is { genre_code: string } =>
-        typeof g === 'object' && g !== null && typeof g.genre_code === 'string'
+      .filter(
+        (g): g is { genre_code: string } =>
+          typeof g === 'object' && g !== null && typeof g.genre_code === 'string'
       )
       .slice(0, 50);
   } catch {

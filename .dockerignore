@@ -1,0 +1,37 @@
+# Dependencies
+node_modules
+
+# Build output
+.next
+out
+
+# Version control
+.git
+.gitignore
+
+# Environment files (secrets should be injected via Coolify)
+.env
+.env.*
+!.env.example
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Vercel (no longer used)
+.vercel
+vercel.json
+
+# Misc
+README.md
+IMPROVEMENTS.md
+CLAUDE.md
+LICENSE
+*.log
+npm-debug.log*
