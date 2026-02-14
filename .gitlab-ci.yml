@@ -1,5 +1,6 @@
 stages:
   - build
+  - deploy
 
 build-image:
   stage: build
@@ -18,3 +19,23 @@ build-image:
     - docker push $IMAGE_TAG_SHA
   only:
     - master
+
+deploy-to-coolify:
+  stage: deploy
+  tags:
+    - shell
+  script:
+    - echo "========================================="
+    - echo "Triggering Coolify deployment..."
+    - echo "========================================="
+    - |
+      echo "Deploying RottenBrains..."
+      curl -X GET "http://10.10.20.22:8000/api/v1/deploy?uuid=pkg8g4cgcoo4oo8os044kg88&force=true" \
+        -H "Authorization: Bearer $COOLIFY_TOKEN" \
+        -H "Accept: application/json" || true
+    - echo "========================================="
+    - echo "Deployment trigger sent to Coolify"
+    - echo "========================================="
+  only:
+    - master
+  needs: ['build-image']
