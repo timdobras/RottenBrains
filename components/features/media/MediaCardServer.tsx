@@ -25,18 +25,19 @@ const MediaCardServer: React.FC<MediaCardServerProps> = async ({
   rounded,
 }) => {
   try {
-    // 1) fetch the TMDB data
-    const media =
+    // Fetch TMDB data and watch-time in parallel
+    const mediaPromise =
       media_type === 'movie'
-        ? await getMediaDetails(media_type, media_id)
+        ? getMediaDetails(media_type, media_id)
         : season_number && episode_number
-          ? await getEpisodeDetails(media_id, season_number, episode_number)
-          : await getMediaDetails(media_type, media_id);
+          ? getEpisodeDetails(media_id, season_number, episode_number)
+          : getMediaDetails(media_type, media_id);
 
-    // 2) fetch the (optional) watch-time
-    const watchTime = user_id
-      ? await getWatchTime(user_id, media_type, media_id, season_number, episode_number)
-      : 0;
+    const watchTimePromise = user_id
+      ? getWatchTime(user_id, media_type, media_id, season_number, episode_number)
+      : Promise.resolve(0);
+
+    const [media, watchTime] = await Promise.all([mediaPromise, watchTimePromise]);
 
     // 3) hand everything off to the pure-UI component (color is extracted client-side)
     return (

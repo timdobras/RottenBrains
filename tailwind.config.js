@@ -24,7 +24,7 @@ module.exports = {
     extend: {
       // 1) Fonts from your original config:
       fontFamily: {
-        roboto: ['Roboto', 'sans-serif'],
+        roboto: ['var(--font-roboto)', 'Roboto', 'sans-serif'],
       },
 
       // 2) All the color variables from both configs:

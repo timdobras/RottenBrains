@@ -30,6 +30,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, media_type }) => {
       <img
         src={getTMDBImageUrl(media.poster_path, 'w200') || ''}
         alt={`${media.title || media.name} Poster`}
+        loading="lazy"
         className="h-full"
       />
       <div className="flex flex-col gap-2">

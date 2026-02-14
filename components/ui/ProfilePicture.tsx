@@ -14,6 +14,7 @@ const ProfilePicture = ({ user }: any) => {
               alt={'prof-pic'}
               width={50}
               height={50}
+              loading="lazy"
               className="max-h-[32px] max-w-[32px] overflow-hidden rounded-full"
             ></img>
           </Link>

@@ -1,10 +1,8 @@
-'use client';
-
 import UserPosts from '@/components/features/profile/UserPosts';
-import { useUser } from '@/hooks/UserContext';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
 
-export default function ProtectedPage() {
-  const { user } = useUser();
+export default async function ProtectedPage() {
+  const user = await getCurrentUser();
   if (!user) return <p>Loading User</p>;
   return <UserPosts userId={user.id.toString()}></UserPosts>;
 }

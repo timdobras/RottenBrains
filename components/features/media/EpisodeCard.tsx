@@ -26,14 +26,13 @@ const EpisodeCard = async ({
   episode_number,
   user_id,
 }: EpisodeCardProps) => {
-  // Fetch episode details
-  const episode: Episode = await getEpisodeDetails(media_id, season_number, episode_number);
-
-  // Fetch watch time if user is authenticated
-  let watchTime = 0;
-  if (user_id) {
-    watchTime = await getWatchTime(user_id, 'tv', media_id, season_number, episode_number);
-  }
+  // Fetch episode details and watch time in parallel
+  const [episode, watchTime] = await Promise.all([
+    getEpisodeDetails(media_id, season_number, episode_number) as Promise<Episode>,
+    user_id
+      ? getWatchTime(user_id, 'tv', media_id, season_number, episode_number)
+      : Promise.resolve(0),
+  ]);
 
   return (
     <div className="mb-4 flex w-full flex-col gap-2 hover:border-accent hover:bg-foreground/20 md:mb-2 md:flex-row md:rounded-[8px] md:p-2">
@@ -59,6 +58,7 @@ const EpisodeCard = async ({
           alt={`Still from episode ${episode.name}`}
           width={780}
           height={440}
+          loading="lazy"
           className="w-full bg-foreground/10 md:rounded-[4px]"
         />
       </div>

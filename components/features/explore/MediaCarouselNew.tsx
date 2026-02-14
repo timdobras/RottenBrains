@@ -147,7 +147,6 @@ const TopMovieCarousel = ({ movies }: any) => {
                         <h2 className="text-4xl font-bold text-white">
                           {media.title || media.name}
                         </h2>
-                        <img src="" alt="" />
                         <h3 className="line-clamp-[2] text-white md:line-clamp-[4] md:w-1/3">
                           {media.overview}
                         </h3>

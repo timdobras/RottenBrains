@@ -98,25 +98,21 @@ type Params = Promise<{ media_id: number; media_type: string }>;
 export default async function mediaPage({ params }: { params: Params }) {
   const { media_id } = await params;
   const { media_type } = await params;
-  let mediaData;
-  try {
-    mediaData = await getMediaDetails(media_type, media_id);
-  } catch (error) {
-    console.error('Error fetching media data:', error);
-    mediaData = null;
-  }
+
+  // Fetch media details, user, and credits in parallel
+  const [mediaData, user, mediaCredits] = await Promise.all([
+    getMediaDetails(media_type, media_id).catch((error) => {
+      console.error('Error fetching media data:', error);
+      return null;
+    }),
+    getCurrentUser(),
+    separateCredits(media_type, media_id),
+  ]);
+
   const media = mediaData;
   if (!media) {
     return <h1>No Media Found</h1>;
   }
-
-  const user = await getCurrentUser();
-
-  // let postsOfMedia: any = [];
-  // if (user) {
-  //   postsOfMedia = await getPostsOfMedia(user.id, media_type, media_id, 0);
-  // }
-  const mediaCredits = await separateCredits(media_type, media_id);
 
   const watchLink =
     media_type === 'movie'
@@ -208,6 +204,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                 <img
                   src={getTMDBImageUrl(media.poster_path, 'w500') || ''}
                   alt=""
+                  loading="lazy"
                   className="h-full rounded-[4px] drop-shadow-lg"
                 />
               </div>

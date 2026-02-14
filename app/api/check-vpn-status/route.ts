@@ -107,11 +107,15 @@ export async function GET(request: NextRequest) {
         isDevelopment: true,
         detectionMethod: 'localhost',
         savedIPInfo: null,
-        message: 'Running on localhost - VPN detection disabled. Set NEXT_PUBLIC_TEST_IP in .env.local to test.',
+        message:
+          'Running on localhost - VPN detection disabled. Set NEXT_PUBLIC_TEST_IP in .env.local to test.',
         timestamp: Date.now(),
       });
 
-      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      response.headers.set(
+        'Cache-Control',
+        'no-store, no-cache, must-revalidate, proxy-revalidate'
+      );
       response.headers.set('Pragma', 'no-cache');
       response.headers.set('Expires', '0');
       response.headers.set('Surrogate-Control', 'no-store');
@@ -122,7 +126,7 @@ export async function GET(request: NextRequest) {
     // Check if this IP is in the user's saved non-VPN IPs
     const { data: savedIPs, error: dbError } = await supabase
       .from('user_ip_addresses')
-      .select('*')
+      .select('ip_address, label, is_trusted, created_at')
       .eq('user_id', user.id)
       .eq('ip_address', clientIP)
       .eq('is_trusted', true)

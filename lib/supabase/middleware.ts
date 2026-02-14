@@ -1,7 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
+import { type SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function updateSession(request: NextRequest) {
+export async function updateSession(request: NextRequest): Promise<{
+  response: NextResponse;
+  user: { id: string } | null;
+  supabase: SupabaseClient;
+}> {
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -50,5 +55,5 @@ export async function updateSession(request: NextRequest) {
   // If this is not done, you may be causing the browser and server to go out
   // of sync and terminate the user's session prematurely!
 
-  return supabaseResponse;
+  return { response: supabaseResponse, user, supabase };
 }

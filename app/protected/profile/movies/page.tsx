@@ -1,10 +1,8 @@
-'use client';
-
 import UserPostsType from '@/components/features/profile/UserPostsType';
-import { useUser } from '@/hooks/UserContext';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
 
-export default function ProtectedPage() {
-  const { user } = useUser();
+export default async function ProtectedPage() {
+  const user = await getCurrentUser();
   if (!user) return <p>Loading User</p>;
   return <UserPostsType userId={user.id.toString()} media_type={'movie'}></UserPostsType>;
 }

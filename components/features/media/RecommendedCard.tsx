@@ -4,8 +4,11 @@ import { getMediaDetails } from '@/lib/tmdb';
 import { getHrefFromMedia, getImageUrl, getRelativeTime, transformRuntime } from '@/lib/utils';
 
 const RecommendedCard = async ({ media_id, media_type, user_id }: any) => {
-  const media = await getMediaDetails(media_type, media_id);
-  const watchTime = await getWatchTime(user_id, 'movie', media_id);
+  // Fetch media details and watch time in parallel
+  const [media, watchTime] = await Promise.all([
+    getMediaDetails(media_type, media_id),
+    getWatchTime(user_id, 'movie', media_id),
+  ]);
   return (
     <div className="mb-4 flex w-full flex-col gap-2 hover:border-accent hover:bg-foreground/20 md:mb-2 md:flex-row md:p-2">
       <Link

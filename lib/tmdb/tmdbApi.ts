@@ -76,6 +76,9 @@ export const fetchFromApi = async (
           'Cache-Control': cacheControl,
         },
         signal: controller.signal,
+        // Enable Next.js data cache: revalidate every hour for cached requests,
+        // skip cache entirely for non-cached requests
+        ...(cached ? { next: { revalidate: 3600 } } : { cache: 'no-store' as const }),
       });
       clearTimeout(timeoutId);
 

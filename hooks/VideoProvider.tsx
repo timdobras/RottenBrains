@@ -1,7 +1,7 @@
 // components/video/VideoProvider.tsx
 
 'use client';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 
 export type VideoState = {
   media_type?: string;
@@ -27,5 +27,7 @@ export function useVideo() {
 export default function VideoProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<VideoState>({ mode: 'mini' });
 
-  return <VideoContext.Provider value={{ state, setState }}>{children}</VideoContext.Provider>;
+  const value = useMemo(() => ({ state, setState }), [state]);
+
+  return <VideoContext.Provider value={value}>{children}</VideoContext.Provider>;
 }

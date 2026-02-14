@@ -1,7 +1,7 @@
 'use client';
 
 import useLocalStorage from '@/hooks/useLocalStorage';
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, ReactNode } from 'react';
 
 interface SidebarContextType {
   isSidebarOpen: boolean;
@@ -13,15 +13,13 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 export const SidebarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useLocalStorage<boolean>('isSidebarOpen', true);
 
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     setIsSidebarOpen((prev) => !prev);
-  };
+  }, [setIsSidebarOpen]);
 
-  return (
-    <SidebarContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
-      {children}
-    </SidebarContext.Provider>
-  );
+  const value = useMemo(() => ({ isSidebarOpen, toggleSidebar }), [isSidebarOpen, toggleSidebar]);
+
+  return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
 };
 
 export const useSidebar = (): SidebarContextType => {

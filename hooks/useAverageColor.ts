@@ -9,6 +9,9 @@ const DEFAULT_COLOR = 'hsl(220, 70%, 50%)';
 const FIXED_SATURATION = 65; // percentage
 const FIXED_LIGHTNESS = 45; // percentage
 
+// Module-level cache — persists across component mounts within the same page session
+const colorCache = new Map<string, string>();
+
 // Convert RGB to HSL
 function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   r /= 255;
@@ -60,11 +63,24 @@ function rgbToNormalizedHsl(r: number, g: number, b: number): string {
 }
 
 export function useAverageColor(imageUrl: string | undefined): string {
-  const [color, setColor] = useState<string | null>(null);
+  const [color, setColor] = useState<string | null>(() => {
+    // Check cache synchronously during initialization to avoid unnecessary re-renders
+    if (imageUrl && colorCache.has(imageUrl)) {
+      return colorCache.get(imageUrl)!;
+    }
+    return null;
+  });
 
   useEffect(() => {
     if (!imageUrl) {
       setColor(DEFAULT_COLOR);
+      return;
+    }
+
+    // Check cache first — skip the expensive FastAverageColor computation
+    const cached = colorCache.get(imageUrl);
+    if (cached) {
+      setColor(cached);
       return;
     }
 
@@ -82,6 +98,8 @@ export function useAverageColor(imageUrl: string | undefined): string {
       .then((result) => {
         const [r, g, b] = result.value;
         const normalizedColor = rgbToNormalizedHsl(r, g, b);
+        // Store in cache for future use
+        colorCache.set(imageUrl, normalizedColor);
         setColor(normalizedColor);
       })
       .catch(() => {

@@ -22,6 +22,7 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
     <img
       src={fullImageUrl}
       alt={altText}
+      loading="lazy"
       className="aspect-[16/9] h-full w-full overflow-hidden bg-foreground/10"
     />
   ) : (

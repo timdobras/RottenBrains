@@ -1,25 +1,42 @@
 import { GeistSans } from 'geist/font/sans';
+import { Roboto } from 'next/font/google';
+import dynamic from 'next/dynamic';
 import React from 'react';
-import CookieConsent from '@/components/features/consent/CookieConsent';
-import LegalConsent from '@/components/features/consent/LegalConsent';
-import { OfflineModeIndicator } from '@/components/features/dev/OfflineModeIndicator';
 import TopLoader from '@/components/features/loaders/TopLoader';
-import VPNWarningProduction from '@/components/features/navigation/VPNWarningProduction';
-import VPNDebugPanel from '@/components/features/navigation/VPNDebugPanel';
-import OfflineIndicator from '@/components/features/pwa/OfflineIndicator';
-import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider } from '@/hooks/SidebarContext';
 import UserProvider from '@/hooks/UserContext';
 import VideoProvider from '@/hooks/VideoProvider';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import MainContent from '../components/common/MainContent';
 import HomeNav from '../components/features/navigation/desktop/Navbar';
 import './globals.css';
-import { cookies } from 'next/headers';
 import { ThemeProvider } from 'next-themes';
 import PlausibleAnalytics from '@/components/common/PlausibleAnalytics';
 
 import Providers from '@/components/providers/Providers';
+
+// Dynamically import heavy components to split them into separate chunks.
+// This reduces the initial JS bundle size — these components load on-demand.
+const VPNWarningProduction = dynamic(
+  () => import('@/components/features/navigation/VPNWarningProduction')
+);
+const VPNDebugPanel = dynamic(() => import('@/components/features/navigation/VPNDebugPanel'));
+const OfflineIndicator = dynamic(() => import('@/components/features/pwa/OfflineIndicator'));
+const OfflineModeIndicator = dynamic(() =>
+  import('@/components/features/dev/OfflineModeIndicator').then((mod) => ({
+    default: mod.OfflineModeIndicator,
+  }))
+);
+const Toaster = dynamic(() =>
+  import('@/components/ui/toaster').then((mod) => ({ default: mod.Toaster }))
+);
+
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-roboto',
+  display: 'swap',
+});
 
 export const metadata = {
   title: 'Rotten Brains | Stream movies and TV for free in HD quality.',
@@ -58,21 +75,10 @@ export const viewport = {
 };
 
 export default async function NotProtectedLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
-  let initialUser = null;
-
-  if (authUser) {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
-
-    initialUser = userData;
-  }
+  // Use getCurrentUser() which is wrapped with React cache() for deduplication.
+  // This avoids a raw select('*') and shares the result with any page-level
+  // getCurrentUser() calls in the same render pass.
+  const initialUser = await getCurrentUser();
 
   // return (
   //   <html>
@@ -82,7 +88,9 @@ export default async function NotProtectedLayout({ children }: { children: React
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="custom-scrollbar max-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground transition-all duration-300">
+      <body
+        className={`${roboto.variable} custom-scrollbar max-h-[100dvh] w-full overflow-x-hidden bg-background font-roboto text-foreground transition-all duration-300`}
+      >
         <Providers>
           <UserProvider initialUser={initialUser}>
             <SidebarProvider>

@@ -1,7 +1,7 @@
 'use client';
 
 // MobileVideoContext.tsx
-import React, { createContext, useState, useRef, useEffect } from 'react';
+import React, { createContext, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 
 interface MobileVideoContextProps {
   currentPlayingMediaId: number | null;
@@ -20,6 +20,14 @@ export const MobileVideoProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const hoverImageElements = useRef<Map<number, HTMLElement>>(new Map());
   const observer = useRef<IntersectionObserver | null>(null);
+  // Use a ref to track currentPlayingMediaId inside the observer callback
+  // This avoids recreating the observer every time currentPlayingMediaId changes
+  const currentPlayingRef = useRef<number | null>(null);
+
+  // Keep the ref in sync with state
+  useEffect(() => {
+    currentPlayingRef.current = currentPlayingMediaId;
+  }, [currentPlayingMediaId]);
 
   useEffect(() => {
     // Disconnect existing observer if any
@@ -43,11 +51,11 @@ export const MobileVideoProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         const mediaId = parseInt((topVisibleEntry.target as HTMLElement).dataset.mediaId!);
 
-        if (currentPlayingMediaId !== mediaId) {
+        if (currentPlayingRef.current !== mediaId) {
           setCurrentPlayingMediaId(mediaId);
         }
       } else {
-        if (currentPlayingMediaId !== null) {
+        if (currentPlayingRef.current !== null) {
           setCurrentPlayingMediaId(null);
         }
       }
@@ -65,32 +73,31 @@ export const MobileVideoProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => {
       observer.current!.disconnect();
     };
-  }, [currentPlayingMediaId]);
+  }, []); // Empty dependency array — observer is created once
 
-  const registerHoverImage = (mediaId: number, element: HTMLElement) => {
+  const registerHoverImage = useCallback((mediaId: number, element: HTMLElement) => {
     hoverImageElements.current.set(mediaId, element);
     if (observer.current) {
       observer.current.observe(element);
     }
-  };
+  }, []);
 
-  const unregisterHoverImage = (mediaId: number) => {
+  const unregisterHoverImage = useCallback((mediaId: number) => {
     const element = hoverImageElements.current.get(mediaId);
     if (element && observer.current) {
       observer.current.unobserve(element);
     }
     hoverImageElements.current.delete(mediaId);
-  };
+  }, []);
 
-  return (
-    <MobileVideoContext.Provider
-      value={{
-        currentPlayingMediaId,
-        registerHoverImage,
-        unregisterHoverImage,
-      }}
-    >
-      {children}
-    </MobileVideoContext.Provider>
+  const value = useMemo(
+    () => ({
+      currentPlayingMediaId,
+      registerHoverImage,
+      unregisterHoverImage,
+    }),
+    [currentPlayingMediaId, registerHoverImage, unregisterHoverImage]
   );
+
+  return <MobileVideoContext.Provider value={value}>{children}</MobileVideoContext.Provider>;
 };

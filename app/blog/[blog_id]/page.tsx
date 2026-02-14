@@ -3,7 +3,8 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { fetchBlogPostById } from '@/lib/supabase/serverQueries';
 
-export const dynamic = 'force-dynamic';
+// Revalidate individual blog posts every hour instead of force-dynamic
+export const revalidate = 3600;
 
 type Params = Promise<{ blog_id: string }>;
 

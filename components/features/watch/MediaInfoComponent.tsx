@@ -42,6 +42,7 @@ const MediaInfoComponent = async ({ media_type, media_id, season_number }: Media
               alt=""
               width="300"
               height="450"
+              loading="lazy"
             />
           </div>
         </Link>

@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import React from 'react';
 import WatchListCard from '@/components/features/library/CategoryCard';
 import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
@@ -8,46 +7,43 @@ import { getMediaDetails } from '@/lib/tmdb';
 export const dynamic = 'force-dynamic';
 
 const page = async () => {
+  // Auth is enforced by middleware — user is guaranteed to exist here
   const user = await getCurrentUser();
-
-  if (!user) {
-    redirect('/login');
-  }
 
   const limit = 1;
   const offset = 0;
 
-  // Example queries
-  const watching = await getWatchListSpecific(user.id, limit, offset, 'watching');
-  const planned = await getWatchListSpecific(user.id, limit, offset, 'planned');
-  const watched = await getWatchListSpecific(user.id, limit, offset, 'watched');
+  // Fetch all three watch list categories in parallel
+  const [watching, planned, watched] = await Promise.all([
+    getWatchListSpecific(user.id, limit, offset, 'watching'),
+    getWatchListSpecific(user.id, limit, offset, 'planned'),
+    getWatchListSpecific(user.id, limit, offset, 'watched'),
+  ]);
 
-  // "Watched"
   const fwatched = watched[0];
-  const watchedMedia = await getMediaDetails(fwatched.media_type, fwatched.media_id);
+  const fwatching = watching[0];
+  const fplanned = planned[0];
+
+  // Fetch all media details in parallel
+  const [watchedMedia, watchingMedia, plannedMedia] = await Promise.all([
+    getMediaDetails(fwatched.media_type, fwatched.media_id),
+    getMediaDetails(fwatching.media_type, fwatching.media_id),
+    getMediaDetails(fplanned.media_type, fplanned.media_id),
+  ]);
+
+  // Fetch all colors in parallel
+  const [watchedColor, watchingColor, plannedColor] = await Promise.all([
+    getAverageColorSafe(`https://image.tmdb.org/t/p/w200${watchedMedia.backdrop_path}`),
+    getAverageColorSafe(`https://image.tmdb.org/t/p/w200${watchingMedia.backdrop_path}`),
+    getAverageColorSafe(`https://image.tmdb.org/t/p/w200${plannedMedia.backdrop_path}`),
+  ]);
+
   const watchedImageUrl =
     watchedMedia?.images?.backdrops?.[0]?.file_path || watchedMedia?.backdrop_path;
-  const watchedColor = await getAverageColorSafe(
-    `https://image.tmdb.org/t/p/w200${watchedMedia.backdrop_path}`
-  );
-
-  // "Watching"
-  const fwatching = watching[0];
-  const watchingMedia = await getMediaDetails(fwatching.media_type, fwatching.media_id);
   const watchingImageUrl =
     watchingMedia?.images?.backdrops?.[0]?.file_path || watchingMedia?.backdrop_path;
-  const watchingColor = await getAverageColorSafe(
-    `https://image.tmdb.org/t/p/w200${watchingMedia.backdrop_path}`
-  );
-
-  // "Planned"
-  const fplanned = planned[0];
-  const plannedMedia = await getMediaDetails(fplanned.media_type, fplanned.media_id);
   const plannedImageUrl =
     plannedMedia?.images?.backdrops?.[0]?.file_path || plannedMedia?.backdrop_path;
-  const plannedColor = await getAverageColorSafe(
-    `https://image.tmdb.org/t/p/w200${plannedMedia.backdrop_path}`
-  );
 
   return (
     <div className="mb-16 w-full flex-col px-4 py-4 md:px-0">

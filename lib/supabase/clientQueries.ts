@@ -246,7 +246,8 @@ export async function getFollowers(id: string): Promise<any | null> {
             `,
         { count: 'exact' }
       )
-      .eq('following_id', id);
+      .eq('following_id', id)
+      .limit(100);
 
     if (error) throw error;
 
@@ -278,7 +279,8 @@ export async function getFollowing(id: string): Promise<any | null> {
             `,
         { count: 'exact' }
       )
-      .eq('user_id', id);
+      .eq('user_id', id)
+      .limit(100);
 
     if (error) throw error;
 

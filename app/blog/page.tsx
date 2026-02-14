@@ -2,7 +2,8 @@ import React from 'react';
 import { fetchBlogPosts } from '@/lib/supabase/serverQueries';
 import PostCardMain from './PostCardMain';
 
-export const dynamic = 'force-dynamic';
+// Revalidate blog listing every hour instead of force-dynamic
+export const revalidate = 3600;
 
 const page = async () => {
   const posts = await fetchBlogPosts();

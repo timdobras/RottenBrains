@@ -16,14 +16,17 @@ const TVShowDetails = async ({
   user_id,
   is_premium = false,
 }: TVShowDetailsProps) => {
-  const tvShowData = await getTVDetails(tv_show_id);
+  // Fetch TV details and season details in parallel
+  // We can start both since we know the season_number from props
+  const [tvShowData, seasonData] = await Promise.all([
+    getTVDetails(tv_show_id),
+    getSeasonDetails(tv_show_id, season_number),
+  ]);
   const filteredSeasons = tvShowData.seasons.filter((season: any) => season.season_number !== 0);
 
   const selectedSeason =
     filteredSeasons.find((season: any) => season.season_number === Number(season_number)) ||
     filteredSeasons[0];
-
-  const seasonData = await getSeasonDetails(tv_show_id, selectedSeason.season_number);
   const episodes = seasonData.episodes;
 
   return (

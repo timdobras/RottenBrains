@@ -27,7 +27,9 @@ const fetchUser = async () => {
 
   const { data: userData, error } = await supabase
     .from('users')
-    .select('*')
+    .select(
+      'id, name, username, email, image_url, backdrop_url, feed_genres, premium, bio, created_at'
+    )
     .eq('id', authUser.id)
     .single();
 
