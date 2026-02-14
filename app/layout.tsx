@@ -1,4 +1,3 @@
-import { GeistSans } from 'geist/font/sans';
 import { Roboto } from 'next/font/google';
 import dynamic from 'next/dynamic';
 import React from 'react';
@@ -30,6 +29,7 @@ const OfflineModeIndicator = dynamic(() =>
 const Toaster = dynamic(() =>
   import('@/components/ui/toaster').then((mod) => ({ default: mod.Toaster }))
 );
+const PWAInstallBanner = dynamic(() => import('@/components/features/pwa/PWAInstallBanner'));
 
 const roboto = Roboto({
   subsets: ['latin'],
@@ -53,7 +53,7 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: '/icons/icon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
     ],
     apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
@@ -68,6 +68,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover' as const,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0f0f0f' },
@@ -113,6 +114,7 @@ export default async function NotProtectedLayout({ children }: { children: React
                   {/* <OneTapComponent /> */}
                   {/* <LegalConsent /> */}
                   <Toaster />
+                  <PWAInstallBanner />
                   {/* <IubendaScripts /> */}
                   <PlausibleAnalytics
                     domain="rotten-brains.com"

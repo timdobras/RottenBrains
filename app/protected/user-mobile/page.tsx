@@ -4,7 +4,6 @@ import WatchListCard from '@/components/features/library/CategoryCard';
 import MediaCardClient from '@/components/features/media/MediaCardClient';
 import MediaCardServer from '@/components/features/media/MediaCardServer';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
-import NavTop from '@/components/features/navigation/mobile/NavTop';
 import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
 import { getWatchHistoryForUser, getWatchListSpecific } from '@/lib/supabase/clientQueries';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
@@ -54,8 +53,7 @@ const page = async () => {
     plannedMedia?.images?.backdrops?.[0]?.file_path || plannedMedia?.backdrop_path;
   return (
     <>
-      <NavTop />
-      <section className="mt-12 w-full">
+      <section className="w-full">
         <Profile />
       </section>
       <div className="mt-4 flex flex-row items-center justify-between px-4">

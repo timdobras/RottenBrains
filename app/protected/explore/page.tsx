@@ -8,7 +8,8 @@ import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import { getPopular } from '@/lib/tmdb';
 
-export const dynamic = 'force-dynamic';
+// Revalidate every hour -- popular movie data changes infrequently
+export const revalidate = 3600;
 
 const fetchMoviesWithColors = async (movies: any) => {
   const moviesWithColors = await Promise.all(

@@ -3,8 +3,6 @@ import ContinueWatchingSection from '@/components/features/home/ContinueWatching
 import FollowedPostsSection from '@/components/features/home/FollowedPostsSection';
 import GenreSelector from '@/components/features/home/GenreSelector';
 import InfiniteScrollHome from '@/components/features/home/InfiniteScroll';
-import NavTop from '@/components/features/navigation/mobile/NavTop';
-import { MobileVideoProvider } from '@/hooks/MobileVideoContext';
 import {
   getCurrentUser,
   getTopMovieGenresForUser,
@@ -29,41 +27,38 @@ export default async function Page() {
   }
 
   return (
-    <MobileVideoProvider>
-      <div className="flex w-full flex-col gap-8 md:w-auto md:py-0" id="main-content">
-        <NavTop />
-        {/* Continue Watching — streams independently via Suspense */}
-        <ErrorBoundary fallback={<div>Could not load &quot;Continue Watching&quot;.</div>}>
-          {user ? (
-            <ContinueWatchingSection userId={user.id} />
-          ) : (
-            <div className="col mt-16 flex h-52 w-full flex-col items-center justify-center gap-4 bg-foreground/10 md:mt-0 md:rounded-[16px]">
-              <img
-                src="/assets/images/logo_new_black.svg"
-                alt=""
-                className="invert-on-dark aspect-square h-12 opacity-50"
-                loading="lazy"
-              />
-              <p className="text-foreground/50">Log in to see your watch history</p>
-            </div>
-          )}
-        </ErrorBoundary>
-        {/* Followed Posts — streams independently via Suspense */}
-        <ErrorBoundary fallback={<div>Could not load posts.</div>}>
-          {user && <FollowedPostsSection userId={user.id} />}
-        </ErrorBoundary>
+    <div className="flex w-full flex-col gap-8 md:w-auto md:py-0" id="main-content">
+      {/* Continue Watching — streams independently via Suspense */}
+      <ErrorBoundary fallback={<div>Could not load &quot;Continue Watching&quot;.</div>}>
+        {user ? (
+          <ContinueWatchingSection userId={user.id} />
+        ) : (
+          <div className="col mt-16 flex h-52 w-full flex-col items-center justify-center gap-4 bg-foreground/10 md:mt-0 md:rounded-[16px]">
+            <img
+              src="/assets/images/logo_new_black.svg"
+              alt=""
+              className="invert-on-dark aspect-square h-12 opacity-50"
+              loading="lazy"
+            />
+            <p className="text-foreground/50">Log in to see your watch history</p>
+          </div>
+        )}
+      </ErrorBoundary>
+      {/* Followed Posts — streams independently via Suspense */}
+      <ErrorBoundary fallback={<div>Could not load posts.</div>}>
+        {user && <FollowedPostsSection userId={user.id} />}
+      </ErrorBoundary>
 
-        <GenreSelector
-          initialRecommendedGenres={[
-            ...movie_genres.map((g: any) => ({ ...g, media_type: 'movie' as const })),
-            ...tv_genres.map((g: any) => ({ ...g, media_type: 'tv' as const })),
-          ]}
-        />
+      <GenreSelector
+        initialRecommendedGenres={[
+          ...movie_genres.map((g: any) => ({ ...g, media_type: 'movie' as const })),
+          ...tv_genres.map((g: any) => ({ ...g, media_type: 'tv' as const })),
+        ]}
+      />
 
-        <InfiniteScrollHome user_id={user?.id} movie_genres={movie_genres} tv_genres={tv_genres} />
+      <InfiniteScrollHome user_id={user?.id} movie_genres={movie_genres} tv_genres={tv_genres} />
 
-        <div className="h-16 w-full" />
-      </div>
-    </MobileVideoProvider>
+      <div className="h-16 w-full" />
+    </div>
   );
 }

@@ -77,7 +77,7 @@ export default function HorizontalScroll({
       {/* The scrollable container */}
       <div
         ref={containerRef}
-        className="hidden-scrollbar flex snap-x snap-mandatory flex-row gap-4 overflow-x-auto px-4 md:p-0"
+        className="hidden-scrollbar flex snap-x snap-mandatory flex-row gap-4 overflow-x-auto overscroll-x-contain px-4 md:p-0"
         /* ^ optionally hide the scrollbar if you want
            Tailwind (or custom) might have .scrollbar-hide 
            or just override via CSS */

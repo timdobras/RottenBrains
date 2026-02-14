@@ -164,6 +164,9 @@ export default function VideoShell() {
     const handleTouchMove = (e: TouchEvent) => {
       if (!dragStartRef.current) return;
 
+      // Prevent page scrolling while dragging the miniplayer
+      e.preventDefault();
+
       const touch = e.touches[0];
       const dx = touch.clientX - dragStartRef.current.mouseX;
       const dy = touch.clientY - dragStartRef.current.mouseY;
@@ -210,7 +213,7 @@ export default function VideoShell() {
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
@@ -301,28 +304,28 @@ export default function VideoShell() {
             <div className="pointer-events-auto absolute inset-0 cursor-grabbing bg-black/20" />
           )}
 
-          {/* Edge grab zones - thin strips around the edges for dragging */}
+          {/* Edge grab zones - strips around the edges for dragging (20px on touch) */}
           {/* Top edge */}
           <div
-            className="pointer-events-auto absolute left-0 right-0 top-0 h-3 cursor-grab"
+            className="pointer-events-auto absolute left-0 right-0 top-0 h-5 cursor-grab touch-none"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           />
           {/* Bottom edge */}
           <div
-            className="pointer-events-auto absolute bottom-0 left-0 right-0 h-3 cursor-grab"
+            className="pointer-events-auto absolute bottom-0 left-0 right-0 h-5 cursor-grab touch-none"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           />
           {/* Left edge */}
           <div
-            className="pointer-events-auto absolute bottom-3 left-0 top-3 w-3 cursor-grab"
+            className="pointer-events-auto absolute bottom-5 left-0 top-5 w-5 cursor-grab touch-none"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           />
           {/* Right edge */}
           <div
-            className="pointer-events-auto absolute bottom-3 right-0 top-3 w-3 cursor-grab"
+            className="pointer-events-auto absolute bottom-5 right-0 top-5 w-5 cursor-grab touch-none"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           />

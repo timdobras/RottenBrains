@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ImageWithFallback from '@/components/features/media/ImageWithFallback';
-import { MobileVideoContext } from '@/hooks/MobileVideoContext';
 import { getVideos } from '@/lib/tmdb';
 import { queryKeys } from '@/lib/queryKeys';
 
@@ -15,8 +14,10 @@ interface HoverImageProps {
   children?: React.ReactNode;
 }
 
-// Extract trailer URL from video data
-function extractTrailerUrl(data: { results?: Array<{ type?: string; site?: string; key?: string }> } | null): string | null {
+// Extract trailer key and URL from video data
+function extractTrailerInfo(
+  data: { results?: Array<{ type?: string; site?: string; key?: string }> } | null
+): { key: string; url: string } | null {
   if (!data || !Array.isArray(data.results) || data.results.length === 0) {
     return null;
   }
@@ -26,7 +27,10 @@ function extractTrailerUrl(data: { results?: Array<{ type?: string; site?: strin
     data.results.find((video) => video.site === 'YouTube');
 
   if (trailer && trailer.key && trailer.site === 'YouTube') {
-    return `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&cc_load_policy=1&cc_lang_pref=en`;
+    return {
+      key: trailer.key,
+      url: `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&cc_load_policy=1&cc_lang_pref=en`,
+    };
   }
 
   return null;
@@ -43,18 +47,17 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
   const [showOverlay, setShowOverlay] = useState(false);
   const [iframeVisible, setIframeVisible] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [mobilePlayRequested, setMobilePlayRequested] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const { currentPlayingMediaId, registerHoverImage, unregisterHoverImage } =
-    useContext(MobileVideoContext);
-
-  // Determine if we should fetch (on hover for desktop, on play for mobile)
+  // On mobile, we only fetch + show iframe when user explicitly taps play
+  // On desktop, we fetch on hover (existing behavior)
   const shouldFetch = useMemo(() => {
     if (isMobileDevice) {
-      return currentPlayingMediaId === media_id;
+      return mobilePlayRequested;
     }
     return isHovered;
-  }, [isMobileDevice, currentPlayingMediaId, media_id, isHovered]);
+  }, [isMobileDevice, mobilePlayRequested, isHovered]);
 
   // Use React Query for caching trailer data (1 hour staleTime)
   const { data: videoData, isLoading: isFetching } = useQuery({
@@ -65,55 +68,20 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
     gcTime: 1000 * 60 * 60 * 24, // 24 hours cache
   });
 
-  // Extract trailer URL from cached data
-  const videoUrl = useMemo(() => extractTrailerUrl(videoData), [videoData]);
+  // Extract trailer info from cached data
+  const trailerInfo = useMemo(() => extractTrailerInfo(videoData), [videoData]);
 
   // Show loading only when actively fetching
   const isLoading = shouldFetch && isFetching && !videoData;
 
-  // Detect if the device is mobile
+  // Detect if the device is mobile via matchMedia (more reliable than UA sniffing)
   useEffect(() => {
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-    setIsMobileDevice(isMobile);
+    const mq = window.matchMedia('(max-width: 767px)');
+    setIsMobileDevice(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobileDevice(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, []);
-
-  // Register and unregister the element with the context
-  useEffect(() => {
-    if (isMobileDevice && ref.current) {
-      registerHoverImage(media_id, ref.current);
-    }
-
-    return () => {
-      if (isMobileDevice) {
-        unregisterHoverImage(media_id);
-      }
-    };
-  }, [media_id, registerHoverImage, unregisterHoverImage, isMobileDevice]);
-
-  // Handle playing and stopping video based on currentPlayingMediaId (mobile)
-  useEffect(() => {
-    if (isMobileDevice) {
-      if (currentPlayingMediaId === media_id) {
-        // This component should play the video
-        if (!showOverlay) {
-          const timeoutId = setTimeout(() => {
-            setShowOverlay(true);
-          }, 1000);
-          return () => {
-            clearTimeout(timeoutId);
-          };
-        }
-      } else {
-        // This component should stop playing
-        if (showOverlay) {
-          setShowOverlay(false);
-          setIframeVisible(false);
-        }
-      }
-    }
-  }, [currentPlayingMediaId, isMobileDevice, media_id, showOverlay]);
 
   // Desktop Hover Effect
   useEffect(() => {
@@ -127,10 +95,33 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
     }
   }, [isHovered, isMobileDevice]);
 
+  // Mobile: show iframe overlay once data is fetched after user tapped play
+  useEffect(() => {
+    if (isMobileDevice && mobilePlayRequested && trailerInfo) {
+      setShowOverlay(true);
+    }
+  }, [isMobileDevice, mobilePlayRequested, trailerInfo]);
+
   // Handle iframe load with fade-in effect
-  const handleIframeLoad = () => {
+  const handleIframeLoad = useCallback(() => {
     setIframeVisible(true);
-  };
+  }, []);
+
+  // Mobile tap-to-play handler
+  const handleMobilePlay = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setMobilePlayRequested(true);
+  }, []);
+
+  // Mobile stop handler
+  const handleMobileStop = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setMobilePlayRequested(false);
+    setShowOverlay(false);
+    setIframeVisible(false);
+  }, []);
 
   return (
     <div
@@ -140,7 +131,7 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
       ref={ref}
       data-media-id={media_id}
     >
-      <ImageWithFallback imageUrl={imageUrl} altText={altText} quality={'w1280'} />
+      <ImageWithFallback imageUrl={imageUrl} altText={altText} quality={'w780'} />
       {children}
 
       {/* Loading Bar */}
@@ -148,14 +139,29 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
         <div className="animate-loading absolute left-0 top-0 h-1 w-full bg-accent"></div>
       )}
 
+      {/* Mobile: show a play button overlay instead of auto-loading iframe */}
+      {isMobileDevice && !showOverlay && (
+        <button
+          onClick={handleMobilePlay}
+          className="absolute inset-0 flex items-center justify-center bg-black/0"
+          aria-label="Play trailer"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
+            <svg viewBox="0 0 24 24" fill="white" className="ml-0.5 h-5 w-5" aria-hidden="true">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </button>
+      )}
+
       {showOverlay && (
         <div className="absolute inset-0 flex items-center justify-center">
-          {videoUrl ? (
+          {trailerInfo?.url ? (
             <>
               <iframe
                 width="100%"
                 height="100%"
-                src={videoUrl}
+                src={trailerInfo.url}
                 title="Media Trailer"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -164,8 +170,20 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
                   iframeVisible ? 'opacity-100' : 'opacity-0'
                 }`}
               ></iframe>
-              {/* Do not remove this div */}
-              <div className="absolute inset-0"></div>
+              {/* Overlay to prevent iframe interaction + close button on mobile */}
+              <div className="absolute inset-0">
+                {isMobileDevice && (
+                  <button
+                    onClick={handleMobileStop}
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm"
+                    aria-label="Close trailer"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </>
           ) : (
             <div className="text-white"></div>

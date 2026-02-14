@@ -91,7 +91,7 @@ export default function OneTapComponent() {
   return (
     <>
       {/* Loads the google.accounts.id object */}
-      <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
+      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       {/* A container if needed, but not strictly required */}
       <div id="oneTap" className="fixed right-0 top-0 z-[100]" />
     </>

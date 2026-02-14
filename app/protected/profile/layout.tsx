@@ -1,20 +1,13 @@
-import { redirect } from 'next/navigation';
 import React from 'react';
 import FollowButton from '@/components/features/profile/FollowButton';
 import FollowInfo from '@/components/features/profile/FollowInfo';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
-import MobileTopBarHome from '../../../components/features/navigation/mobile/NavTop';
 import NewTabs from '../../../components/features/profile/NewTabs';
 import ProfilePicture from '../../../components/features/profile/ProfilePictureChange';
 
 const ProfileLayout = async ({ children }: { children: React.ReactNode }) => {
-  const currentUser = await getCurrentUser();
-
-  if (!currentUser) {
-    redirect('/login');
-  }
-
-  const user = currentUser;
+  // Auth is enforced by middleware — user is guaranteed to exist here
+  const user = await getCurrentUser();
   const dateString = user.created_at;
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
@@ -26,8 +19,7 @@ const ProfileLayout = async ({ children }: { children: React.ReactNode }) => {
 
   return (
     <>
-      <MobileTopBarHome />
-      <div className="mt-12 w-full md:mx-auto md:mt-0 md:max-w-7xl md:p-4">
+      <div className="w-full md:mx-auto md:mt-0 md:max-w-7xl md:p-4">
         <div className="w-full">
           <div className="aspect-[5/1] w-full overflow-hidden md:rounded-[16px]">
             <img

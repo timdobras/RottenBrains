@@ -151,13 +151,7 @@
   @apply rounded-[4px] transition hover:bg-accent;
 }
 
-.topbar {
-  @apply sticky top-0 z-50 w-full bg-foreground/10 md:hidden;
-}
-
-.bottom-bar {
-  @apply flex-between bottom-0 z-50 w-screen bg-background p-1 px-4 md:hidden;
-}
+/* .topbar and .bottom-bar removed -- dead code, replaced by NavTop/NavBottom components */
 
 /* Dark-themed scrollbar with transparent background */
 .custom-scrollbar::-webkit-scrollbar {
@@ -383,29 +377,47 @@
 
 @media (max-width: 1024px) {
   .small-screen-watch-margin-premium {
-    margin-top: calc(56.25vw + 38px);
+    margin-top: calc(56.25vw + 40px);
   }
 }
 @media (max-width: 1024px) {
   .small-screen-watch-margin {
-    margin-top: calc(56.25vw + 38px);
+    margin-top: calc(56.25vw + 40px);
   }
 }
-.small-screen-watch-margin-info-premium {
-  margin-top: calc(56.25vw + 38px);
+@media (max-width: 1024px) {
+  .small-screen-watch-margin-info-premium {
+    margin-top: calc(56.25vw + 40px);
+  }
 }
-.small-screen-watch-margin-info {
-  margin-top: calc(56.25vw + 38px);
+@media (max-width: 1024px) {
+  .small-screen-watch-margin-info {
+    margin-top: calc(56.25vw + 40px);
+  }
+}
+
+/* Landscape orientation: video fills height, content uses fixed offset */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .small-screen-watch-margin-premium,
+  .small-screen-watch-margin,
+  .small-screen-watch-margin-info-premium,
+  .small-screen-watch-margin-info {
+    margin-top: calc(100vh);
+  }
+  .small-screen-watch-top-premium,
+  .small-screen-watch-top {
+    top: calc(100vh);
+  }
 }
 
 @media (max-width: 1024px) {
   .small-screen-watch-top-premium {
-    top: calc(56.25vw + 38px);
+    top: calc(56.25vw + 40px);
   }
 }
 @media (max-width: 1024px) {
   .small-screen-watch-top {
-    top: calc(56.25vw + 38px);
+    top: calc(56.25vw + 40px);
   }
 }
 
@@ -454,14 +466,4 @@
   animation: loading 2s linear;
 }
 
-.bottombar {
-  @apply fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center bg-background md:hidden;
-  height: calc(env(safe-area-inset-bottom) + 80px);
-}
-.bottombar-inner {
-  @apply relative flex h-full w-full flex-row items-center justify-between bg-foreground/10 pb-1;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.bottombar-link {
-  @apply flex flex-1 flex-col items-center justify-center opacity-80;
-}
+/* .bottombar, .bottombar-inner, .bottombar-link removed -- dead code, safe-area handling now in NavBottom component */

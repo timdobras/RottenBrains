@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence, AnimateSharedLayout } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
 import { likePost, removeLike } from '@/lib/client/updatePostData';

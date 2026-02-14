@@ -33,7 +33,7 @@ const MOBILE_BOTTOM_PADDING = 72; // Account for mobile nav
 
 const MOBILE_DEFAULTS: PersistedState = {
   edge: 'bottom-right',
-  size: { width: 150, height: 150 / ASPECT_RATIO },
+  size: { width: 192, height: 192 / ASPECT_RATIO },
 };
 
 const DESKTOP_DEFAULTS: PersistedState = {

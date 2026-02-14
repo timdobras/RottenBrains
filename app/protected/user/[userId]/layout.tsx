@@ -4,7 +4,6 @@ import AuthButton from '@/components/features/auth/AuthButton';
 import FollowButton from '@/components/features/profile/FollowButton';
 import FollowInfo from '@/components/features/profile/FollowInfo';
 import { getUserFromDB } from '@/lib/supabase/serverQueries';
-import MobileTopBarHome from '../../../../components/features/navigation/mobile/NavTop';
 import NewTabs from '../../../../components/features/profile/NewTabUser';
 
 type Props = {
@@ -31,8 +30,7 @@ const ProfileLayout = async ({ children, params }: Props) => {
 
   return (
     <>
-      <MobileTopBarHome />
-      <div className="mx-auto mt-12 w-screen max-w-[100vw] md:mt-0 md:max-w-7xl md:p-4">
+      <div className="mx-auto w-screen max-w-[100vw] md:mt-0 md:max-w-7xl md:p-4">
         <div className="w-full">
           <div className="aspect-[5/1] w-full overflow-hidden md:rounded-[16px]">
             <img

@@ -48,11 +48,11 @@ const NavTop = () => {
 
   return (
     <div
-      className="fixed left-0 top-0 z-30 flex w-full flex-col"
+      className="fixed left-0 top-0 z-30 flex w-full flex-col transition-transform duration-100 ease-out md:hidden"
       ref={topBarRef}
       style={{ transform: 'translateY(0)', willChange: 'transform' }}
     >
-      <div className="flex h-12 w-full items-center justify-between bg-background px-4 transition-transform duration-100 ease-out md:hidden">
+      <div className="flex h-12 w-full items-center justify-between bg-background px-4">
         {/* Left side */}
         <div className="flex flex-row gap-4">
           {/* <MenuButtonWithSidebar /> */}
