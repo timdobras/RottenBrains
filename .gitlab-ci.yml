@@ -30,7 +30,7 @@ deploy-to-coolify:
     - echo "========================================="
     - |
       echo "Deploying RottenBrains..."
-      curl -X GET "http://10.10.20.22:8000/api/v1/deploy?uuid=pkg8g4cgcoo4oo8os044kg88&force=true" \
+      curl -X GET "http://10.10.20.22:8000/api/v1/deploy?uuid=nwcw8csoo4k040gwccgk00o4&force=true" \
         -H "Authorization: Bearer $COOLIFY_TOKEN" \
         -H "Accept: application/json" || true
     - echo "========================================="
