@@ -13,11 +13,12 @@ export async function oAuthSignIn(provider: Provider) {
   const supabase = await createClient();
 
   const headersList = await headers();
-  const host = headersList.get('host') ?? 'localhost:3000';
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host') ?? 'localhost:3000';
 
   // Decide whether to use https or http
+  const forwardedProto = headersList.get('x-forwarded-proto');
   const isLocalhost = host.includes('localhost');
-  const protocol = isLocalhost ? 'http' : 'https';
+  const protocol = forwardedProto ?? (isLocalhost ? 'http' : 'https');
 
   // Build the callback URL
   const redirectUrl = `${protocol}://${host}/auth/callback`;

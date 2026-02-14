@@ -4,10 +4,16 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   // if "next" is provided, use it; otherwise default to home
   const next = searchParams.get('next') ?? '/';
+
+  // Derive the origin from forwarded headers so it works behind a reverse proxy
+  const headers = new Headers(request.headers);
+  const host = headers.get('x-forwarded-host') ?? headers.get('host') ?? 'localhost:3000';
+  const protocol = headers.get('x-forwarded-proto') ?? 'https';
+  const origin = `${protocol}://${host}`;
 
   const cookieStore = await cookies();
 
