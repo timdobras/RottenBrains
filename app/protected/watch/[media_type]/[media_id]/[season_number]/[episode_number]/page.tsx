@@ -22,14 +22,18 @@ function EpisodeListSkeleton() {
 }
 
 type Params = Promise<{
-  media_id: number;
-  season_number: number;
-  episode_number: number;
+  media_id: string;
+  season_number: string;
+  episode_number: string;
   media_type: string;
 }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
-  const { media_id, media_type, season_number, episode_number } = await params;
+  const rawParams = await params;
+  const media_type = rawParams.media_type;
+  const media_id = Number(rawParams.media_id);
+  const season_number = Number(rawParams.season_number);
+  const episode_number = Number(rawParams.episode_number);
 
   let media;
   try {
@@ -54,7 +58,11 @@ export async function generateMetadata({ params }: { params: Params }) {
 }
 
 export default async function mediaPage({ params }: { params: Params }) {
-  const { media_id, media_type, season_number, episode_number } = await params;
+  const rawParams = await params;
+  const media_type = rawParams.media_type;
+  const media_id = Number(rawParams.media_id);
+  const season_number = Number(rawParams.season_number);
+  const episode_number = Number(rawParams.episode_number);
 
   // Parallel fetch user, media, and episode data
   const [user, media, episode] = await Promise.all([
@@ -76,18 +84,14 @@ export default async function mediaPage({ params }: { params: Params }) {
     );
 
     const currentSeasonIndex = seasons.findIndex(
-      (season: { season_number: number }) => season.season_number === Number(season_number)
+      (season: { season_number: number }) => season.season_number === season_number
     );
 
-    const currentSeason = seasons[Number(currentSeasonIndex)];
+    const currentSeason = seasons[currentSeasonIndex];
 
     if (currentSeason && episode_number < currentSeason.episode_count) {
       // Next episode in the same season
-      nextEpisode = await getCachedEpisodeDetails(
-        media.id,
-        season_number,
-        Number(episode_number) + 1
-      );
+      nextEpisode = await getCachedEpisodeDetails(media.id, season_number, episode_number + 1);
     } else if (currentSeasonIndex + 1 < seasons.length) {
       // First episode of the next season
       const nextSeasonNumber = seasons[currentSeasonIndex + 1].season_number;
@@ -106,11 +110,10 @@ export default async function mediaPage({ params }: { params: Params }) {
       {user && (
         <WatchDuration
           media_type={media_type}
-          media_id={Number(media_id)}
-          season_number={Number(season_number)}
-          episode_number={Number(episode_number)}
-          user_id={user.id}
-          media_duration={episode.runtime || 100}
+          media_id={media_id}
+          season_number={season_number}
+          episode_number={episode_number}
+          media_duration={episode.runtime || 45}
         />
       )}
       <div className="relative mx-auto mb-16 w-full max-w-7xl">

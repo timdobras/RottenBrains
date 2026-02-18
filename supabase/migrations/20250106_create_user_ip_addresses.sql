@@ -11,26 +11,30 @@ CREATE TABLE IF NOT EXISTS public.user_ip_addresses (
 );
 
 -- Create index for faster lookups
-CREATE INDEX idx_user_ip_addresses_user_id ON public.user_ip_addresses(user_id);
-CREATE INDEX idx_user_ip_addresses_ip ON public.user_ip_addresses(ip_address);
+CREATE INDEX IF NOT EXISTS idx_user_ip_addresses_user_id ON public.user_ip_addresses(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_ip_addresses_ip ON public.user_ip_addresses(ip_address);
 
 -- Enable Row Level Security
 ALTER TABLE public.user_ip_addresses ENABLE ROW LEVEL SECURITY;
 
 -- Create policy to allow users to manage their own IP addresses
+DROP POLICY IF EXISTS "Users can view their own IP addresses" ON public.user_ip_addresses;
 CREATE POLICY "Users can view their own IP addresses" ON public.user_ip_addresses
   FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own IP addresses" ON public.user_ip_addresses;
 CREATE POLICY "Users can insert their own IP addresses" ON public.user_ip_addresses
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own IP addresses" ON public.user_ip_addresses;
 CREATE POLICY "Users can update their own IP addresses" ON public.user_ip_addresses
   FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own IP addresses" ON public.user_ip_addresses;
 CREATE POLICY "Users can delete their own IP addresses" ON public.user_ip_addresses
   FOR DELETE
   USING (auth.uid() = user_id);
@@ -45,6 +49,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger to automatically update the updated_at column
+DROP TRIGGER IF EXISTS update_user_ip_addresses_updated_at ON public.user_ip_addresses;
 CREATE TRIGGER update_user_ip_addresses_updated_at
   BEFORE UPDATE ON public.user_ip_addresses
   FOR EACH ROW

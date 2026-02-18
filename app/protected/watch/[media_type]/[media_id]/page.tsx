@@ -17,9 +17,12 @@ import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import { getCachedMediaDetails } from '@/lib/tmdb/cachedFetchers';
 import { logger } from '@/lib/logger';
 
-export async function generateMetadata({ params }: any) {
-  const media_id = parseInt(params.media_id, 10);
-  const media_type = params.media_type;
+type Params = Promise<{ media_id: string; media_type: string }>;
+
+export async function generateMetadata({ params }: { params: Params }) {
+  const rawParams = await params;
+  const media_id = Number(rawParams.media_id);
+  const media_type = rawParams.media_type;
 
   let media;
   try {
@@ -44,12 +47,17 @@ export async function generateMetadata({ params }: any) {
     } Enjoy watching and sharing with friends today!`,
   };
 }
-type Params = Promise<{ media_id: number; media_type: string }>;
+
 export default async function mediaPage({ params }: { params: Params }) {
-  const { media_id, media_type } = await params;
+  const rawParams = await params;
+  const media_type = rawParams.media_type;
+  const media_id = Number(rawParams.media_id);
 
   // Parallel fetch user and media data
-  const [user, media] = await Promise.all([getCurrentUser(), getCachedMediaDetails(media_type, media_id)]);
+  const [user, media] = await Promise.all([
+    getCurrentUser(),
+    getCachedMediaDetails(media_type, media_id),
+  ]);
 
   if (!media) {
     return <div>NO MEDIA FOUND</div>;
@@ -61,9 +69,8 @@ export default async function mediaPage({ params }: { params: Params }) {
       {user && (
         <WatchDuration
           media_type={media_type}
-          media_id={Number(media_id)}
-          user_id={user.id}
-          media_duration={media.runtime || 24}
+          media_id={media_id}
+          media_duration={media.runtime || 120}
         />
       )}
       <div className="relative mx-auto mb-16 w-full max-w-7xl">

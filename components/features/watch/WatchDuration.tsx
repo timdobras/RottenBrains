@@ -8,7 +8,6 @@ interface WatchDurationProps {
   media_id: number;
   season_number?: number;
   episode_number?: number;
-  user_id: string;
   media_duration: number; // Duration of the media in minutes
 }
 
@@ -17,7 +16,6 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
   media_id,
   season_number,
   episode_number,
-  user_id,
   media_duration,
 }) => {
   const startTimeRef = useRef<number>(Date.now());
@@ -31,7 +29,6 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
     media_id,
     season_number,
     episode_number,
-    user_id,
     media_duration,
   });
 
@@ -42,10 +39,9 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
       media_id,
       season_number,
       episode_number,
-      user_id,
       media_duration,
     };
-  }, [media_type, media_id, season_number, episode_number, user_id, media_duration]);
+  }, [media_type, media_id, season_number, episode_number, media_duration]);
 
   useEffect(() => {
     // Define all functions inside useEffect to avoid dependency issues
@@ -110,7 +106,6 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
         );
 
         const payload = {
-          user_id: props.user_id,
           media_type: props.media_type,
           media_id: props.media_id,
           season_number: props.season_number ?? null,
@@ -184,7 +179,6 @@ const WatchDuration: React.FC<WatchDurationProps> = ({
       media_id,
       season_number,
       episode_number,
-      user_id,
       media_duration,
     });
 
