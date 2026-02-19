@@ -37,3 +37,4 @@ next-env.d.ts
 
 # mock images for offline development
 /public/mock-images/
+.env

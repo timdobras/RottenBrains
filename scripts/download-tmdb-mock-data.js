@@ -1,3 +1,4 @@
+require('dotenv').config({ path: '.env.local' });
 /**
  * Script to download real TMDB data for offline development
  * Run with: node scripts/download-tmdb-mock-data.js
@@ -6,7 +7,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const API_KEY = '0fb4e9596ba87e55fbecedb882f9500b';
+require('dotenv').config({ path: '.env.local' });
+const API_KEY = process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
+if (!API_KEY) { console.error('Missing TMDB_API_KEY env var'); process.exit(1); }
 const BASE_URL = 'https://api.themoviedb.org/3';
 
 async function fetchFromTMDB(endpoint) {
