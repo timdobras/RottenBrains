@@ -1,8 +1,7 @@
 import React from 'react';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
 
+// Auth and premium access are enforced by middleware
 const layout = async ({ children }: { children: React.ReactNode }) => {
-  const user = await getCurrentUser();
   return <>{children}</>;
 };
 

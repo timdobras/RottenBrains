@@ -7,10 +7,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
-  3. Merge your :root/.dark variables with shadcn’s. 
-     Here, we keep your color definitions for background, foreground, 
-     accent, primary, secondary, and *add* the new ones (card, popover, etc.) 
+/*
+  3. Merge your :root/.dark variables with shadcn’s.
+     Here, we keep your color definitions for background, foreground,
+     accent, primary, secondary, and *add* the new ones (card, popover, etc.)
      from shadcn. You can shuffle or rename them if you want.
 */
 @layer base {
@@ -81,7 +81,7 @@
     @apply border-border;
   }
   body {
-    /* Merge your body styles with shadcn’s: 
+    /* Merge your body styles with shadcn’s:
        (we add the text & background from shadcn plus your font) */
     @apply bg-background font-roboto text-foreground;
   }
@@ -103,9 +103,9 @@
   }
 }
 
-/* 
-  5. Keep the rest of your custom classes and animations as they are. 
-     You can wrap them in @layer utilities if you want to let Tailwind's 
+/*
+  5. Keep the rest of your custom classes and animations as they are.
+     You can wrap them in @layer utilities if you want to let Tailwind's
      layering handle specificity, but it's not strictly necessary.
 */
 
@@ -397,7 +397,7 @@
 }
 
 /* Landscape orientation: video fills height, content uses fixed offset */
-@media (max-width: 1024px) and (orientation: landscape) {
+@media (max-width: 1024px) {
   .small-screen-watch-margin-premium,
   .small-screen-watch-margin,
   .small-screen-watch-margin-info-premium,

@@ -105,7 +105,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   return (
     <article className="group relative flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[512px]">
       <div
-        className="pointer-events-none absolute inset-0 scale-100 rounded-[8px] opacity-0 transition-all duration-300 group-hover:scale-110 group-hover:opacity-20"
+        className="pointer-events-none absolute inset-0 scale-100 rounded-[8px] opacity-0 transition-all duration-300 group-hover:scale-[105%] group-hover:opacity-20"
         style={{ backgroundColor: mediaColor }}
         suppressHydrationWarning
       />

@@ -3,22 +3,19 @@ import { createClient } from '@/lib/supabase/server';
 import { getUserFromDB } from '@/lib/supabase/serverQueries';
 
 const TestPage = async () => {
+  // Auth is enforced by middleware — user is guaranteed to exist here
   const supabase = await createClient();
-  const { data: supabaseUser, error } = await supabase.auth.getUser();
+  const { data: supabaseUser } = await supabase.auth.getUser();
 
-  if (error || !supabaseUser) {
-    redirect('/login');
-  }
-
-  const dbUser = await getUserFromDB(supabaseUser.user.id);
+  const dbUser = await getUserFromDB(supabaseUser.user!.id);
   if (!dbUser) {
     const { error: insertError } = await supabase.from('users').insert([
       {
-        id: supabaseUser.user.id,
-        email: supabaseUser.user.email,
-        username: supabaseUser.user.user_metadata.name,
-        name: supabaseUser.user.user_metadata.full_name,
-        image_url: supabaseUser.user.user_metadata.picture,
+        id: supabaseUser.user!.id,
+        email: supabaseUser.user!.email,
+        username: supabaseUser.user!.user_metadata.name,
+        name: supabaseUser.user!.user_metadata.full_name,
+        image_url: supabaseUser.user!.user_metadata.picture,
       },
     ]);
     if (insertError) {
