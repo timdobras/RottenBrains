@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ticksToPercentage, ticksToSeconds } from '@/lib/jellyfin/client';
-import { extractMediaInfoFromWebhook } from '@/lib/jellyfin/mapping';
 import { getUserByWebhookSecret, syncFromJellyfin } from '@/lib/jellyfin/sync';
+import type { JellyfinConfig } from '@/lib/jellyfin/types';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,137 @@ function safeNumber(value: unknown): number {
 }
 
 /**
+ * Extract provider IDs from a Jellyfin webhook payload.
+ *
+ * With SendAllProperties=true, Jellyfin sends flat keys like:
+ *   Provider_tmdb, Provider_imdb, Provider_tvdb, Provider_tvrage
+ *
+ * With the nested format (Handlebars templates), they come as:
+ *   Item.ProviderIds.Tmdb, Item.ProviderIds.Imdb, etc.
+ *
+ * This function handles both formats.
+ */
+function extractProviderIds(payload: Record<string, unknown>): {
+  tmdb: string;
+  imdb: string;
+  tvdb: string;
+} {
+  // Try nested format first
+  const item = payload.Item as Record<string, unknown> | undefined;
+  const nestedProviders = item?.ProviderIds as Record<string, string> | undefined;
+
+  if (nestedProviders?.Tmdb || nestedProviders?.Imdb || nestedProviders?.Tvdb) {
+    return {
+      tmdb: nestedProviders.Tmdb || '',
+      imdb: nestedProviders.Imdb || '',
+      tvdb: nestedProviders.Tvdb || '',
+    };
+  }
+
+  // Flat format: Provider_tmdb, Provider_imdb, Provider_tvdb
+  return {
+    tmdb: (payload.Provider_tmdb as string) || '',
+    imdb: (payload.Provider_imdb as string) || '',
+    tvdb: (payload.Provider_tvdb as string) || '',
+  };
+}
+
+/**
+ * Extract fields from the webhook payload, handling both nested (Item.X)
+ * and flat (SendAllProperties=true) formats.
+ */
+function extractPayloadFields(payload: Record<string, unknown>) {
+  const item = payload.Item as Record<string, unknown> | undefined;
+
+  // Event type
+  const eventType = (payload.NotificationType as string) || (payload.Event as string) || '';
+
+  // Item fields — try nested first, fall back to flat
+  const itemName = (item?.Name as string) || (payload.Name as string) || '';
+  const itemType = (item?.Type as string) || (payload.ItemType as string) || '';
+  const runtimeTicks = safeNumber(item?.RunTimeTicks ?? payload.RunTimeTicks);
+  const seasonNumber = safeNumber(item?.ParentIndexNumber ?? payload.SeasonNumber);
+  const episodeNumber = safeNumber(item?.IndexNumber ?? payload.EpisodeNumber);
+  const seriesId = (item?.SeriesId as string) || (payload.SeriesId as string) || '';
+  const seriesName = (item?.SeriesName as string) || (payload.SeriesName as string) || '';
+
+  // Playback position — try nested PlaybackInfo, then flat
+  const playbackInfo = (payload.PlaybackInfo as Record<string, unknown>) || {};
+  const positionTicks = safeNumber(
+    playbackInfo.PositionTicks ?? payload.PlaybackPositionTicks ?? 0
+  );
+
+  // Provider IDs
+  const providers = extractProviderIds(payload);
+
+  return {
+    eventType,
+    itemName,
+    itemType,
+    runtimeTicks,
+    seasonNumber,
+    episodeNumber,
+    seriesId,
+    seriesName,
+    positionTicks,
+    providers,
+  };
+}
+
+/**
+ * Look up a Jellyfin series by its internal ID to get the series' TMDB provider ID.
+ * Used when the webhook payload for an episode doesn't include a TMDB ID directly.
+ */
+async function lookupSeriesTmdbId(config: JellyfinConfig, seriesId: string): Promise<number | 0> {
+  try {
+    const url =
+      `${config.server_url.replace(/\/+$/, '')}` +
+      `/Users/${config.jellyfin_user_id}/Items/${seriesId}` +
+      `?Fields=ProviderIds`;
+
+    const response = await fetch(url, {
+      headers: {
+        'X-Emby-Token': config.api_key,
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) return 0;
+
+    const seriesItem = (await response.json()) as {
+      ProviderIds?: Record<string, string>;
+    };
+
+    const tmdbStr = seriesItem.ProviderIds?.Tmdb || seriesItem.ProviderIds?.tmdb || '';
+    const tmdbId = parseInt(tmdbStr, 10);
+    return isNaN(tmdbId) ? 0 : tmdbId;
+  } catch (error) {
+    logger.warn('Failed to look up series TMDB ID from Jellyfin:', {
+      seriesId,
+      error: error instanceof Error ? error.message : 'Unknown',
+    });
+    return 0;
+  }
+}
+
+/**
+ * Determine the media type from the Jellyfin item type string.
+ */
+function resolveMediaType(itemType: string): 'movie' | 'tv' | null {
+  switch (itemType) {
+    case 'Movie':
+      return 'movie';
+    case 'Episode':
+    case 'Series':
+    case 'Season':
+      return 'tv';
+    default:
+      return null;
+  }
+}
+
+/**
  * POST /api/jellyfin/webhook?token={webhook_secret}
  *
  * Receives webhook events from Jellyfin's webhook plugin.
@@ -25,6 +156,10 @@ function safeNumber(value: unknown): number {
  * Handles event types:
  * - PlaybackStart / PlaybackProgress / PlaybackStop → update watch progress
  * - MarkPlayed → mark item as fully watched
+ *
+ * Supports two payload formats:
+ * - Nested (Handlebars template): Item.Name, Item.Type, Item.ProviderIds.Tmdb
+ * - Flat (SendAllProperties=true): Name, ItemType, Provider_tmdb, Provider_imdb
  */
 export async function POST(req: NextRequest) {
   try {
@@ -39,22 +174,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // 2. Parse the webhook payload — accept JSON or form-encoded
+    // 2. Parse the webhook payload
     const rawBody = await req.text();
-    logger.error(
-      '[JELLYFIN WEBHOOK] Raw payload received (first 2000 chars):',
-      rawBody.slice(0, 2000)
-    );
 
     let payload: Record<string, unknown>;
     try {
-      // Try JSON first
       payload = JSON.parse(rawBody);
     } catch {
-      // If JSON fails, try to parse as form-encoded or just log and accept
-      logger.error('[JELLYFIN WEBHOOK] Not valid JSON, trying to extract data from raw body');
+      // Try form-encoded as fallback
       try {
-        // Some webhook plugins send form-encoded data
         const params = new URLSearchParams(rawBody);
         const obj: Record<string, unknown> = {};
         params.forEach((value, key) => {
@@ -66,7 +194,7 @@ export async function POST(req: NextRequest) {
         });
         payload = obj;
       } catch {
-        logger.error('[JELLYFIN WEBHOOK] Could not parse payload in any format');
+        logger.warn('[Jellyfin webhook] Could not parse payload in any format');
         return NextResponse.json(
           { success: false, error: 'Could not parse payload' },
           { status: 400 }
@@ -74,22 +202,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Extract fields — handle both raw Jellyfin API format and Handlebars template format
-    const eventType = (payload.NotificationType as string) || (payload.Event as string) || '';
+    // 3. Extract fields — handles both nested and flat formats
+    const fields = extractPayloadFields(payload);
 
-    const item = (payload.Item as Record<string, unknown>) || {};
-    const itemName = (item.Name as string) || '';
-    const itemType = (item.Type as string) || '';
-    const providerIds = (item.ProviderIds as Record<string, string>) || {};
-    const tmdbIdRaw = providerIds.Tmdb || '';
-
-    logger.error('[JELLYFIN WEBHOOK] Parsed event:', {
+    logger.debug('[Jellyfin webhook] Received event:', {
       userId: config.user_id,
-      eventType,
-      itemName,
-      itemType,
-      tmdbId: tmdbIdRaw,
-      allKeys: Object.keys(payload),
+      eventType: fields.eventType,
+      itemName: fields.itemName,
+      itemType: fields.itemType,
+      providers: fields.providers,
     });
 
     // 4. Only process playback and mark-played events
@@ -100,44 +221,56 @@ export async function POST(req: NextRequest) {
       'MarkPlayed',
       'ItemMarkedPlayed',
     ];
-    if (!eventType || !processableEvents.includes(eventType)) {
+    if (!fields.eventType || !processableEvents.includes(fields.eventType)) {
       return NextResponse.json({
         success: true,
         action: 'ignored',
-        reason: `Event type '${eventType}' not handled`,
+        reason: `Event type '${fields.eventType}' not handled`,
       });
     }
 
-    // 5. Parse TMDB ID
-    const tmdbId = safeNumber(tmdbIdRaw);
+    // 5. Resolve TMDB ID
+    let tmdbId = safeNumber(fields.providers.tmdb);
+
+    // If no direct TMDB ID, try to resolve it
     if (!tmdbId) {
-      logger.error('[JELLYFIN WEBHOOK] No TMDB ID on item, skipping', {
-        itemName,
-        itemType,
-        providerIds,
-      });
-      return NextResponse.json({
-        success: true,
-        action: 'skipped',
-        reason: 'No TMDB ID on item',
-      });
+      // For episodes: look up the series in Jellyfin to get the series' TMDB ID
+      if (fields.itemType === 'Episode' && fields.seriesId) {
+        tmdbId = await lookupSeriesTmdbId(config, fields.seriesId);
+        if (tmdbId) {
+          logger.debug('[Jellyfin webhook] Resolved series TMDB ID from Jellyfin:', {
+            seriesId: fields.seriesId,
+            seriesName: fields.seriesName,
+            tmdbId,
+          });
+        }
+      }
+
+      // Still no TMDB ID — skip
+      if (!tmdbId) {
+        logger.debug('[Jellyfin webhook] No TMDB ID available, skipping', {
+          itemName: fields.itemName,
+          itemType: fields.itemType,
+          providers: fields.providers,
+        });
+        return NextResponse.json({
+          success: true,
+          action: 'skipped',
+          reason: 'No TMDB ID on item',
+        });
+      }
     }
 
     // 6. Determine media type
-    const mediaInfo = extractMediaInfoFromWebhook({
-      Type: itemType,
-      ProviderIds: providerIds,
-      ParentIndexNumber: safeNumber(item.ParentIndexNumber) || undefined,
-      IndexNumber: safeNumber(item.IndexNumber) || undefined,
-      SeriesId: (item.SeriesId as string) || undefined,
-    });
-
-    if (!mediaInfo.mediaType) {
-      logger.error('[JELLYFIN WEBHOOK] Unknown item type, skipping', { itemType });
+    const mediaType = resolveMediaType(fields.itemType);
+    if (!mediaType) {
+      logger.debug('[Jellyfin webhook] Unknown item type, skipping', {
+        itemType: fields.itemType,
+      });
       return NextResponse.json({
         success: true,
         action: 'skipped',
-        reason: `Unknown item type: ${itemType}`,
+        reason: `Unknown item type: ${fields.itemType}`,
       });
     }
 
@@ -145,38 +278,43 @@ export async function POST(req: NextRequest) {
     let percentageWatched = 0;
     let timeSpentSeconds = 0;
 
-    const runtimeTicks = safeNumber(item.RunTimeTicks);
-
-    if (eventType === 'MarkPlayed' || eventType === 'ItemMarkedPlayed') {
+    if (fields.eventType === 'MarkPlayed' || fields.eventType === 'ItemMarkedPlayed') {
       percentageWatched = 100;
-      timeSpentSeconds = runtimeTicks > 0 ? ticksToSeconds(runtimeTicks) : 0;
+      timeSpentSeconds = fields.runtimeTicks > 0 ? ticksToSeconds(fields.runtimeTicks) : 0;
     } else {
-      // Playback events — extract position
-      const playbackInfo = (payload.PlaybackInfo as Record<string, unknown>) || {};
-      const positionTicks = safeNumber(
-        playbackInfo.PositionTicks ?? payload.PlaybackPositionTicks ?? 0
-      );
-
-      if (runtimeTicks > 0) {
-        percentageWatched = ticksToPercentage(positionTicks, runtimeTicks);
+      // Playback events — use position ticks
+      if (fields.runtimeTicks > 0) {
+        percentageWatched = ticksToPercentage(fields.positionTicks, fields.runtimeTicks);
       }
-
-      // For progress events, estimate a 30-second chunk
+      // For progress events, estimate a 30-second chunk of time spent
       timeSpentSeconds = 30;
     }
+
+    // Resolve season/episode for TV
+    const seasonNumber = mediaType === 'tv' && fields.seasonNumber > 0 ? fields.seasonNumber : null;
+    const episodeNumber =
+      mediaType === 'tv' && fields.episodeNumber > 0 ? fields.episodeNumber : null;
 
     // 8. Sync to local database
     const result = await syncFromJellyfin({
       userId: config.user_id,
       tmdbId,
-      mediaType: mediaInfo.mediaType,
-      seasonNumber: mediaInfo.seasonNumber,
-      episodeNumber: mediaInfo.episodeNumber,
+      mediaType,
+      seasonNumber,
+      episodeNumber,
       percentageWatched,
       timeSpent: timeSpentSeconds,
     });
 
-    logger.error('[JELLYFIN WEBHOOK] Sync result:', result);
+    logger.debug('[Jellyfin webhook] Sync result:', {
+      itemName: fields.itemName,
+      tmdbId,
+      mediaType,
+      seasonNumber,
+      episodeNumber,
+      percentageWatched: Math.round(percentageWatched * 100) / 100,
+      result: result.action,
+    });
 
     return NextResponse.json({
       success: result.success,
@@ -184,9 +322,8 @@ export async function POST(req: NextRequest) {
       message: result.message,
     });
   } catch (error) {
-    logger.error('[JELLYFIN WEBHOOK] Error:', {
+    logger.error('[Jellyfin webhook] Unhandled error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
     });
     // Return 200 even on errors to prevent Jellyfin from retrying
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 200 });

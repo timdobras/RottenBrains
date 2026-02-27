@@ -14,13 +14,24 @@
 import { JELLYFIN_SYNC } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import { createServiceClient } from '@/lib/supabase/serviceClient';
-import { reportPlaybackProgress, markAsPlayed, percentageToTicks } from './client';
-import { resolveJellyfinItemId } from './mapping';
+import {
+  reportPlaybackProgress,
+  markAsPlayed,
+  percentageToTicks,
+  ticksToPercentage,
+  ticksToSeconds,
+  getRecentlyPlayedMovies,
+  getRecentlyPlayedEpisodes,
+  getInProgressItems,
+} from './client';
+import { extractTmdbId, jellyfinTypeToMediaType, resolveJellyfinItemId } from './mapping';
 import type {
   JellyfinConfig,
+  JellyfinItem,
   SyncToJellyfinParams,
   SyncFromJellyfinParams,
   SyncResult,
+  PollResult,
 } from './types';
 
 // ============================================================
@@ -257,9 +268,9 @@ export async function syncToJellyfin(params: SyncToJellyfinParams): Promise<Sync
 // ============================================================
 
 /**
- * Sync a watch event from Jellyfin into RottenBrains.
+ * Sync a single watch event from Jellyfin into RottenBrains.
  *
- * Called by the webhook endpoint. Inserts into watch_history with
+ * Called by the webhook endpoint or poll logic. Inserts into watch_history with
  * sync_source='jellyfin' so it won't be synced back to Jellyfin.
  */
 export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<SyncResult> {
@@ -341,5 +352,246 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
       episodeNumber
     );
     return { success: false, action: 'error', message: errorMsg };
+  }
+}
+
+// ============================================================
+// Poll: Jellyfin → App (alternative to webhooks)
+// ============================================================
+
+/**
+ * Process a single Jellyfin item and sync it to the app's watch_history.
+ * Extracts TMDB ID from ProviderIds and calculates watch percentage.
+ * Returns 'synced', 'skipped', or 'error'.
+ */
+async function processJellyfinItem(
+  config: JellyfinConfig,
+  item: JellyfinItem
+): Promise<{ action: 'synced' | 'skipped' | 'error'; error?: string }> {
+  try {
+    // Extract TMDB ID
+    const tmdbId = extractTmdbId(item.ProviderIds);
+    const mediaType = jellyfinTypeToMediaType(item.Type);
+
+    // Extract season/episode for TV episodes
+    let seasonNumber: number | null = null;
+    let episodeNumber: number | null = null;
+    let resolvedTmdbId = tmdbId;
+
+    if (item.Type === 'Episode') {
+      seasonNumber = item.ParentIndexNumber ?? null;
+      episodeNumber = item.IndexNumber ?? null;
+
+      // For episodes, we need the series TMDB ID, not the episode's.
+      // Our watch_history stores the series TMDB ID + season/episode.
+      if (item.SeriesId) {
+        const seriesPath =
+          `/Users/${config.jellyfin_user_id}/Items/${item.SeriesId}` + `?Fields=ProviderIds`;
+        try {
+          const response = await fetch(`${config.server_url.replace(/\/+$/, '')}${seriesPath}`, {
+            headers: {
+              'X-Emby-Token': config.api_key,
+              Accept: 'application/json',
+            },
+            signal: AbortSignal.timeout(10000),
+          });
+          if (response.ok) {
+            const seriesItem = (await response.json()) as { ProviderIds?: Record<string, string> };
+            const seriesTmdbId = extractTmdbId(
+              seriesItem.ProviderIds as Record<string, string> | undefined
+            );
+            if (seriesTmdbId) {
+              resolvedTmdbId = seriesTmdbId;
+            }
+          }
+        } catch {
+          logger.warn('Failed to fetch series info for episode, using episode TMDB ID');
+        }
+      }
+    }
+
+    if (!resolvedTmdbId) {
+      return { action: 'skipped', error: `No TMDB ID for "${item.Name}"` };
+    }
+
+    if (!mediaType) {
+      return { action: 'skipped', error: `Unknown type "${item.Type}" for "${item.Name}"` };
+    }
+
+    return await syncSingleItemFromPoll(
+      config.user_id,
+      resolvedTmdbId,
+      mediaType,
+      seasonNumber,
+      episodeNumber,
+      item
+    );
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return { action: 'error', error: msg };
+  }
+}
+
+/**
+ * Sync a single resolved item from Jellyfin polling into watch_history.
+ * Compares Jellyfin's percentage with local DB and only updates if Jellyfin is ahead.
+ */
+async function syncSingleItemFromPoll(
+  userId: string,
+  tmdbId: number,
+  mediaType: 'movie' | 'tv',
+  seasonNumber: number | null,
+  episodeNumber: number | null,
+  item: JellyfinItem
+): Promise<{ action: 'synced' | 'skipped' | 'error'; error?: string }> {
+  // Calculate percentage watched from Jellyfin UserData
+  let percentageWatched = 0;
+  let timeSpentSeconds = 0;
+
+  if (item.UserData?.Played) {
+    percentageWatched = 100;
+    timeSpentSeconds = item.RunTimeTicks ? ticksToSeconds(item.RunTimeTicks) : 0;
+  } else if (item.UserData?.PlaybackPositionTicks && item.RunTimeTicks) {
+    percentageWatched = ticksToPercentage(item.UserData.PlaybackPositionTicks, item.RunTimeTicks);
+    timeSpentSeconds = ticksToSeconds(item.UserData.PlaybackPositionTicks);
+  } else if (item.UserData?.PlayedPercentage) {
+    percentageWatched = item.UserData.PlayedPercentage;
+  }
+
+  if (percentageWatched <= 0) {
+    return { action: 'skipped', error: 'No watch progress' };
+  }
+
+  // Check current local state — only sync if Jellyfin has more progress
+  const supabase = createServiceClient();
+  const normalizedSeason = seasonNumber ?? -1;
+  const normalizedEpisode = episodeNumber ?? -1;
+
+  const { data: existing } = await supabase
+    .from('watch_history')
+    .select('percentage_watched')
+    .eq('user_id', userId)
+    .eq('media_type', mediaType)
+    .eq('media_id', tmdbId)
+    .eq('season_number', normalizedSeason)
+    .eq('episode_number', normalizedEpisode)
+    .single();
+
+  const localPercentage = existing ? parseFloat(String(existing.percentage_watched)) : 0;
+
+  // Only sync if Jellyfin is meaningfully ahead (>2% difference to avoid noise)
+  if (percentageWatched <= localPercentage + 2) {
+    return { action: 'skipped', error: 'Local progress is equal or ahead' };
+  }
+
+  // Sync it — use syncFromJellyfin which handles anti-loop and logging
+  const result = await syncFromJellyfin({
+    userId,
+    tmdbId,
+    mediaType,
+    seasonNumber,
+    episodeNumber,
+    percentageWatched,
+    timeSpent: timeSpentSeconds > 0 ? timeSpentSeconds : 30,
+  });
+
+  if (result.success && result.action === 'synced') {
+    return { action: 'synced' };
+  }
+  return { action: result.action === 'error' ? 'error' : 'skipped', error: result.message };
+}
+
+/**
+ * Poll Jellyfin for recently played/in-progress items and sync them to the app.
+ *
+ * This is the primary Jellyfin → App sync mechanism, replacing unreliable webhooks.
+ * Called by the /api/jellyfin/poll endpoint (authenticated via user session).
+ *
+ * Strategy:
+ * 1. Fetch recently completed movies and episodes from Jellyfin
+ * 2. Fetch in-progress (resume) items from Jellyfin
+ * 3. For each item, extract TMDB ID and compare with local watch_history
+ * 4. If Jellyfin has more progress, sync to local DB with sync_source='jellyfin'
+ */
+export async function pollJellyfinWatchHistory(userId: string): Promise<PollResult> {
+  const result: PollResult = {
+    success: true,
+    itemsProcessed: 0,
+    itemsSynced: 0,
+    itemsSkipped: 0,
+    errors: [],
+  };
+
+  try {
+    // 1. Get user's Jellyfin config
+    const config = await getJellyfinConfig(userId);
+    if (!config) {
+      return { ...result, success: true, errors: ['No Jellyfin config or sync disabled'] };
+    }
+
+    // 2. Fetch items from Jellyfin in parallel
+    const [playedMovies, playedEpisodes, inProgressItems] = await Promise.all([
+      getRecentlyPlayedMovies(config, 30),
+      getRecentlyPlayedEpisodes(config, 30),
+      getInProgressItems(config, 30),
+    ]);
+
+    // 3. Deduplicate — an item might appear in both played and in-progress
+    const seen = new Set<string>();
+    const allItems: JellyfinItem[] = [];
+
+    for (const item of [...inProgressItems, ...playedMovies, ...playedEpisodes]) {
+      if (!seen.has(item.Id)) {
+        seen.add(item.Id);
+        allItems.push(item);
+      }
+    }
+
+    logger.debug('Jellyfin poll: fetched items', {
+      userId,
+      playedMovies: playedMovies.length,
+      playedEpisodes: playedEpisodes.length,
+      inProgress: inProgressItems.length,
+      deduplicated: allItems.length,
+    });
+
+    // 4. Process each item
+    for (const item of allItems) {
+      result.itemsProcessed++;
+
+      const itemResult = await processJellyfinItem(config, item);
+
+      switch (itemResult.action) {
+        case 'synced':
+          result.itemsSynced++;
+          break;
+        case 'skipped':
+          result.itemsSkipped++;
+          break;
+        case 'error':
+          result.errors.push(itemResult.error || `Error processing "${item.Name}"`);
+          break;
+      }
+    }
+
+    logger.debug('Jellyfin poll complete:', {
+      userId,
+      processed: result.itemsProcessed,
+      synced: result.itemsSynced,
+      skipped: result.itemsSkipped,
+      errors: result.errors.length,
+    });
+
+    return result;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Jellyfin poll failed:', { userId, error: errorMsg });
+    return {
+      success: false,
+      itemsProcessed: result.itemsProcessed,
+      itemsSynced: result.itemsSynced,
+      itemsSkipped: result.itemsSkipped,
+      errors: [...result.errors, errorMsg],
+    };
   }
 }

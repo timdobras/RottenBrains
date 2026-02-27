@@ -158,6 +158,14 @@ export interface SyncResult {
   message: string;
 }
 
+export interface PollResult {
+  success: boolean;
+  itemsProcessed: number;
+  itemsSynced: number;
+  itemsSkipped: number;
+  errors: string[];
+}
+
 // ============================================================
 // Validation/config types
 // ============================================================

@@ -257,3 +257,86 @@ export function ticksToPercentage(positionTicks: number, runtimeTicks: number): 
   if (runtimeTicks <= 0) return 0;
   return Math.min((positionTicks / runtimeTicks) * 100, 100);
 }
+
+/**
+ * Fetch recently played movies from a Jellyfin server.
+ * Returns items sorted by DatePlayed descending with ProviderIds and UserData.
+ */
+export async function getRecentlyPlayedMovies(
+  config: JellyfinConfig,
+  limit: number = 50
+): Promise<JellyfinItem[]> {
+  try {
+    const path =
+      `/Users/${config.jellyfin_user_id}/Items` +
+      `?SortBy=DatePlayed` +
+      `&SortOrder=Descending` +
+      `&Filters=IsPlayed` +
+      `&IncludeItemTypes=Movie` +
+      `&Recursive=true` +
+      `&Fields=ProviderIds,UserData` +
+      `&Limit=${limit}`;
+
+    const response = await jellyfinFetch<JellyfinItemsResponse>(config, path);
+    return response.Items || [];
+  } catch (error) {
+    logger.warn('Failed to fetch recently played movies from Jellyfin:', {
+      error: error instanceof Error ? error.message : 'Unknown',
+    });
+    return [];
+  }
+}
+
+/**
+ * Fetch recently played episodes from a Jellyfin server.
+ * Returns items sorted by DatePlayed descending with ProviderIds and UserData.
+ */
+export async function getRecentlyPlayedEpisodes(
+  config: JellyfinConfig,
+  limit: number = 50
+): Promise<JellyfinItem[]> {
+  try {
+    const path =
+      `/Users/${config.jellyfin_user_id}/Items` +
+      `?SortBy=DatePlayed` +
+      `&SortOrder=Descending` +
+      `&Filters=IsPlayed` +
+      `&IncludeItemTypes=Episode` +
+      `&Recursive=true` +
+      `&Fields=ProviderIds,UserData` +
+      `&Limit=${limit}`;
+
+    const response = await jellyfinFetch<JellyfinItemsResponse>(config, path);
+    return response.Items || [];
+  } catch (error) {
+    logger.warn('Failed to fetch recently played episodes from Jellyfin:', {
+      error: error instanceof Error ? error.message : 'Unknown',
+    });
+    return [];
+  }
+}
+
+/**
+ * Fetch items currently in-progress (partially watched) from a Jellyfin server.
+ * Returns items sorted by DatePlayed descending with resume data.
+ */
+export async function getInProgressItems(
+  config: JellyfinConfig,
+  limit: number = 50
+): Promise<JellyfinItem[]> {
+  try {
+    const path =
+      `/Users/${config.jellyfin_user_id}/Items/Resume` +
+      `?Fields=ProviderIds,UserData` +
+      `&Limit=${limit}` +
+      `&MediaTypes=Video`;
+
+    const response = await jellyfinFetch<JellyfinItemsResponse>(config, path);
+    return response.Items || [];
+  } catch (error) {
+    logger.warn('Failed to fetch in-progress items from Jellyfin:', {
+      error: error instanceof Error ? error.message : 'Unknown',
+    });
+    return [];
+  }
+}
