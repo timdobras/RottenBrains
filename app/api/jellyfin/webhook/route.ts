@@ -31,16 +31,27 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Parse the webhook payload
-    const payload: JellyfinWebhookPayload = await req.json();
+    const rawBody = await req.text();
+    logger.error('[JELLYFIN WEBHOOK] Raw payload received:', rawBody);
+
+    let payload: JellyfinWebhookPayload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      logger.error('[JELLYFIN WEBHOOK] Failed to parse JSON payload');
+      return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    }
 
     // Determine event type — different webhook plugin versions use different field names
     const eventType = payload.NotificationType || payload.Event;
 
-    logger.debug('Jellyfin webhook received:', {
+    logger.error('[JELLYFIN WEBHOOK] Parsed event:', {
       userId: config.user_id,
       eventType,
       itemName: payload.Item?.Name,
       itemType: payload.Item?.Type,
+      providerIds: payload.Item?.ProviderIds,
+      allKeys: Object.keys(payload),
     });
 
     // 3. Only process playback and mark-played events
