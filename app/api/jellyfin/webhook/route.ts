@@ -39,16 +39,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // 2. Parse the webhook payload
+    // 2. Parse the webhook payload — accept JSON or form-encoded
     const rawBody = await req.text();
-    logger.error('[JELLYFIN WEBHOOK] Raw payload received:', rawBody);
+    logger.error(
+      '[JELLYFIN WEBHOOK] Raw payload received (first 2000 chars):',
+      rawBody.slice(0, 2000)
+    );
 
     let payload: Record<string, unknown>;
     try {
+      // Try JSON first
       payload = JSON.parse(rawBody);
     } catch {
-      logger.error('[JELLYFIN WEBHOOK] Failed to parse JSON payload');
-      return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+      // If JSON fails, try to parse as form-encoded or just log and accept
+      logger.error('[JELLYFIN WEBHOOK] Not valid JSON, trying to extract data from raw body');
+      try {
+        // Some webhook plugins send form-encoded data
+        const params = new URLSearchParams(rawBody);
+        const obj: Record<string, unknown> = {};
+        params.forEach((value, key) => {
+          try {
+            obj[key] = JSON.parse(value);
+          } catch {
+            obj[key] = value;
+          }
+        });
+        payload = obj;
+      } catch {
+        logger.error('[JELLYFIN WEBHOOK] Could not parse payload in any format');
+        return NextResponse.json(
+          { success: false, error: 'Could not parse payload' },
+          { status: 400 }
+        );
+      }
     }
 
     // 3. Extract fields — handle both raw Jellyfin API format and Handlebars template format
