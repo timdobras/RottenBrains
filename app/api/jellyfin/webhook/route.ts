@@ -77,6 +77,11 @@ function extractPayloadFields(payload: Record<string, unknown>) {
     playbackInfo.PositionTicks ?? payload.PlaybackPositionTicks ?? 0
   );
 
+  // PlayedToCompletion — Jellyfin sets this on PlaybackStop when the user
+  // watched the item to the end. When true, PlaybackPositionTicks is reset to 0.
+  const playedToCompletion =
+    payload.PlayedToCompletion === true || payload.PlayedToCompletion === 'True';
+
   // Provider IDs
   const providers = extractProviderIds(payload);
 
@@ -90,6 +95,7 @@ function extractPayloadFields(payload: Record<string, unknown>) {
     seriesId,
     seriesName,
     positionTicks,
+    playedToCompletion,
     providers,
   };
 }
@@ -278,16 +284,20 @@ export async function POST(req: NextRequest) {
     let percentageWatched = 0;
     let timeSpentSeconds = 0;
 
-    if (fields.eventType === 'MarkPlayed' || fields.eventType === 'ItemMarkedPlayed') {
+    if (
+      fields.eventType === 'MarkPlayed' ||
+      fields.eventType === 'ItemMarkedPlayed' ||
+      fields.playedToCompletion
+    ) {
+      // Item was marked as played or user watched to completion
       percentageWatched = 100;
       timeSpentSeconds = fields.runtimeTicks > 0 ? ticksToSeconds(fields.runtimeTicks) : 0;
     } else {
-      // Playback events — use position ticks
-      if (fields.runtimeTicks > 0) {
+      // Playback events — use position ticks for partial progress
+      if (fields.runtimeTicks > 0 && fields.positionTicks > 0) {
         percentageWatched = ticksToPercentage(fields.positionTicks, fields.runtimeTicks);
       }
-      // For progress events, estimate a 30-second chunk of time spent
-      timeSpentSeconds = 30;
+      timeSpentSeconds = fields.positionTicks > 0 ? ticksToSeconds(fields.positionTicks) : 0;
     }
 
     // Resolve season/episode for TV
