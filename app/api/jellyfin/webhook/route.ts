@@ -281,6 +281,17 @@ export async function POST(req: NextRequest) {
     }
 
     // 7. Calculate progress
+    // DEBUG: Log raw values to diagnose percentage calculation
+    logger.error('[Jellyfin webhook] DEBUG progress values:', {
+      eventType: fields.eventType,
+      positionTicks: fields.positionTicks,
+      runtimeTicks: fields.runtimeTicks,
+      playedToCompletion: fields.playedToCompletion,
+      rawPlaybackPositionTicks: payload.PlaybackPositionTicks,
+      rawPlayedToCompletion: payload.PlayedToCompletion,
+      rawRunTimeTicks: payload.RunTimeTicks,
+    });
+
     let percentageWatched = 0;
     let timeSpentSeconds = 0;
 
@@ -299,6 +310,11 @@ export async function POST(req: NextRequest) {
       }
       timeSpentSeconds = fields.positionTicks > 0 ? ticksToSeconds(fields.positionTicks) : 0;
     }
+
+    logger.error('[Jellyfin webhook] DEBUG calculated:', {
+      percentageWatched,
+      timeSpentSeconds,
+    });
 
     // Resolve season/episode for TV
     const seasonNumber = mediaType === 'tv' && fields.seasonNumber > 0 ? fields.seasonNumber : null;
