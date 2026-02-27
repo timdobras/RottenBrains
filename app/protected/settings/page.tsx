@@ -1,8 +1,9 @@
 import React from 'react';
 import NavThemeSwitch from '@/components/features/navigation/NavThemeSwitch';
 import DefaultSettingsForm from '@/components/features/settings/DefaultSettingsForm';
-import UserSettingsForm from '@/components/features/settings/UserSettingsForm';
 import IPAddressManager from '@/components/features/settings/IPAddressManager';
+import JellyfinSettings from '@/components/features/settings/JellyfinSettings';
+import UserSettingsForm from '@/components/features/settings/UserSettingsForm';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 
 const page = async () => {
@@ -15,6 +16,8 @@ const page = async () => {
       <DefaultSettingsForm></DefaultSettingsForm>
       <h1 className="my-4 text-lg font-semibold">Profile</h1>
       <UserSettingsForm user={user}></UserSettingsForm>
+      <h1 className="my-4 text-lg font-semibold">Jellyfin Integration</h1>
+      <JellyfinSettings userId={user?.id} />
       <h1 className="my-4 text-lg font-semibold">VPN & Security</h1>
       <IPAddressManager userId={user?.id} />
     </div>

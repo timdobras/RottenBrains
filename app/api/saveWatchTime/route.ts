@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { upsertWatchHistory } from '@/lib/supabase/serverQueries';
-import { createClient } from '@/lib/supabase/server';
+import { syncToJellyfin } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
+import { createClient } from '@/lib/supabase/server';
+import { upsertWatchHistory } from '@/lib/supabase/serverQueries';
 
 interface WatchTimeData {
   time_spent: number;
@@ -101,6 +102,25 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       media_id: data.media_id,
       media_type: data.media_type,
+    });
+
+    // Fire-and-forget: sync to Jellyfin if the user has it configured.
+    // This runs asynchronously and does not block the API response.
+    // Only sync updates originating from the app (not from Jellyfin webhooks).
+    const totalPercentage = result.data?.percentage_watched
+      ? parseFloat(result.data.percentage_watched)
+      : parseFloat(data.percentage_watched);
+
+    syncToJellyfin({
+      userId: user.id,
+      mediaType: data.media_type,
+      mediaId: media_id,
+      seasonNumber: season_number,
+      episodeNumber: episode_number,
+      percentageWatched: totalPercentage,
+      timeSpent: data.time_spent,
+    }).catch((err) => {
+      logger.warn('Jellyfin sync failed (non-blocking):', err);
     });
 
     return NextResponse.json({

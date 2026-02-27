@@ -119,7 +119,8 @@ export const upsertWatchHistory = async (
   new_time_spent: number,
   new_percentage_watched: string,
   season_number: number | null,
-  episode_number: number | null
+  episode_number: number | null,
+  sync_source: string = 'app'
 ) => {
   try {
     // Validate input using Zod schema
@@ -150,6 +151,7 @@ export const upsertWatchHistory = async (
       p_new_percentage: newPercentageFloat,
       p_season_number: normalizedSeasonNumber,
       p_episode_number: normalizedEpisodeNumber,
+      p_sync_source: sync_source,
     });
 
     if (error) {

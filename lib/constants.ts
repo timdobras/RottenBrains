@@ -162,6 +162,21 @@ export const ANIMATION = {
 } as const;
 
 /**
+ * Jellyfin sync constants
+ */
+export const JELLYFIN_SYNC = {
+  /** Percentage threshold at which an item is marked as "played" in Jellyfin */
+  MARK_PLAYED_THRESHOLD: 90,
+  /** Seconds within which a reverse-direction sync is considered a loop and skipped */
+  DEDUP_WINDOW_SECONDS: 60,
+  /** Jellyfin ticks per second (1 second = 10,000,000 ticks) */
+  TICKS_PER_SECOND: 10_000_000,
+  /** Default estimated runtime in minutes when TMDB data is unavailable */
+  DEFAULT_MOVIE_RUNTIME: 120,
+  DEFAULT_EPISODE_RUNTIME: 45,
+} as const;
+
+/**
  * Breakpoints (matches Tailwind defaults)
  */
 export const BREAKPOINTS = {
