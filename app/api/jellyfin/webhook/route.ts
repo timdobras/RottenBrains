@@ -6,9 +6,57 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
+// ============================================================
+// Throttle: only write PlaybackProgress to DB every N seconds
+// ============================================================
+
+/** Key: "userId:mediaType:mediaId:season:episode" → last write timestamp */
+const lastWriteTimestamps = new Map<string, number>();
+
+/** Minimum interval between DB writes for PlaybackProgress events (ms) */
+const PROGRESS_THROTTLE_MS = 30_000; // 30 seconds
+
+function makeThrottleKey(
+  userId: string,
+  mediaType: string,
+  mediaId: number,
+  season: number | null,
+  episode: number | null
+): string {
+  return `${userId}:${mediaType}:${mediaId}:${season ?? -1}:${episode ?? -1}`;
+}
+
+/**
+ * Check if a PlaybackProgress event should be throttled.
+ * Returns true if we should SKIP writing to the DB.
+ */
+function shouldThrottleProgress(key: string): boolean {
+  const now = Date.now();
+  const lastWrite = lastWriteTimestamps.get(key);
+  if (lastWrite && now - lastWrite < PROGRESS_THROTTLE_MS) {
+    return true; // Too soon, skip
+  }
+  return false;
+}
+
+function recordWrite(key: string): void {
+  lastWriteTimestamps.set(key, Date.now());
+
+  // Prune old entries to prevent memory leak (keep last 200)
+  if (lastWriteTimestamps.size > 200) {
+    const cutoff = Date.now() - PROGRESS_THROTTLE_MS * 2;
+    for (const [k, ts] of lastWriteTimestamps) {
+      if (ts < cutoff) lastWriteTimestamps.delete(k);
+    }
+  }
+}
+
+// ============================================================
+// Payload parsing helpers
+// ============================================================
+
 /**
  * Safely parse a value that might be a number, a string-encoded number, or empty.
- * Jellyfin webhook templates wrap numbers in quotes, so "12345" → 12345, "" → 0.
  */
 function safeNumber(value: unknown): number {
   if (value === null || value === undefined || value === '') return 0;
@@ -18,21 +66,13 @@ function safeNumber(value: unknown): number {
 
 /**
  * Extract provider IDs from a Jellyfin webhook payload.
- *
- * With SendAllProperties=true, Jellyfin sends flat keys like:
- *   Provider_tmdb, Provider_imdb, Provider_tvdb, Provider_tvrage
- *
- * With the nested format (Handlebars templates), they come as:
- *   Item.ProviderIds.Tmdb, Item.ProviderIds.Imdb, etc.
- *
- * This function handles both formats.
+ * Handles both nested (Item.ProviderIds.Tmdb) and flat (Provider_tmdb) formats.
  */
 function extractProviderIds(payload: Record<string, unknown>): {
   tmdb: string;
   imdb: string;
   tvdb: string;
 } {
-  // Try nested format first
   const item = payload.Item as Record<string, unknown> | undefined;
   const nestedProviders = item?.ProviderIds as Record<string, string> | undefined;
 
@@ -44,7 +84,6 @@ function extractProviderIds(payload: Record<string, unknown>): {
     };
   }
 
-  // Flat format: Provider_tmdb, Provider_imdb, Provider_tvdb
   return {
     tmdb: (payload.Provider_tmdb as string) || '',
     imdb: (payload.Provider_imdb as string) || '',
@@ -59,10 +98,8 @@ function extractProviderIds(payload: Record<string, unknown>): {
 function extractPayloadFields(payload: Record<string, unknown>) {
   const item = payload.Item as Record<string, unknown> | undefined;
 
-  // Event type
   const eventType = (payload.NotificationType as string) || (payload.Event as string) || '';
 
-  // Item fields — try nested first, fall back to flat
   const itemName = (item?.Name as string) || (payload.Name as string) || '';
   const itemType = (item?.Type as string) || (payload.ItemType as string) || '';
   const runtimeTicks = safeNumber(item?.RunTimeTicks ?? payload.RunTimeTicks);
@@ -71,18 +108,14 @@ function extractPayloadFields(payload: Record<string, unknown>) {
   const seriesId = (item?.SeriesId as string) || (payload.SeriesId as string) || '';
   const seriesName = (item?.SeriesName as string) || (payload.SeriesName as string) || '';
 
-  // Playback position — try nested PlaybackInfo, then flat
   const playbackInfo = (payload.PlaybackInfo as Record<string, unknown>) || {};
   const positionTicks = safeNumber(
     playbackInfo.PositionTicks ?? payload.PlaybackPositionTicks ?? 0
   );
 
-  // PlayedToCompletion — Jellyfin sets this on PlaybackStop when the user
-  // watched the item to the end. When true, PlaybackPositionTicks is reset to 0.
   const playedToCompletion =
     payload.PlayedToCompletion === true || payload.PlayedToCompletion === 'True';
 
-  // Provider IDs
   const providers = extractProviderIds(payload);
 
   return {
@@ -102,7 +135,6 @@ function extractPayloadFields(payload: Record<string, unknown>) {
 
 /**
  * Look up a Jellyfin series by its internal ID to get the series' TMDB provider ID.
- * Used when the webhook payload for an episode doesn't include a TMDB ID directly.
  */
 async function lookupSeriesTmdbId(config: JellyfinConfig, seriesId: string): Promise<number | 0> {
   try {
@@ -153,6 +185,10 @@ function resolveMediaType(itemType: string): 'movie' | 'tv' | null {
   }
 }
 
+// ============================================================
+// Webhook handler
+// ============================================================
+
 /**
  * POST /api/jellyfin/webhook?token={webhook_secret}
  *
@@ -160,12 +196,11 @@ function resolveMediaType(itemType: string): 'movie' | 'tv' | null {
  * Not authenticated via Supabase — uses a per-user secret token instead.
  *
  * Handles event types:
- * - PlaybackStart / PlaybackProgress / PlaybackStop → update watch progress
- * - MarkPlayed → mark item as fully watched
+ * - PlaybackStart / PlaybackStop → always written to DB
+ * - PlaybackProgress → throttled to one DB write per 30 seconds per item
+ * - MarkPlayed → always written to DB as 100%
  *
- * Supports two payload formats:
- * - Nested (Handlebars template): Item.Name, Item.Type, Item.ProviderIds.Tmdb
- * - Flat (SendAllProperties=true): Name, ItemType, Provider_tmdb, Provider_imdb
+ * Supports both nested and flat payload formats.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -187,7 +222,6 @@ export async function POST(req: NextRequest) {
     try {
       payload = JSON.parse(rawBody);
     } catch {
-      // Try form-encoded as fallback
       try {
         const params = new URLSearchParams(rawBody);
         const obj: Record<string, unknown> = {};
@@ -211,14 +245,6 @@ export async function POST(req: NextRequest) {
     // 3. Extract fields — handles both nested and flat formats
     const fields = extractPayloadFields(payload);
 
-    logger.debug('[Jellyfin webhook] Received event:', {
-      userId: config.user_id,
-      eventType: fields.eventType,
-      itemName: fields.itemName,
-      itemType: fields.itemType,
-      providers: fields.providers,
-    });
-
     // 4. Only process playback and mark-played events
     const processableEvents = [
       'PlaybackStart',
@@ -238,26 +264,15 @@ export async function POST(req: NextRequest) {
     // 5. Resolve TMDB ID
     let tmdbId = safeNumber(fields.providers.tmdb);
 
-    // If no direct TMDB ID, try to resolve it
     if (!tmdbId) {
-      // For episodes: look up the series in Jellyfin to get the series' TMDB ID
       if (fields.itemType === 'Episode' && fields.seriesId) {
         tmdbId = await lookupSeriesTmdbId(config, fields.seriesId);
-        if (tmdbId) {
-          logger.debug('[Jellyfin webhook] Resolved series TMDB ID from Jellyfin:', {
-            seriesId: fields.seriesId,
-            seriesName: fields.seriesName,
-            tmdbId,
-          });
-        }
       }
 
-      // Still no TMDB ID — skip
       if (!tmdbId) {
         logger.debug('[Jellyfin webhook] No TMDB ID available, skipping', {
           itemName: fields.itemName,
           itemType: fields.itemType,
-          providers: fields.providers,
         });
         return NextResponse.json({
           success: true,
@@ -270,9 +285,6 @@ export async function POST(req: NextRequest) {
     // 6. Determine media type
     const mediaType = resolveMediaType(fields.itemType);
     if (!mediaType) {
-      logger.debug('[Jellyfin webhook] Unknown item type, skipping', {
-        itemType: fields.itemType,
-      });
       return NextResponse.json({
         success: true,
         action: 'skipped',
@@ -280,18 +292,25 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 7. Calculate progress
-    // DEBUG: Log raw values to diagnose percentage calculation
-    logger.error('[Jellyfin webhook] DEBUG progress values:', {
-      eventType: fields.eventType,
-      positionTicks: fields.positionTicks,
-      runtimeTicks: fields.runtimeTicks,
-      playedToCompletion: fields.playedToCompletion,
-      rawPlaybackPositionTicks: payload.PlaybackPositionTicks,
-      rawPlayedToCompletion: payload.PlayedToCompletion,
-      rawRunTimeTicks: payload.RunTimeTicks,
-    });
+    // 7. Resolve season/episode for TV
+    const seasonNumber = mediaType === 'tv' && fields.seasonNumber > 0 ? fields.seasonNumber : null;
+    const episodeNumber =
+      mediaType === 'tv' && fields.episodeNumber > 0 ? fields.episodeNumber : null;
 
+    // 8. Throttle PlaybackProgress — only write every 30 seconds per item
+    if (fields.eventType === 'PlaybackProgress') {
+      const key = makeThrottleKey(config.user_id, mediaType, tmdbId, seasonNumber, episodeNumber);
+      if (shouldThrottleProgress(key)) {
+        return NextResponse.json({
+          success: true,
+          action: 'throttled',
+          reason: 'Progress update throttled',
+        });
+      }
+      // Will record the write after successful sync below
+    }
+
+    // 9. Calculate progress
     let percentageWatched = 0;
     let timeSpentSeconds = 0;
 
@@ -300,28 +319,16 @@ export async function POST(req: NextRequest) {
       fields.eventType === 'ItemMarkedPlayed' ||
       fields.playedToCompletion
     ) {
-      // Item was marked as played or user watched to completion
       percentageWatched = 100;
       timeSpentSeconds = fields.runtimeTicks > 0 ? ticksToSeconds(fields.runtimeTicks) : 0;
     } else {
-      // Playback events — use position ticks for partial progress
       if (fields.runtimeTicks > 0 && fields.positionTicks > 0) {
         percentageWatched = ticksToPercentage(fields.positionTicks, fields.runtimeTicks);
       }
       timeSpentSeconds = fields.positionTicks > 0 ? ticksToSeconds(fields.positionTicks) : 0;
     }
 
-    logger.error('[Jellyfin webhook] DEBUG calculated:', {
-      percentageWatched,
-      timeSpentSeconds,
-    });
-
-    // Resolve season/episode for TV
-    const seasonNumber = mediaType === 'tv' && fields.seasonNumber > 0 ? fields.seasonNumber : null;
-    const episodeNumber =
-      mediaType === 'tv' && fields.episodeNumber > 0 ? fields.episodeNumber : null;
-
-    // 8. Sync to local database
+    // 10. Sync to local database
     const result = await syncFromJellyfin({
       userId: config.user_id,
       tmdbId,
@@ -332,13 +339,17 @@ export async function POST(req: NextRequest) {
       timeSpent: timeSpentSeconds,
     });
 
-    logger.debug('[Jellyfin webhook] Sync result:', {
-      itemName: fields.itemName,
+    // Record successful write for throttling
+    if (result.success && result.action === 'synced') {
+      const key = makeThrottleKey(config.user_id, mediaType, tmdbId, seasonNumber, episodeNumber);
+      recordWrite(key);
+    }
+
+    logger.debug('[Jellyfin webhook] Sync:', {
+      item: fields.itemName,
       tmdbId,
-      mediaType,
-      seasonNumber,
-      episodeNumber,
-      percentageWatched: Math.round(percentageWatched * 100) / 100,
+      event: fields.eventType,
+      pct: Math.round(percentageWatched * 10) / 10,
       result: result.action,
     });
 
