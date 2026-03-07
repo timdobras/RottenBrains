@@ -17,9 +17,18 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {
-        // Service worker registration failed silently
-      });
+      if (process.env.NODE_ENV === 'development') {
+        // In development, unregister any existing SW to prevent stale cache issues
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister();
+          }
+        });
+      } else {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+          // Service worker registration failed silently
+        });
+      }
     }
   }, []);
 

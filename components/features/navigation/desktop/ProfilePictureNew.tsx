@@ -28,8 +28,13 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
   const { theme, setTheme } = useTheme();
 
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const pathname = usePathname();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setOpen(false);
@@ -53,14 +58,32 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
     else setTheme('light');
   };
 
-  const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
-  const themeLabel = theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System';
+  // Only resolve theme-dependent values after mount to avoid hydration mismatch
+  const ThemeIcon = !mounted
+    ? Monitor
+    : theme === 'light'
+      ? Sun
+      : theme === 'dark'
+        ? Moon
+        : Monitor;
+  const themeLabel = !mounted
+    ? 'System'
+    : theme === 'light'
+      ? 'Light'
+      : theme === 'dark'
+        ? 'Dark'
+        : 'System';
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <button className="flex h-10 flex-shrink-0 items-center gap-3 rounded-full bg-foreground/5 py-1 pl-5 pr-1 outline-none transition-colors hover:bg-foreground/10">
-          <p className="text-sm font-medium leading-snug tracking-tight">{user.name}</p>
+        <button
+          suppressHydrationWarning
+          className="flex h-10 flex-shrink-0 items-center gap-3 rounded-full bg-foreground/5 py-1 pl-5 pr-1 outline-none transition-colors hover:bg-foreground/10"
+        >
+          <p suppressHydrationWarning className="text-sm font-medium leading-snug tracking-tight">
+            {user.name}
+          </p>
           <img
             src={user.image_url}
             alt="User Avatar"

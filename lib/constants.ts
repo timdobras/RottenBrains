@@ -133,6 +133,8 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   EXPLORE: '/protected/explore',
+  DISCOVER_MOVIES: '/protected/explore?type=movie',
+  DISCOVER_TV: '/protected/explore?type=tv',
   WATCH_HISTORY: '/protected/watch-history',
   PROFILE: '/protected/profile',
   WATCH_MOVIE: (movieId: number) => `/protected/watch/movie/${movieId}`,

@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
@@ -7,8 +8,15 @@ import { SearchIcon } from '@/components/ui/Icon';
 import { useUser } from '@/hooks/UserContext';
 import { cn } from '@/lib/utils';
 import NotificationButton from '@/components/features/notifications/NotificationButton';
-import ProfilePictureNew from '@/components/features/navigation/desktop/ProfilePictureNew';
 import SearchModal from '@/components/features/navigation/mobile/SearchModal';
+
+const ProfilePictureNew = dynamic(
+  () => import('@/components/features/navigation/desktop/ProfilePictureNew'),
+  {
+    ssr: false,
+    loading: () => <div className="h-10 w-24 animate-pulse rounded-full bg-foreground/10" />,
+  }
+);
 
 const NAV_LINKS = [
   { label: 'Movies', href: '/protected/explore?type=movie' },
@@ -38,7 +46,7 @@ export default function Navbar() {
             : 'bg-transparent'
         )}
       >
-        <div className="flex h-full w-full max-w-screen-2xl items-center justify-between">
+        <div className="flex h-full w-full items-center justify-between">
           {/* Left: Logo + Nav links */}
           <div className="flex items-center gap-4 md:gap-8">
             <Link href="/">

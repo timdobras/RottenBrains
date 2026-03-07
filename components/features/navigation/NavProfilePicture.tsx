@@ -28,8 +28,13 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
   const { theme, setTheme } = useTheme();
 
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const pathname = usePathname();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setOpen(false);
@@ -37,6 +42,20 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
 
   if (!user) {
     return <div className={`aspect-square ${imageSize}`}></div>;
+  }
+
+  // Render a static placeholder during SSR / before hydration so that
+  // browser extensions that rewrite DOM cannot cause a mismatch.
+  if (!mounted) {
+    return (
+      <button className="outline-none">
+        <img
+          src={user.image_url}
+          alt="User Avatar"
+          className={`aspect-square rounded-full object-cover transition-opacity hover:opacity-80 ${imageSize}`}
+        />
+      </button>
+    );
   }
 
   const handleSignOut = async () => {

@@ -1,10 +1,15 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function NavThemeSwitch() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Cycle through the themes: light → dark → system → light …
   const toggleTheme = () => {
@@ -25,6 +30,9 @@ export default function NavThemeSwitch() {
     return 'Change theme';
   };
 
+  // Use a stable value during SSR to avoid hydration mismatch
+  const currentTheme = mounted ? theme : undefined;
+
   return (
     <button
       onClick={toggleTheme}
@@ -32,12 +40,14 @@ export default function NavThemeSwitch() {
       aria-label="Toggle theme"
     >
       <div className="flex items-center gap-2">
-        <img
-          src={`/assets/icons/${theme}-mode.svg`}
-          alt={`${theme} mode icon`}
-          className="invert-on-dark"
-        />
-        <p>{getLabel(theme)}</p>
+        {mounted && (
+          <img
+            src={`/assets/icons/${currentTheme}-mode.svg`}
+            alt={`${currentTheme} mode icon`}
+            className="invert-on-dark"
+          />
+        )}
+        <p>{getLabel(currentTheme)}</p>
       </div>
     </button>
   );

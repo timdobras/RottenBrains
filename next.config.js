@@ -13,34 +13,32 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  // experimental: {
-  //   optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
-  // },
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'image.tmdb.org',
-        pathname: '**/*', // Allows all paths
+        pathname: '**/*',
       },
       {
         protocol: 'https',
         hostname: 'ui-avatars.com',
-        pathname: '**/*', // Allows all paths
+        pathname: '**/*',
       },
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
-        pathname: '**/*', // Allows all paths
+        pathname: '**/*',
       },
       {
         protocol: 'https',
         hostname: 'ketxnamtpbvfvblowfoo.supabase.co',
-        pathname: '**/*', // Allows all paths
+        pathname: '**/*',
       },
     ],
-    dangerouslyAllowSVG: true, // Enable SVG support
+    dangerouslyAllowSVG: true,
   },
 };
 
-module.exports = withSerwist(nextConfig);
+// Only wrap with Serwist in production to avoid Turbopack/webpack conflicts in dev
+module.exports = process.env.NODE_ENV === 'production' ? withSerwist(nextConfig) : nextConfig;

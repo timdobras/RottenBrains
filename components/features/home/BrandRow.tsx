@@ -19,7 +19,7 @@ export default function BrandRow({ title, brands, type, className }: BrandRowPro
         {brands.map((brand) => (
           <Link
             key={brand.id}
-            href={`/protected/explore?${type === 'network' ? 'network' : 'company'}=${brand.id}`}
+            href={`/protected/explore?${type === 'network' ? 'with_networks' : 'with_companies'}=${brand.id}${type === 'network' ? '&type=tv' : ''}`}
             className="flex aspect-video w-[45vw] shrink-0 items-center justify-center rounded-xl border border-foreground/10 bg-foreground/5 p-6 md:w-[250px] md:p-8"
           >
             {brand.logo_path ? (

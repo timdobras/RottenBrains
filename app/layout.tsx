@@ -6,7 +6,7 @@ import VideoProvider from '@/hooks/VideoProvider';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import MainContent from '@/components/common/MainContent';
 import Navbar from '@/components/features/navigation/Navbar';
-import '../globals.css';
+import './globals.css';
 import { ThemeProvider } from 'next-themes';
 import PlausibleAnalytics from '@/components/common/PlausibleAnalytics';
 
