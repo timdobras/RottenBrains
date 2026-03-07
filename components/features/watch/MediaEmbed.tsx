@@ -1,22 +1,37 @@
-import Link from 'next/link';
+'use client';
 
-const VideoEmbed = ({}) => {
+import { useVideo } from '@/hooks/VideoProvider';
+
+const VideoEmbed = () => {
+  const { state } = useVideo();
+  const isTheater = state.theaterMode && state.mode === 'full';
+
   return (
-    <section className="fixed left-0 top-0 z-30 w-screen flex-col bg-background md:relative md:z-0 md:w-full md:pb-0 ">
-      {/* Mobile top bar - hidden in landscape */}
-      <div className="flex h-10 w-full items-center gap-4 bg-background px-2 md:hidden">
-        <Link href="/" className="px-2">
-          <img
-            src="/assets/images/logo_text_new.svg"
-            alt="RottenBrains Logo"
-            className="invert-on-dark h-3 w-auto"
-          />
-        </Link>
-      </div>
-      <div className="w-screen bg-black md:w-full ">
+    <section
+      className={`sticky top-14 w-full flex-col md:relative md:top-0 ${
+        isTheater ? 'bg-black' : 'bg-background'
+      }`}
+    >
+      <div
+        className={`w-full bg-black ${isTheater ? 'mx-auto flex items-center justify-center' : ''}`}
+      >
         <div
           id="video-inline-placeholder"
-          className="relative aspect-[16/9] w-full overflow-hidden bg-black bg-foreground/10 md:rounded-[8px] "
+          className={`relative w-full overflow-hidden bg-black ${
+            isTheater
+              ? 'aspect-[16/9] max-h-[calc(100vh-4rem)]'
+              : 'aspect-[16/9] bg-foreground/10 md:rounded-[8px]'
+          }`}
+          style={
+            isTheater
+              ? {
+                  // Cap width so the 16:9 player fits within the available
+                  // viewport height (below the 4rem navbar). Prevents the
+                  // video from overflowing below the fold.
+                  maxWidth: 'calc((100vh - 4rem) * 16 / 9)',
+                }
+              : undefined
+          }
         />
       </div>
     </section>

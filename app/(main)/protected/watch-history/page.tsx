@@ -1,0 +1,15 @@
+import React from 'react';
+import WatchHistoryWithInfiniteScroll from '@/components/features/watch-history/InfiniteScroll';
+
+const page = async () => {
+  // Auth is enforced by middleware — user is guaranteed to exist here
+  return (
+    <div className="mx-auto my-4 mb-12 w-full max-w-7xl px-4 md:px-0">
+      <h1 className="px-4 text-lg font-semibold">History</h1>
+      <div className="my-4 w-full border-b-2 border-foreground/5"></div>
+      <WatchHistoryWithInfiniteScroll></WatchHistoryWithInfiniteScroll>
+    </div>
+  );
+};
+
+export default page;

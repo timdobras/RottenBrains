@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSeasonDetails, getTVDetails, getEpisodeDetails } from '@/lib/tmdb';
 import { getBatchWatchTimes, watchTimeKey } from '@/lib/supabase/serverQueries';
 import MediaCardUI from '../media/MediaCardUI';
+import EpisodeScrollAnchor from './EpisodeScrollAnchor';
 
 type TVShowDetailsProps = {
   tv_show_id: number;
@@ -10,6 +11,8 @@ type TVShowDetailsProps = {
   is_premium: boolean;
   /** Pre-fetched TV details from parent to avoid redundant getTVDetails call */
   tvDetails?: any;
+  /** Currently playing episode number — used to highlight and auto-scroll */
+  current_episode_number?: number;
 };
 
 const TVShowDetails = async ({
@@ -18,6 +21,7 @@ const TVShowDetails = async ({
   user_id,
   is_premium = false,
   tvDetails,
+  current_episode_number,
 }: TVShowDetailsProps) => {
   // Use pre-fetched TV details if available, otherwise fetch.
   // Season details always need fetching since parent doesn't have them.
@@ -72,20 +76,30 @@ const TVShowDetails = async ({
             // Use composite key for batch-fetched watch time
             const key = `tv-${tv_show_id}-${selectedSeason.season_number}-${episode.episode_number}`;
             const watchTime = watchTimeMap.get(key) || 0;
+            const isCurrent = episode.episode_number === current_episode_number;
 
             return (
-              <MediaCardUI
-                key={episode.id}
-                media={episode}
-                media_type="tv"
-                media_id={tv_show_id}
-                season_number={selectedSeason.season_number}
-                episode_number={episode.episode_number}
-                watch_time={watchTime}
-                user_id={user_id}
-                rounded={true}
-                disableTrailer={true}
-              />
+              <div key={episode.id} className="relative">
+                {isCurrent && (
+                  <>
+                    <EpisodeScrollAnchor />
+                    <span className="absolute -top-2 left-3 z-10 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-white">
+                      Now Playing
+                    </span>
+                  </>
+                )}
+                <MediaCardUI
+                  media={episode}
+                  media_type="tv"
+                  media_id={tv_show_id}
+                  season_number={selectedSeason.season_number}
+                  episode_number={episode.episode_number}
+                  watch_time={watchTime}
+                  user_id={user_id}
+                  rounded={true}
+                  disableTrailer={true}
+                />
+              </div>
             );
           })}
         </div>

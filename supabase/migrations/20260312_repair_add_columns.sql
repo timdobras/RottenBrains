@@ -1,0 +1,1 @@
+ALTER TABLE watch_history ADD COLUMN IF NOT EXISTS playback_position INTEGER DEFAULT NULL;

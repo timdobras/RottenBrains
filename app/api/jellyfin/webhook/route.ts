@@ -262,24 +262,31 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Resolve TMDB ID
-    let tmdbId = safeNumber(fields.providers.tmdb);
+    // For episodes, we MUST use the series TMDB ID (not the episode's own TMDB ID)
+    // because watch_history is keyed by (series_tmdb_id, season, episode).
+    // The episode-level TMDB ID is a different number and won't match.
+    let tmdbId = 0;
+
+    if (fields.itemType === 'Episode' && fields.seriesId) {
+      // Always look up the series TMDB ID for episodes
+      tmdbId = await lookupSeriesTmdbId(config, fields.seriesId);
+    }
+
+    // Fall back to the item's own TMDB ID (correct for movies, last resort for episodes)
+    if (!tmdbId) {
+      tmdbId = safeNumber(fields.providers.tmdb);
+    }
 
     if (!tmdbId) {
-      if (fields.itemType === 'Episode' && fields.seriesId) {
-        tmdbId = await lookupSeriesTmdbId(config, fields.seriesId);
-      }
-
-      if (!tmdbId) {
-        logger.debug('[Jellyfin webhook] No TMDB ID available, skipping', {
-          itemName: fields.itemName,
-          itemType: fields.itemType,
-        });
-        return NextResponse.json({
-          success: true,
-          action: 'skipped',
-          reason: 'No TMDB ID on item',
-        });
-      }
+      logger.debug('[Jellyfin webhook] No TMDB ID available, skipping', {
+        itemName: fields.itemName,
+        itemType: fields.itemType,
+      });
+      return NextResponse.json({
+        success: true,
+        action: 'skipped',
+        reason: 'No TMDB ID on item',
+      });
     }
 
     // 6. Determine media type

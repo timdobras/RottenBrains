@@ -186,3 +186,39 @@ export const BREAKPOINTS = {
   XL: 1280,
   '2XL': 1536,
 } as const;
+
+/**
+ * Major film studios for brand/studio row
+ */
+export const STUDIOS = [
+  { id: 420, name: 'Marvel Studios', logo_path: '/hUzeosd33nzE5MCNsZxCGEKTXaQ.png' },
+  { id: 174, name: 'Warner Bros. Pictures', logo_path: '/zhD3hhtKB5qyv7ZeL4uLpNxgMVU.png' },
+  { id: 33, name: 'Universal Pictures', logo_path: '/8lvHyhjr8oUKOOy2dKXoALWKdp0.png' },
+  { id: 2, name: 'Walt Disney Pictures', logo_path: '/wdrCwmRnLFJhEoH8GSfymY85KHT.png' },
+  { id: 25, name: '20th Century Studios', logo_path: '/qZCc1lty5FzX30aOCVRBLzaVmcp.png' },
+  { id: 4, name: 'Paramount Pictures', logo_path: '/gz66EfNoYPqHTYI4q9UEN4CbHRc.png' },
+  { id: 34, name: 'Sony Pictures', logo_path: '/GagSvqWlyPdkFHMfQ3pNq6ix9P.png' },
+  { id: 21, name: 'Metro-Goldwyn-Mayer', logo_path: '/usUnaYV6hQnlVAXP6r4HwrlLFPG.png' },
+  { id: 7505, name: 'Lionsgate', logo_path: '/cisLn1YAUuptXVBa0xjq7ST9cH0.png' },
+  { id: 3, name: 'Pixar', logo_path: '/1TjvGVDMYsj6JBxOAkUHpPEwLf7.png' },
+  { id: 521, name: 'DreamWorks Animation', logo_path: '/kP7t6RwGz2AvvTkvnI1uteEwHet.png' },
+  { id: 9993, name: 'DC Studios', logo_path: '/2Tc1P3Ac8M479naPp1kYT3izLS5.png' },
+] as const;
+
+/**
+ * Major streaming/TV networks for brand/network row
+ */
+export const NETWORKS = [
+  { id: 213, name: 'Netflix', logo_path: '/wwemzKWzjKYJFfCeiB57q3r4Bcm.png' },
+  { id: 2739, name: 'Disney+', logo_path: '/gJ8VX6JSu3ciXHuC2dDGAo2lvwM.png' },
+  { id: 49, name: 'HBO', logo_path: '/tuomPhY2UtuPTqqFnKMVHvSb724.png' },
+  { id: 2552, name: 'Apple TV+', logo_path: '/4KAy34EHvRM25Ih8wb82AuGU7zJ.png' },
+  { id: 1024, name: 'Amazon', logo_path: '/ifhbNuuVnlwYy5oXA5VIb2YR8AZ.png' },
+  { id: 2, name: 'ABC', logo_path: '/ndAvF4JLsliGreX87jAc9GdjmJY.png' },
+  { id: 6, name: 'NBC', logo_path: '/cm111bsDVlYaC1foL0itvEI4yLG.png' },
+  { id: 16, name: 'CBS', logo_path: '/wju8KhOUsR5y4bH9p3Jc50hhaLO.png' },
+  { id: 19, name: 'FOX', logo_path: '/1DSpHrWyOORkL9N2QHX7Adt31mQ.png' },
+  { id: 67, name: 'Showtime', logo_path: '/Allse9kbjiP6ExaQrnSpIhkurEi.png' },
+  { id: 453, name: 'Hulu', logo_path: '/pqUTCleNUiTLAVlelGxUgWn1ELh.png' },
+  { id: 3186, name: 'Paramount+', logo_path: '/fi83B1oztoS47xxcemFdPMhIzK.png' },
+] as const;

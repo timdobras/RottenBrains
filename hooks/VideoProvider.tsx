@@ -10,6 +10,8 @@ export type VideoState = {
   episode_number?: number;
   mode: 'mini' | 'full';
   provider?: string;
+  resumePosition?: number; // playback position in seconds for resume (from DB)
+  theaterMode?: boolean; // edge-to-edge immersive player on desktop
 };
 
 const VideoContext = createContext<{

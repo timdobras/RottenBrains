@@ -5,10 +5,20 @@ interface IframeLink {
     media_id: string | number;
     season_number?: string;
     episode_number?: string;
+    progress?: number; // resume position in seconds (supported by some providers)
   }) => string;
 }
 
 export const iframeLinks: IframeLink[] = [
+  {
+    name: 'Videasy',
+    template: ({ media_type, media_id, season_number, episode_number, progress }) => {
+      const seasonSegment = season_number ? `/${season_number}` : '';
+      const episodeSegment = episode_number ? `/${episode_number}` : '';
+      const progressParam = progress && progress > 0 ? `?progress=${Math.floor(progress)}` : '';
+      return `https://player.videasy.net/${media_type}/${media_id}${seasonSegment}${episodeSegment}${progressParam}`;
+    },
+  },
   {
     name: 'VidSrc.net',
     template: ({ media_type, media_id, season_number, episode_number }) => {

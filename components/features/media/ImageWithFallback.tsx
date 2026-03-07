@@ -1,5 +1,8 @@
+'use client';
+
 import React, { FC } from 'react';
 import { getTMDBImageUrl, isOfflineMode } from '@/lib/mocks/config';
+import ProgressiveImage from './ProgressiveImage';
 
 // TMDB image widths available for responsive srcSet
 const TMDB_WIDTHS = [
@@ -16,6 +19,7 @@ interface ImageWithFallbackProps {
   fallbackIcon?: string; // Optional fallback icon URL
   quality?: string;
   sizes?: string; // Responsive sizes attribute
+  progressive?: boolean; // Enable progressive loading (low-res → high-res fade-in)
 }
 
 const ImageWithFallback: FC<ImageWithFallbackProps> = ({
@@ -25,7 +29,17 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
   fallbackIcon = '/assets/images/logo_new_black.svg',
   quality = 'w500', // Default image quality (w500, w780, w1280, etc.) - w500 for most thumbnails
   sizes = '(max-width: 767px) 50vw, (max-width: 1024px) 33vw, 25vw',
+  progressive = true,
 }) => {
+  // Progressive mode: load low-res first, then upgrade
+  if (progressive && imageUrl) {
+    return (
+      <div className="relative aspect-[16/9] h-full w-full bg-foreground/10">
+        <ProgressiveImage backdropPath={imageUrl} alt={altText} />
+      </div>
+    );
+  }
+
   const fullImageUrl = getTMDBImageUrl(imageUrl, quality);
 
   // Build responsive srcSet for TMDB images (skip in offline mode)

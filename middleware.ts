@@ -13,6 +13,7 @@ const PUBLIC_ROUTES = [
   '/blog',
   '/premium',
   '/offline',
+  '/design',
 ];
 
 // Routes that require authentication but NOT premium

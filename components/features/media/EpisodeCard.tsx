@@ -1,3 +1,4 @@
+import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 import { getWatchTime } from '@/lib/supabase/serverQueries';
 import { getEpisodeDetails } from '@/lib/tmdb';
 import { formatEpisodeCode, getImageUrl, getRelativeTime, transformRuntime } from '@/lib/utils';
@@ -53,13 +54,10 @@ const EpisodeCard = async ({
             {episode.vote_average.toFixed(1)} / 10
           </div>
         </div>
-        <img
-          src={getImageUrl(episode)}
-          alt={`Still from episode ${episode.name}`}
-          width={780}
-          height={440}
-          loading="lazy"
-          className="w-full bg-foreground/10 md:rounded-[4px]"
+        <ImageWithFallback
+          imageUrl={getImageUrl(episode)}
+          altText={`Still from episode ${episode.name}`}
+          quality="w780"
         />
       </div>
       <div className="flex flex-col gap-1 px-4 md:px-0">

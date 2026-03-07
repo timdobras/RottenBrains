@@ -13,9 +13,9 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
-  },
+  // experimental: {
+  //   optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
+  // },
   images: {
     remotePatterns: [
       {

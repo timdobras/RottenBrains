@@ -8,15 +8,14 @@ import { createClient } from './server';
 import {
   ensureAtLeastFiveGenres,
   type Episode,
+  type WatchHistoryItem,
   type User,
   type WatchListItem,
   type UpdateGenreStatsParams,
   type NewEpisode,
 } from './utils';
 
-// Re-export types and utility functions from utils
-export type { Episode, User, WatchListItem, UpdateGenreStatsParams, NewEpisode };
-export { ensureAtLeastFiveGenres };
+// Types and utility functions are available directly from './utils'
 
 const getSupabaseClient = cache(async () => {
   return await createClient();
@@ -120,7 +119,8 @@ export const upsertWatchHistory = async (
   new_percentage_watched: string,
   season_number: number | null,
   episode_number: number | null,
-  sync_source: string = 'app'
+  sync_source: string = 'app',
+  playback_position: number | null = null
 ) => {
   try {
     // Validate input using Zod schema
@@ -152,7 +152,8 @@ export const upsertWatchHistory = async (
       p_season_number: normalizedSeasonNumber,
       p_episode_number: normalizedEpisodeNumber,
       p_sync_source: sync_source,
-    });
+      p_playback_position: playback_position,
+    } as any);
 
     if (error) {
       // Fallback to manual upsert if the RPC doesn't exist yet (migration not applied)
@@ -264,6 +265,45 @@ export const getWatchTime = async (
     return data;
   } catch (error) {
     logger.warn('Error in getWatchTime:', error);
+  }
+};
+
+/**
+ * Get the playback position (in seconds) for a specific media item.
+ * Used to resume playback in players that support it (e.g. Videasy's ?progress= param).
+ * Returns the position in seconds, or null if not available.
+ */
+export const getPlaybackPosition = async (
+  user_id: string,
+  media_type: string,
+  media_id: number,
+  season_number?: number | null,
+  episode_number?: number | null
+): Promise<number | null> => {
+  try {
+    const supabase = await getSupabaseClient();
+    const { data, error } = await (supabase.rpc as any)('get_playback_position', {
+      p_user_id: user_id,
+      p_media_type: media_type,
+      p_media_id: media_id,
+      p_season_number: season_number ?? null,
+      p_episode_number: episode_number ?? null,
+    });
+
+    if (error) {
+      // RPC might not exist yet if migration hasn't been applied
+      if (error.code === '42883' || error.message?.includes('does not exist')) {
+        logger.debug('get_playback_position RPC not found, returning null');
+        return null;
+      }
+      logger.warn('Error in getPlaybackPosition:', error);
+      return null;
+    }
+
+    return data as number | null;
+  } catch (error) {
+    logger.warn('Error in getPlaybackPosition:', error);
+    return null;
   }
 };
 
@@ -441,6 +481,43 @@ export const getNextEpisodes = async (userId: string): Promise<Episode[]> => {
   }
 
   return data as Episode[];
+};
+
+/**
+ * Get in-progress items (movies and TV episodes watched < 75%).
+ * Uses the dedicated `get_continue_watching` RPC with its own LIMIT 10.
+ */
+export const getContinueWatchingItems = async (userId: string): Promise<WatchHistoryItem[]> => {
+  const supabase = await getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_continue_watching', {
+    user_id_input: userId,
+  });
+
+  if (error) {
+    logger.error('Error fetching continue watching items:', error);
+    throw new Error('Failed to fetch continue watching items');
+  }
+
+  return data as WatchHistoryItem[];
+};
+
+/**
+ * Get TV episodes where the user finished the previous episode (>= 75% watched).
+ * These need episode advancement via TMDB data to determine the actual next episode.
+ * Uses the dedicated `get_up_next_episodes` RPC with its own LIMIT 10.
+ */
+export const getUpNextItems = async (userId: string): Promise<WatchHistoryItem[]> => {
+  const supabase = await getSupabaseClient();
+  const { data, error } = await supabase.rpc('get_up_next_episodes', {
+    user_id_input: userId,
+  });
+
+  if (error) {
+    logger.error('Error fetching up next items:', error);
+    throw new Error('Failed to fetch up next items');
+  }
+
+  return data as WatchHistoryItem[];
 };
 
 export async function getAllUsers(): Promise<User[]> {

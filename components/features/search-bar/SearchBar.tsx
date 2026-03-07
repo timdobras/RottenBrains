@@ -1,3 +1,5 @@
+'use client';
+
 import { usePathname, useRouter } from 'next/navigation';
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { searchUsers } from '@/lib/client/searchUsers';

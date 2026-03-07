@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom';
 import { useVideo } from './VideoProvider';
 import { useMiniplayerState } from './useMiniplayerState';
 import { iframeLinks } from '@/lib/constants/links';
+import { videasyPlayback } from '@/lib/videasyTracker';
 import useIsMobile from '@/hooks/useIsMobile';
 import { getHrefFromMedia } from '@/lib/utils';
 import Link from 'next/link';
@@ -29,12 +30,22 @@ export default function VideoShell() {
     episode_number,
     mode,
     provider: ctxProvider,
+    resumePosition,
   } = state;
 
   const isMobile = useIsMobile();
   const [provider, setProvider] = useState(ctxProvider);
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Tracked placeholder rect for full mode positioning.
+  // Updated continuously via ResizeObserver + scroll listener so the portal
+  // iframe stays aligned with the placeholder even on resize/orientation change.
+  const [placeholderRect, setPlaceholderRect] = useState<DOMRect | null>(null);
+  const rafRef = useRef<number>(0);
+
+  // Videasy playback position tracking via postMessage uses the shared
+  // videasyPlayback store (lib/videasyTracker.ts) so WatchDuration can read it.
 
   const { user } = useUser();
   const {
@@ -61,6 +72,63 @@ export default function VideoShell() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Continuously track the placeholder position so the portal stays aligned.
+  // Uses ResizeObserver for size changes and a scroll listener for position shifts.
+  // Re-runs when theaterMode changes since that alters the placeholder's layout.
+  useEffect(() => {
+    if (!mounted || mode !== 'full') {
+      setPlaceholderRect(null);
+      return;
+    }
+
+    const placeholder = document.getElementById('video-inline-placeholder');
+    if (!placeholder) return;
+
+    const measure = () => {
+      rafRef.current = requestAnimationFrame(() => {
+        const rect = placeholder.getBoundingClientRect();
+        setPlaceholderRect((prev) => {
+          // Only update state when values actually change to avoid unnecessary re-renders
+          if (
+            prev &&
+            prev.top === rect.top &&
+            prev.left === rect.left &&
+            prev.width === rect.width &&
+            prev.height === rect.height
+          ) {
+            return prev;
+          }
+          return rect;
+        });
+      });
+    };
+
+    // Initial measurement
+    measure();
+
+    // Delayed re-measure to catch multi-frame layout shifts (e.g. theater mode toggle
+    // changes CSS classes + inline styles which may settle over several frames)
+    const settleTimer = setTimeout(measure, 100);
+
+    // Re-measure on resize (handles window resize, orientation change, zoom)
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(placeholder);
+
+    // Re-measure on scroll (handles sticky/relative position shifts)
+    window.addEventListener('scroll', measure, { passive: true });
+
+    // Re-measure on window resize (catches edge cases ResizeObserver misses)
+    window.addEventListener('resize', measure, { passive: true });
+
+    return () => {
+      clearTimeout(settleTimer);
+      cancelAnimationFrame(rafRef.current);
+      resizeObserver.disconnect();
+      window.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+    };
+  }, [mounted, mode, state.theaterMode]);
 
   // Reset iframe loaded state when media changes
   useEffect(() => {
@@ -91,6 +159,82 @@ export default function VideoShell() {
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  // Listen for Videasy postMessage events to track real playback position.
+  // The Videasy player sends JSON messages with playback progress data.
+  // We store the position in the shared videasyPlayback store so WatchDuration can read it.
+  useEffect(() => {
+    if (provider !== 'Videasy') {
+      videasyPlayback.reset();
+      return;
+    }
+
+    // Reset position when media or provider changes
+    videasyPlayback.reset();
+
+    const handleMessage = (event: MessageEvent) => {
+      // Accept messages from Videasy origins
+      if (!event.origin.includes('videasy')) return;
+
+      try {
+        const message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+        // Videasy sends { type: "MEDIA_DATA", data: "<JSON string>" }
+        // Inside data, each media is keyed like "movie-123" or "tv-456" with:
+        //   { progress: { duration: number, watched: number } }
+        // For TV: also has show_progress with per-episode data
+        if (message.type !== 'MEDIA_DATA' || !message.data) return;
+
+        const mediaData =
+          typeof message.data === 'string' ? JSON.parse(message.data) : message.data;
+
+        // Build the key for the current media
+        const currentKey = `${media_type}-${media_id}`;
+        const entry = mediaData[currentKey];
+
+        if (!entry?.progress) return;
+
+        const { watched, duration } = entry.progress;
+
+        // For TV shows, try to get episode-specific progress
+        let episodeWatched = watched;
+        let episodeDuration = duration;
+
+        if (media_type === 'tv' && season_number && episode_number && entry.show_progress) {
+          const epKey = `s${season_number}e${episode_number}`;
+          const epProgress = entry.show_progress[epKey]?.progress;
+          if (epProgress) {
+            episodeWatched = epProgress.watched;
+            episodeDuration = epProgress.duration;
+          }
+        }
+
+        if (typeof episodeWatched === 'number' && episodeWatched >= 0) {
+          videasyPlayback.update(
+            Math.floor(episodeWatched),
+            typeof episodeDuration === 'number' && episodeDuration > 0
+              ? Math.floor(episodeDuration)
+              : undefined
+          );
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            '[Videasy] position:',
+            videasyPlayback.currentTime,
+            '/',
+            videasyPlayback.duration,
+            's'
+          );
+        }
+      } catch {
+        // Non-JSON or unexpected messages are ignored
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [provider, media_id, media_type, season_number, episode_number]);
 
   // Drag handlers - start drag immediately from edge zones
   const handleMouseDown = useCallback(
@@ -228,13 +372,14 @@ export default function VideoShell() {
   if (!mounted) return null;
   if (!media_id || !media_type) return null;
 
-  // Compute iframe src
+  // Compute iframe src (pass resume position for providers that support it)
   const sel = iframeLinks.find((l) => l.name === provider) || iframeLinks[0];
   const src = sel.template({
     media_type,
     media_id,
     season_number: season_number?.toString(),
     episode_number: episode_number?.toString(),
+    progress: resumePosition,
   });
 
   const container = document.getElementById('player-root');
@@ -242,20 +387,22 @@ export default function VideoShell() {
 
   // Calculate position based on mode
   // IMPORTANT: Always render the SAME iframe to keep video playing
-  const placeholder = document.getElementById('video-inline-placeholder');
-  const isFullMode = mode === 'full' && placeholder;
+  const isFullMode = mode === 'full' && placeholderRect;
 
   let style: React.CSSProperties;
 
   if (isFullMode) {
-    const rect = placeholder!.getBoundingClientRect();
+    // Use fixed positioning on all devices — getBoundingClientRect() returns
+    // viewport-relative coords which pair correctly with position: fixed.
+    // The previous absolute positioning on desktop was wrong on scroll because
+    // absolute is relative to the nearest positioned ancestor, not the viewport.
     style = {
-      position: isMobile ? 'fixed' : 'absolute',
-      top: rect.top,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
-      zIndex: 50,
+      position: 'fixed',
+      top: placeholderRect.top,
+      left: placeholderRect.left,
+      width: placeholderRect.width,
+      height: placeholderRect.height,
+      zIndex: 1,
       borderRadius: 0,
     };
   } else {

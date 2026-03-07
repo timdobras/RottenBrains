@@ -28,6 +28,7 @@ interface MediaCardProps {
   rounded?: boolean;
   showRemoveButton?: boolean;
   disableTrailer?: boolean;
+  progressive?: boolean;
 }
 
 const MediaCardUI: React.FC<MediaCardProps> = ({
@@ -42,11 +43,13 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   rounded,
   showRemoveButton = false,
   disableTrailer = false,
+  progressive = true,
 }) => {
   season_number = season_number || media.season_number || undefined;
   episode_number = episode_number || media.episode_number || undefined;
   media_type = media_type || media.media_type || undefined;
   media_id = media_id || media.media_id || media.id || undefined;
+
   watch_time = watch_time || media.watch_time || 0;
 
   const genreIds: bigint[] = useMemo(
@@ -127,6 +130,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
                 imageUrl={getImageUrl(media, season_number, episode_number)}
                 altText={mediaTitle}
                 quality="w1280"
+                progressive={progressive}
               />
               <MediaCardOverlay
                 runtime={media.runtime}

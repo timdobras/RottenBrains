@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import ProviderDropdown from '../ProviderDropdown';
 import ShareButton from '../ShareButton';
+import TheaterToggle from '../TheaterToggle';
 
 interface ActionButtonsProps {
   media_type: string;
@@ -26,6 +27,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ media_type, media_id }) =
         <p>Rate</p>
       </Link>
       <ShareButton />
+      <TheaterToggle />
     </div>
   );
 };

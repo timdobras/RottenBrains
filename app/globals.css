@@ -375,29 +375,24 @@
   box-shadow: 0px 0px 10px 5px hsla(0, 0%, 0%, 0.2);
 }
 
-@media (max-width: 1024px) {
-  .small-screen-watch-margin-premium {
-    margin-top: calc(56.25vw + 40px);
-  }
-}
-@media (max-width: 1024px) {
+/* Portrait: video is 16:9 based on viewport width */
+@media (max-width: 1024px) and (orientation: portrait) {
+  .small-screen-watch-margin-premium,
   .small-screen-watch-margin {
     margin-top: calc(56.25vw + 40px);
   }
-}
-@media (max-width: 1024px) {
-  .small-screen-watch-margin-info-premium {
-    margin-top: calc(56.25vw + 40px);
-  }
-}
-@media (max-width: 1024px) {
+  .small-screen-watch-margin-info-premium,
   .small-screen-watch-margin-info {
     margin-top: calc(56.25vw + 40px);
   }
+  .small-screen-watch-top-premium,
+  .small-screen-watch-top {
+    top: calc(56.25vw + 40px);
+  }
 }
 
-/* Landscape orientation: video fills height, content uses fixed offset */
-@media (max-width: 1024px) {
+/* Landscape: video fills viewport height, content pushed below */
+@media (max-width: 1024px) and (orientation: landscape) {
   .small-screen-watch-margin-premium,
   .small-screen-watch-margin,
   .small-screen-watch-margin-info-premium,
@@ -407,17 +402,6 @@
   .small-screen-watch-top-premium,
   .small-screen-watch-top {
     top: calc(100vh);
-  }
-}
-
-@media (max-width: 1024px) {
-  .small-screen-watch-top-premium {
-    top: calc(56.25vw + 40px);
-  }
-}
-@media (max-width: 1024px) {
-  .small-screen-watch-top {
-    top: calc(56.25vw + 40px);
   }
 }
 

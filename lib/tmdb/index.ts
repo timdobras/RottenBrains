@@ -46,6 +46,14 @@ export const getPopular = async (page?: number) => {
   return fetchFromApi(`trending/all/week?language=en-US${page_string}`, 'images');
 };
 
+export const getPopularMovies = async (page?: number) => {
+  return fetchFromApi(`movie/popular?language=en-US&page=${page || 1}`);
+};
+
+export const getPopularTVShows = async (page?: number) => {
+  return fetchFromApi(`tv/popular?language=en-US&page=${page || 1}`);
+};
+
 export const getAiringToday = async () => {
   return fetchFromApi('tv/airing_today?language=en-US&page=1');
 };

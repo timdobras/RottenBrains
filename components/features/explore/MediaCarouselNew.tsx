@@ -1,21 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import Slider from 'react-slick';
 import { Genre } from '@/components/features/home/GenreSelector';
+import ProgressiveImage from '@/components/features/media/ProgressiveImage';
 import movie_genres from '@/lib/constants/movie_genres.json';
 import tv_genres from '@/lib/constants/tv_genres.json';
-import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { getGenreNameById } from '@/lib/utils';
-
-// Dynamically import Slider for code splitting (reduces initial bundle by ~100KB)
-const Slider = dynamic(() => import('react-slick'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[75vh] w-full animate-pulse bg-background/50 md:h-[85vh] md:rounded-[16px]" />
-  ),
-});
 
 // Import CSS - Next.js will handle code splitting
 import 'slick-carousel/slick/slick.css';
@@ -78,7 +70,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                 key={index}
               >
                 <div className="h-full w-full">
-                  <div className="relative h-full w-full">
+                  <div className="relative h-full w-full bg-foreground/10">
                     <div className="absolute left-0 top-0 z-20 flex h-full w-full flex-col justify-between p-4 md:p-8">
                       <div className="flex flex-row gap-4">
                         <div className="relative">
@@ -172,11 +164,13 @@ const TopMovieCarousel = ({ movies }: any) => {
                       </div>
                     </div>
                     <div className="gradient-explore absolute right-0 top-0 z-10 h-full w-full"></div>
-                    <img
-                      src={getTMDBImageUrl(media.backdrop_path, 'w1280') || ''}
-                      alt=""
-                      className="h-full w-full bg-background object-cover object-center"
-                    />
+                    {media.backdrop_path && (
+                      <ProgressiveImage
+                        backdropPath={media.backdrop_path}
+                        alt={media.title || media.name || ''}
+                        hero
+                      />
+                    )}
                   </div>
                 </div>
               </div>

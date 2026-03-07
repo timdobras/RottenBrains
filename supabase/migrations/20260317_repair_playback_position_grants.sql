@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION get_playback_position(UUID, TEXT, INTEGER, INTEGER, INTEGER) TO authenticated;

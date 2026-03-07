@@ -12,6 +12,7 @@ interface HoverImageProps {
   media_type: string; // "movie" or "tv"
   media_id: number;
   children?: React.ReactNode;
+  progressive?: boolean;
 }
 
 // Extract trailer key and URL from video data
@@ -42,6 +43,7 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
   media_type,
   media_id,
   children,
+  progressive = true,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
@@ -131,7 +133,12 @@ const TrailerDisplayOnHover: React.FC<HoverImageProps> = ({
       ref={ref}
       data-media-id={media_id}
     >
-      <ImageWithFallback imageUrl={imageUrl} altText={altText} quality={'w780'} />
+      <ImageWithFallback
+        imageUrl={imageUrl}
+        altText={altText}
+        quality={'w780'}
+        progressive={progressive}
+      />
       {children}
 
       {/* Loading Bar */}

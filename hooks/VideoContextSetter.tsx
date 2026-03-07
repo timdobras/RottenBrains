@@ -9,6 +9,7 @@ interface VideoContextSetterProps {
   media_id: VideoState['media_id'];
   season_number?: VideoState['season_number'];
   episode_number?: VideoState['episode_number'];
+  resumePosition?: number; // playback position in seconds from watch history
 }
 
 export default function VideoContextSetter({
@@ -16,6 +17,7 @@ export default function VideoContextSetter({
   media_id,
   season_number,
   episode_number,
+  resumePosition,
 }: VideoContextSetterProps) {
   const { setState } = useVideo();
 
@@ -27,13 +29,14 @@ export default function VideoContextSetter({
       season_number,
       episode_number,
       mode: 'full',
+      resumePosition,
     });
 
     return () => {
       // Revert to mini when unmounting
       setState((s) => ({ ...s, mode: 'mini' }));
     };
-  }, [media_type, media_id, season_number, episode_number, setState]);
+  }, [media_type, media_id, season_number, episode_number, resumePosition, setState]);
 
   return null;
 }

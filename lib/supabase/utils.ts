@@ -14,6 +14,14 @@ export type Episode = {
   next_episode_number?: number | null;
 };
 
+/** Item returned by the split continue-watching / up-next RPCs */
+export type WatchHistoryItem = {
+  media_id: number;
+  media_type: string;
+  season_number: number;
+  episode_number: number;
+};
+
 export interface User {
   id: string;
 }

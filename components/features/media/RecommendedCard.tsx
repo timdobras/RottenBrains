@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 import { getWatchTime } from '@/lib/supabase/serverQueries';
 import { getMediaDetails } from '@/lib/tmdb';
 import { getHrefFromMedia, getImageUrl, getRelativeTime, transformRuntime } from '@/lib/utils';
@@ -31,11 +32,10 @@ const RecommendedCard = async ({ media_id, media_type, user_id }: any) => {
             {media.vote_average.toFixed(1)} / 10
           </div>
         </div>
-        <img
-          src={getImageUrl(media)}
-          alt=""
-          loading="lazy"
-          className="aspect-[16/9] bg-foreground/10 md:rounded-[4px]"
+        <ImageWithFallback
+          imageUrl={getImageUrl(media)}
+          altText={media.title || media.name || 'Recommended media'}
+          quality="w780"
         />
       </Link>
       <div className="flex flex-col gap-1 px-4 md:px-0">

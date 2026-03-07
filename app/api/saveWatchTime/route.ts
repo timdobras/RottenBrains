@@ -11,6 +11,7 @@ interface WatchTimeData {
   media_id: number;
   season_number?: number | null;
   episode_number?: number | null;
+  playback_position?: number | null;
 }
 
 export async function POST(req: NextRequest) {
@@ -87,6 +88,19 @@ export async function POST(req: NextRequest) {
         : data.episode_number
       : null;
 
+    // Validate playback_position if provided
+    const playback_position =
+      data.playback_position != null &&
+      typeof data.playback_position === 'number' &&
+      data.playback_position >= 0
+        ? Math.floor(data.playback_position)
+        : null;
+
+    // Use 'videasy' sync_source when playback_position is provided.
+    // This tells the RPC to treat percentage as absolute (like Jellyfin)
+    // instead of incremental (like the default wall-clock app tracking).
+    const sync_source = playback_position != null ? 'videasy' : 'app';
+
     const result = await upsertWatchHistory(
       user.id,
       data.media_type,
@@ -94,7 +108,9 @@ export async function POST(req: NextRequest) {
       data.time_spent,
       data.percentage_watched,
       season_number,
-      episode_number
+      episode_number,
+      sync_source,
+      playback_position
     );
 
     logger.debug('Watch time saved successfully:', {

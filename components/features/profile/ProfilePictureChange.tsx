@@ -5,7 +5,7 @@ import { uploadProfilePicture } from '@/lib/supabase/clientQueries';
 
 const ProfilePicture: React.FC = () => {
   const { user } = useUser();
-  const [image, setImage] = useState<string>('');
+  const [image, setImage] = useState<string>(user?.image_url || '');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [newImage, setNewImage] = useState<string | ArrayBuffer | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -55,11 +55,15 @@ const ProfilePicture: React.FC = () => {
 
   return (
     <div className="relative flex flex-col items-center">
-      <img
-        src={(newImage as string) || image}
-        alt="Profile"
-        className="overlay-hidden aspect-[1/1] w-[100px] min-w-[100px] rounded-full md:w-[150px] md:min-w-[150px]"
-      />
+      {(newImage as string) || image ? (
+        <img
+          src={(newImage as string) || image}
+          alt="Profile"
+          className="overlay-hidden aspect-[1/1] w-[100px] min-w-[100px] rounded-full md:w-[150px] md:min-w-[150px]"
+        />
+      ) : (
+        <div className="aspect-[1/1] w-[100px] min-w-[100px] animate-pulse rounded-full bg-foreground/10 md:w-[150px] md:min-w-[150px]" />
+      )}
       {isEditing ? (
         <div className="flex flex-col items-center">
           <input type="file" onChange={handleFileChange} />

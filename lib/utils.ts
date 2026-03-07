@@ -101,6 +101,61 @@ export function getImageUrl(media: any, season_number?: number, episode_number?:
   );
 }
 
+/**
+ * Extract the release/air year from a media item.
+ */
+export function getMediaYear(item: { release_date?: string; first_air_date?: string }): string {
+  const date = item.release_date || item.first_air_date;
+  if (!date) return '';
+  const year = new Date(date).getFullYear();
+  return Number.isNaN(year) ? '' : year.toString();
+}
+
+/**
+ * Format a media item's duration: "Xh Ym" for movies,
+ * "N Season(s) · M Episodes" for TV.
+ */
+export function getMediaDuration(item: {
+  media_type: string;
+  runtime?: number;
+  number_of_seasons?: number;
+  number_of_episodes?: number;
+}): string {
+  if (item.media_type === 'movie' && item.runtime) {
+    const hours = Math.floor(item.runtime / 60);
+    const mins = item.runtime % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  }
+  if (item.media_type === 'tv') {
+    const parts: string[] = [];
+    if (item.number_of_seasons) {
+      parts.push(`${item.number_of_seasons} Season${item.number_of_seasons > 1 ? 's' : ''}`);
+    }
+    if (item.number_of_episodes) {
+      parts.push(`${item.number_of_episodes} Episodes`);
+    }
+    return parts.join(' · ') || '';
+  }
+  return '';
+}
+
+/**
+ * Pick the best English logo from a TMDB images.logos array.
+ * Falls back to the first logo if no English logos exist.
+ */
+export function getEnglishLogoPath(
+  logos?: { file_path: string; iso_639_1: string; vote_average: number }[]
+): string | null {
+  if (!logos || logos.length === 0) return null;
+
+  const english = logos
+    .filter((l) => l.iso_639_1 === 'en')
+    .sort((a, b) => b.vote_average - a.vote_average);
+
+  const best = english[0] || logos[0];
+  return best?.file_path ?? null;
+}
+
 export function getHrefFromMedia(
   media_type?: string,
   media_id?: number,
