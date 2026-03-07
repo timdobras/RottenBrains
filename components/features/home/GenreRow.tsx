@@ -31,7 +31,7 @@ export default function GenreRow({ title, genres, mediaType, className }: GenreR
         {genres.map((genre, i) => (
           <div key={genre.id} className="w-[45vw] shrink-0 md:w-[250px]">
             <Link
-              href={`/genre/${mediaType}/${genre.id}`}
+              href={`/protected/explore?type=${mediaType}&with_genres=${genre.id}`}
               className={cn(
                 'flex aspect-video w-full items-center justify-center rounded-xl border border-foreground/10 bg-gradient-to-br text-center text-sm font-semibold sm:text-base',
                 GENRE_COLORS[i % GENRE_COLORS.length]
