@@ -3,6 +3,8 @@
  * Provides different log levels and environment-aware logging
  */
 
+import * as Sentry from '@sentry/nextjs';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LoggerConfig {
@@ -50,13 +52,12 @@ class Logger {
   }
 
   /**
-   * Error level logging - always logs, optionally sends to error tracking service
+   * Error level logging - always logs, sends to Sentry for tracking
    */
   error(...args: unknown[]): void {
     if (this.shouldLog('error')) {
       console.error('[ERROR]', ...args);
-      // TODO: Send to error tracking service (Sentry, LogRocket, etc.)
-      // this.sendToErrorTracking(args);
+      this.sendToErrorTracking(args);
     }
   }
 
@@ -95,11 +96,18 @@ class Logger {
   }
 
   /**
-   * Send errors to tracking service (placeholder for future implementation)
+   * Send errors to Sentry for tracking
    */
   private sendToErrorTracking(args: unknown[]): void {
-    // TODO: Implement error tracking integration
-    // Example: Sentry.captureException(args[0]);
+    const error = args[0];
+
+    if (error instanceof Error) {
+      Sentry.captureException(error);
+    } else if (typeof error === 'string') {
+      Sentry.captureMessage(error, 'error');
+    } else {
+      Sentry.captureMessage(String(error), 'error');
+    }
   }
 }
 

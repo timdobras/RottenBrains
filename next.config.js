@@ -1,3 +1,4 @@
+const { withSentryConfig } = require('@sentry/nextjs');
 const withSerwist = require('@serwist/next').default({
   swSrc: 'app/sw.ts',
   swDest: 'public/sw.js',
@@ -40,5 +41,34 @@ const nextConfig = {
   },
 };
 
+const sentryConfig = {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
+
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  sentryUrl: 'https://sentry.timdobras.com/',
+
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  // Hides source maps from generated client bundles
+  hideSourceMaps: true,
+
+  // Webpack-specific options
+  webpack: {
+    // Automatically tree-shake Sentry logger statements to reduce bundle size
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+};
+
 // Only wrap with Serwist in production to avoid Turbopack/webpack conflicts in dev
-module.exports = process.env.NODE_ENV === 'production' ? withSerwist(nextConfig) : nextConfig;
+const configWithSerwist =
+  process.env.NODE_ENV === 'production' ? withSerwist(nextConfig) : nextConfig;
+
+module.exports = withSentryConfig(configWithSerwist, sentryConfig);
