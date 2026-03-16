@@ -314,6 +314,7 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
       p_season_number: normalizedSeason,
       p_episode_number: normalizedEpisode,
       p_sync_source: 'jellyfin',
+      p_playback_position: null,
     });
 
     if (error) {
@@ -335,11 +336,14 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
     return { success: true, action: 'synced', message: 'Synced from Jellyfin' };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Failed to sync from Jellyfin:', {
+    logger.error('Failed to sync from Jellyfin', {
       userId,
       mediaType,
       tmdbId,
+      seasonNumber,
+      episodeNumber,
       error: errorMsg,
+      stack: error instanceof Error ? error.stack : undefined,
     });
     await logSyncEvent(
       userId,

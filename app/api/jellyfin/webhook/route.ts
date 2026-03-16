@@ -278,9 +278,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (!tmdbId) {
-      logger.debug('[Jellyfin webhook] No TMDB ID available, skipping', {
+      logger.info('[Jellyfin webhook] No TMDB ID available, skipping', {
         itemName: fields.itemName,
         itemType: fields.itemType,
+        seriesId: fields.seriesId,
+        providers: fields.providers,
       });
       return NextResponse.json({
         success: true,
@@ -352,12 +354,13 @@ export async function POST(req: NextRequest) {
       recordWrite(key);
     }
 
-    logger.debug('[Jellyfin webhook] Sync:', {
+    logger.info('[Jellyfin webhook] Sync:', {
       item: fields.itemName,
       tmdbId,
       event: fields.eventType,
       pct: Math.round(percentageWatched * 10) / 10,
       result: result.action,
+      message: result.message,
     });
 
     return NextResponse.json({
@@ -366,8 +369,9 @@ export async function POST(req: NextRequest) {
       message: result.message,
     });
   } catch (error) {
-    logger.error('[Jellyfin webhook] Unhandled error:', {
+    logger.error('[Jellyfin webhook] Unhandled error', {
       error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
     // Return 200 even on errors to prevent Jellyfin from retrying
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 200 });
