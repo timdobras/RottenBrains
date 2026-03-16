@@ -137,6 +137,8 @@ export interface SyncFromJellyfinParams {
   episodeNumber: number | null;
   percentageWatched: number;
   timeSpent: number;
+  /** Playback position in seconds, used for resume in the Videasy player */
+  playbackPosition?: number | null;
 }
 
 export interface SyncResult {

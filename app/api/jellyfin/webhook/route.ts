@@ -338,6 +338,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 10. Sync to local database
+    // Pass timeSpentSeconds as playbackPosition so the Videasy player
+    // can resume from where the user left off on Jellyfin.
     const result = await syncFromJellyfin({
       userId: config.user_id,
       tmdbId,
@@ -346,6 +348,7 @@ export async function POST(req: NextRequest) {
       episodeNumber,
       percentageWatched,
       timeSpent: timeSpentSeconds,
+      playbackPosition: timeSpentSeconds > 0 ? timeSpentSeconds : null,
     });
 
     // Record successful write for throttling

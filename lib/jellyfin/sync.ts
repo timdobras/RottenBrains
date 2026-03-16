@@ -229,8 +229,16 @@ export async function syncToJellyfin(params: SyncToJellyfinParams): Promise<Sync
  * sync_source='jellyfin' so it won't be synced back to Jellyfin.
  */
 export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<SyncResult> {
-  const { userId, tmdbId, mediaType, seasonNumber, episodeNumber, percentageWatched, timeSpent } =
-    params;
+  const {
+    userId,
+    tmdbId,
+    mediaType,
+    seasonNumber,
+    episodeNumber,
+    percentageWatched,
+    timeSpent,
+    playbackPosition,
+  } = params;
 
   try {
     // 1. Anti-loop: skip if we recently synced TO Jellyfin for this item
@@ -249,6 +257,11 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
     const normalizedSeason = seasonNumber ?? -1;
     const normalizedEpisode = episodeNumber ?? -1;
 
+    // Store the playback position (in seconds) so the Videasy player
+    // can resume from where the user left off on Jellyfin.
+    const positionSeconds =
+      playbackPosition != null && playbackPosition > 0 ? Math.floor(playbackPosition) : null;
+
     const { error } = await supabase.rpc('upsert_watch_history_atomic', {
       p_user_id: userId,
       p_media_type: mediaType,
@@ -258,7 +271,7 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
       p_season_number: normalizedSeason,
       p_episode_number: normalizedEpisode,
       p_sync_source: 'jellyfin',
-      p_playback_position: null,
+      p_playback_position: positionSeconds,
     });
 
     if (error) {
@@ -422,6 +435,7 @@ async function syncSingleItemFromPoll(
     episodeNumber,
     percentageWatched,
     timeSpent: timeSpentSeconds > 0 ? timeSpentSeconds : 30,
+    playbackPosition: timeSpentSeconds > 0 ? timeSpentSeconds : null,
   });
 
   if (result.success && result.action === 'synced') {

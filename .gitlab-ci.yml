@@ -1,6 +1,7 @@
 stages:
   - build
   - deploy
+  - cleanup
 
 # -------------------------------------------------------
 # Merge Request: Build only (no push, no deploy)
@@ -20,6 +21,8 @@ build-mr:
       --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
       --build-arg NEXT_PUBLIC_TMDB_API_KEY=$NEXT_PUBLIC_TMDB_API_KEY
       -t $CI_REGISTRY_IMAGE:mr-$CI_MERGE_REQUEST_IID .
+  after_script:
+    - docker system prune -af --volumes || true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
@@ -46,6 +49,8 @@ build-image:
       -t $IMAGE_TAG -t $IMAGE_TAG_SHA .
     - docker push $IMAGE_TAG
     - docker push $IMAGE_TAG_SHA
+  after_script:
+    - docker system prune -af --volumes || true
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
 
@@ -71,3 +76,24 @@ deploy-to-coolify:
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
   needs: ['build-image']
+
+# -------------------------------------------------------
+# Cleanup: Prune docker on the shell runner
+# Removes dangling images, stopped containers, and build
+# cache that accumulate on the runner host over time.
+# Runs after every master pipeline, even if deploy fails.
+# -------------------------------------------------------
+cleanup-runner:
+  stage: cleanup
+  tags:
+    - shell
+  script:
+    - echo "Pruning unused Docker resources on runner..."
+    - docker system prune -af --volumes || true
+    - echo "Cleanup complete. Disk usage:"
+    - df -h / || true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+  when: always
+  needs: ['deploy-to-coolify']
+  allow_failure: true
