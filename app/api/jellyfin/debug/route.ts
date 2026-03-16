@@ -42,13 +42,6 @@ export async function GET(req: NextRequest) {
       config.jellyfin_user_id
     );
 
-    const { data: recentLogs } = await serviceClient
-      .from('jellyfin_sync_log')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
     const { data: watchHistoryStats } = await serviceClient
       .from('watch_history')
       .select('media_type, media_id, percentage_watched, sync_source, created_at')
@@ -65,7 +58,6 @@ export async function GET(req: NextRequest) {
       serverName: connectivityResult.serverName,
       serverReachable: connectivityResult.valid,
       serverError: connectivityResult.error || null,
-      recentLogs: recentLogs || [],
       jellyfinWatchHistory: watchHistoryStats || [],
     });
   } catch (error) {

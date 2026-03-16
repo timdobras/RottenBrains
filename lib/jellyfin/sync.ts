@@ -8,7 +8,7 @@
  * Anti-loop mechanism:
  * - Updates from the app are tagged sync_source='app' → synced TO Jellyfin
  * - Updates from Jellyfin are tagged sync_source='jellyfin' → NOT synced back
- * - Additional timestamp-based dedup as a safety net
+ * - Additional in-memory timestamp-based dedup as a safety net
  */
 
 import { JELLYFIN_SYNC } from '@/lib/constants';
@@ -85,37 +85,48 @@ export async function getUserByWebhookSecret(
 }
 
 // ============================================================
-// Sync log helpers
+// In-memory anti-loop dedup
 // ============================================================
 
 /**
- * Log a sync event for debugging and anti-loop dedup.
+ * In-memory map to track recent sync events and prevent sync loops.
+ * Key: "userId:direction:mediaType:mediaId" → timestamp of last successful sync.
+ *
+ * This replaces the database-backed jellyfin_sync_log table to avoid
+ * unnecessary storage usage on Supabase.
  */
-async function logSyncEvent(
+const recentSyncTimestamps = new Map<string, number>();
+
+/** Max entries before pruning old ones */
+const MAX_DEDUP_ENTRIES = 500;
+
+function makeDedupKey(
   userId: string,
   direction: 'to_jellyfin' | 'from_jellyfin',
   mediaType: string,
-  mediaId: number,
-  status: 'success' | 'skipped' | 'error',
-  errorMessage?: string,
-  seasonNumber?: number | null,
-  episodeNumber?: number | null
-): Promise<void> {
-  try {
-    const supabase = createServiceClient();
-    await supabase.from('jellyfin_sync_log').insert({
-      user_id: userId,
-      direction,
-      media_type: mediaType,
-      media_id: mediaId,
-      season_number: seasonNumber ?? null,
-      episode_number: episodeNumber ?? null,
-      status,
-      error_message: errorMessage || null,
-    });
-  } catch (error) {
-    // Don't throw — logging failure shouldn't break sync
-    logger.warn('Failed to write sync log entry:', error);
+  mediaId: number
+): string {
+  return `${userId}:${direction}:${mediaType}:${mediaId}`;
+}
+
+/**
+ * Record a successful sync event for anti-loop dedup.
+ */
+function recordSyncEvent(
+  userId: string,
+  direction: 'to_jellyfin' | 'from_jellyfin',
+  mediaType: string,
+  mediaId: number
+): void {
+  const key = makeDedupKey(userId, direction, mediaType, mediaId);
+  recentSyncTimestamps.set(key, Date.now());
+
+  // Prune old entries to prevent memory leak
+  if (recentSyncTimestamps.size > MAX_DEDUP_ENTRIES) {
+    const cutoff = Date.now() - JELLYFIN_SYNC.DEDUP_WINDOW_SECONDS * 1000 * 2;
+    for (const [k, ts] of recentSyncTimestamps) {
+      if (ts < cutoff) recentSyncTimestamps.delete(k);
+    }
   }
 }
 
@@ -125,32 +136,16 @@ async function logSyncEvent(
  *
  * Returns true if sync should be SKIPPED (recent opposite sync found).
  */
-async function shouldSkipDueToRecentSync(
+function shouldSkipDueToRecentSync(
   userId: string,
   mediaType: string,
   mediaId: number,
   oppositeDirection: 'to_jellyfin' | 'from_jellyfin'
-): Promise<boolean> {
-  try {
-    const supabase = createServiceClient();
-    const cutoff = new Date(Date.now() - JELLYFIN_SYNC.DEDUP_WINDOW_SECONDS * 1000).toISOString();
-
-    const { data, error } = await supabase
-      .from('jellyfin_sync_log')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('media_type', mediaType)
-      .eq('media_id', mediaId)
-      .eq('direction', oppositeDirection)
-      .eq('status', 'success')
-      .gte('created_at', cutoff)
-      .limit(1);
-
-    if (error) return false;
-    return (data?.length ?? 0) > 0;
-  } catch {
-    return false;
-  }
+): boolean {
+  const key = makeDedupKey(userId, oppositeDirection, mediaType, mediaId);
+  const lastSync = recentSyncTimestamps.get(key);
+  if (!lastSync) return false;
+  return Date.now() - lastSync < JELLYFIN_SYNC.DEDUP_WINDOW_SECONDS * 1000;
 }
 
 // ============================================================
@@ -174,23 +169,12 @@ export async function syncToJellyfin(params: SyncToJellyfinParams): Promise<Sync
     }
 
     // 2. Anti-loop: skip if we recently synced FROM Jellyfin for this item
-    const shouldSkip = await shouldSkipDueToRecentSync(userId, mediaType, mediaId, 'from_jellyfin');
-    if (shouldSkip) {
+    if (shouldSkipDueToRecentSync(userId, mediaType, mediaId, 'from_jellyfin')) {
       logger.debug('Skipping to_jellyfin sync — recent from_jellyfin sync detected', {
         userId,
         mediaType,
         mediaId,
       });
-      await logSyncEvent(
-        userId,
-        'to_jellyfin',
-        mediaType,
-        mediaId,
-        'skipped',
-        'Anti-loop dedup',
-        seasonNumber,
-        episodeNumber
-      );
       return { success: true, action: 'skipped', message: 'Anti-loop dedup' };
     }
 
@@ -205,16 +189,6 @@ export async function syncToJellyfin(params: SyncToJellyfinParams): Promise<Sync
 
     if (!jellyfinItemId) {
       // Item not in user's Jellyfin library — silently skip
-      await logSyncEvent(
-        userId,
-        'to_jellyfin',
-        mediaType,
-        mediaId,
-        'skipped',
-        'Item not found in Jellyfin',
-        seasonNumber,
-        episodeNumber
-      );
       return { success: true, action: 'skipped', message: 'Item not in Jellyfin library' };
     }
 
@@ -233,32 +207,13 @@ export async function syncToJellyfin(params: SyncToJellyfinParams): Promise<Sync
       await reportPlaybackProgress(config, jellyfinItemId, positionTicks);
     }
 
-    await logSyncEvent(
-      userId,
-      'to_jellyfin',
-      mediaType,
-      mediaId,
-      'success',
-      undefined,
-      seasonNumber,
-      episodeNumber
-    );
+    recordSyncEvent(userId, 'to_jellyfin', mediaType, mediaId);
     logger.info('Synced to Jellyfin', { userId, mediaType, mediaId, percentageWatched });
 
     return { success: true, action: 'synced', message: 'Synced to Jellyfin' };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Failed to sync to Jellyfin:', { userId, mediaType, mediaId, error: errorMsg });
-    await logSyncEvent(
-      userId,
-      'to_jellyfin',
-      mediaType,
-      mediaId,
-      'error',
-      errorMsg,
-      seasonNumber,
-      episodeNumber
-    );
     return { success: false, action: 'error', message: errorMsg };
   }
 }
@@ -279,23 +234,12 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
 
   try {
     // 1. Anti-loop: skip if we recently synced TO Jellyfin for this item
-    const shouldSkip = await shouldSkipDueToRecentSync(userId, mediaType, tmdbId, 'to_jellyfin');
-    if (shouldSkip) {
+    if (shouldSkipDueToRecentSync(userId, mediaType, tmdbId, 'to_jellyfin')) {
       logger.debug('Skipping from_jellyfin sync — recent to_jellyfin sync detected', {
         userId,
         mediaType,
         tmdbId,
       });
-      await logSyncEvent(
-        userId,
-        'from_jellyfin',
-        mediaType,
-        tmdbId,
-        'skipped',
-        'Anti-loop dedup',
-        seasonNumber,
-        episodeNumber
-      );
       return { success: true, action: 'skipped', message: 'Anti-loop dedup' };
     }
 
@@ -321,16 +265,7 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
       throw new Error(`Database upsert failed: ${error.message}`);
     }
 
-    await logSyncEvent(
-      userId,
-      'from_jellyfin',
-      mediaType,
-      tmdbId,
-      'success',
-      undefined,
-      seasonNumber,
-      episodeNumber
-    );
+    recordSyncEvent(userId, 'from_jellyfin', mediaType, tmdbId);
     logger.info('Synced from Jellyfin', { userId, mediaType, tmdbId, percentageWatched });
 
     return { success: true, action: 'synced', message: 'Synced from Jellyfin' };
@@ -345,16 +280,6 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
       error: errorMsg,
       stack: error instanceof Error ? error.stack : undefined,
     });
-    await logSyncEvent(
-      userId,
-      'from_jellyfin',
-      mediaType,
-      tmdbId,
-      'error',
-      errorMsg,
-      seasonNumber,
-      episodeNumber
-    );
     return { success: false, action: 'error', message: errorMsg };
   }
 }
@@ -466,7 +391,7 @@ async function syncSingleItemFromPoll(
     return { action: 'skipped', error: 'No watch progress' };
   }
 
-  // Check current local state — only sync if Jellyfin has more progress
+  // Check current local state — only sync if percentage actually differs
   const supabase = createServiceClient();
   const normalizedSeason = seasonNumber ?? -1;
   const normalizedEpisode = episodeNumber ?? -1;
@@ -483,12 +408,12 @@ async function syncSingleItemFromPoll(
 
   const localPercentage = existing ? parseFloat(String(existing.percentage_watched)) : 0;
 
-  // Only sync if Jellyfin is meaningfully ahead (>2% difference to avoid noise)
-  if (percentageWatched <= localPercentage + 2) {
-    return { action: 'skipped', error: 'Local progress is equal or ahead' };
+  // Only sync if there's a meaningful difference (>2% to avoid noise)
+  if (Math.abs(percentageWatched - localPercentage) < 2) {
+    return { action: 'skipped', error: 'Local progress is already in sync' };
   }
 
-  // Sync it — use syncFromJellyfin which handles anti-loop and logging
+  // Sync it — overwrites local percentage with Jellyfin's current value
   const result = await syncFromJellyfin({
     userId,
     tmdbId,

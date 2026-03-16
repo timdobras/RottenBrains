@@ -547,17 +547,6 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
                 <p>Server Name: {debugInfo.serverName || 'N/A'}</p>
                 <p>Webhook URL: {debugInfo.webhookUrl ? 'Configured' : 'Missing'}</p>
                 <p>Jellyfin History Items: {debugInfo.jellyfinWatchHistory?.length || 0}</p>
-                {debugInfo.recentLogs?.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-foreground/50">Recent Sync Logs:</p>
-                    {debugInfo.recentLogs.slice(0, 5).map((log: any, i: number) => (
-                      <p key={i} className="text-foreground/70">
-                        {log.direction} {log.media_type} {log.status} -{' '}
-                        {new Date(log.created_at).toLocaleTimeString()}
-                      </p>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           )}

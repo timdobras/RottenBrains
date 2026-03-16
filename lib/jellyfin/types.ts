@@ -19,19 +19,6 @@ export interface JellyfinConfig {
   updated_at: string;
 }
 
-export interface JellyfinSyncLogEntry {
-  id: string;
-  user_id: string;
-  direction: 'to_jellyfin' | 'from_jellyfin';
-  media_type: string;
-  media_id: number;
-  season_number: number | null;
-  episode_number: number | null;
-  status: 'success' | 'skipped' | 'error';
-  error_message: string | null;
-  created_at: string;
-}
-
 export type SyncSource = 'app' | 'jellyfin';
 
 // ============================================================
