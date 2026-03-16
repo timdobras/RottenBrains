@@ -1,6 +1,17 @@
 'use client';
 
-import { Server, Link, Unlink, Copy, Check, Loader2, RefreshCw, Power } from 'lucide-react';
+import {
+  Server,
+  Link,
+  Unlink,
+  Copy,
+  Check,
+  Loader2,
+  RefreshCw,
+  Power,
+  Play,
+  Bug,
+} from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
@@ -45,6 +56,9 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
   const [fetchingUsers, setFetchingUsers] = useState(false);
   const [existingConfig, setExistingConfig] = useState<JellyfinConfigRow | null>(null);
   const [copied, setCopied] = useState(false);
+  const [debugLoading, setDebugLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const { toast } = useToast();
   const supabase = createClient();
@@ -271,6 +285,58 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
     }
   };
 
+  // Run Jellyfin diagnostics
+  const runDiagnostics = async () => {
+    setDebugLoading(true);
+    setDebugInfo(null);
+    try {
+      const response = await fetch('/api/jellyfin/debug', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      setDebugInfo(data);
+      toast({
+        title: 'Diagnostics complete',
+        description: `Server reachable: ${data.serverReachable}, Jellyfin history items: ${data.jellyfinWatchHistory?.length || 0}`,
+      });
+    } catch (error) {
+      logger.error('Error running diagnostics:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to run diagnostics',
+        variant: 'destructive',
+      });
+    } finally {
+      setDebugLoading(false);
+    }
+  };
+
+  // Trigger manual sync (poll)
+  const triggerSync = async () => {
+    setSyncLoading(true);
+    try {
+      const response = await fetch('/api/jellyfin/poll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      toast({
+        title: 'Sync complete',
+        description: `Synced ${data.itemsSynced} items, skipped ${data.itemsSkipped}`,
+      });
+    } catch (error) {
+      logger.error('Error triggering sync:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to trigger sync',
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   // Connection status indicator
   const StatusDot = () => {
     const colors = {
@@ -442,6 +508,59 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
               </div>
             </div>
           </div>
+
+          {/* Diagnostic & Sync Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={runDiagnostics}
+              disabled={debugLoading}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-foreground/10 px-4 py-2 text-sm hover:bg-foreground/20 disabled:opacity-50"
+            >
+              {debugLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Bug className="h-4 w-4" />
+              )}
+              Debug
+            </button>
+            <button
+              onClick={triggerSync}
+              disabled={syncLoading}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-foreground/10 px-4 py-2 text-sm hover:bg-foreground/20 disabled:opacity-50"
+            >
+              {syncLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              Sync Now
+            </button>
+          </div>
+
+          {/* Debug Info Display */}
+          {debugInfo && (
+            <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3">
+              <p className="mb-2 text-sm font-medium text-yellow-500">Diagnostic Results</p>
+              <div className="space-y-1 font-mono text-xs">
+                <p>Sync Enabled: {debugInfo.syncEnabled ? 'Yes' : 'No'}</p>
+                <p>Server Reachable: {debugInfo.serverReachable ? 'Yes' : 'No'}</p>
+                <p>Server Name: {debugInfo.serverName || 'N/A'}</p>
+                <p>Webhook URL: {debugInfo.webhookUrl ? 'Configured' : 'Missing'}</p>
+                <p>Jellyfin History Items: {debugInfo.jellyfinWatchHistory?.length || 0}</p>
+                {debugInfo.recentLogs?.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-foreground/50">Recent Sync Logs:</p>
+                    {debugInfo.recentLogs.slice(0, 5).map((log: any, i: number) => (
+                      <p key={i} className="text-foreground/70">
+                        {log.direction} {log.media_type} {log.status} -{' '}
+                        {new Date(log.created_at).toLocaleTimeString()}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Disconnect Button */}
           <button

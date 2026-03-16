@@ -243,7 +243,7 @@ export async function syncToJellyfin(params: SyncToJellyfinParams): Promise<Sync
       seasonNumber,
       episodeNumber
     );
-    logger.debug('Synced to Jellyfin:', { userId, mediaType, mediaId, percentageWatched });
+    logger.info('Synced to Jellyfin', { userId, mediaType, mediaId, percentageWatched });
 
     return { success: true, action: 'synced', message: 'Synced to Jellyfin' };
   } catch (error) {
@@ -330,7 +330,7 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
       seasonNumber,
       episodeNumber
     );
-    logger.debug('Synced from Jellyfin:', { userId, mediaType, tmdbId, percentageWatched });
+    logger.info('Synced from Jellyfin', { userId, mediaType, tmdbId, percentageWatched });
 
     return { success: true, action: 'synced', message: 'Synced from Jellyfin' };
   } catch (error) {
@@ -547,7 +547,7 @@ export async function pollJellyfinWatchHistory(userId: string): Promise<PollResu
       }
     }
 
-    logger.debug('Jellyfin poll: fetched items', {
+    logger.info('Jellyfin poll: fetched items', {
       userId,
       playedMovies: playedMovies.length,
       playedEpisodes: playedEpisodes.length,
@@ -574,7 +574,7 @@ export async function pollJellyfinWatchHistory(userId: string): Promise<PollResu
       }
     }
 
-    logger.debug('Jellyfin poll complete:', {
+    logger.info('Jellyfin poll complete', {
       userId,
       processed: result.itemsProcessed,
       synced: result.itemsSynced,
