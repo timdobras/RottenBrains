@@ -6,6 +6,7 @@ import ImageWithFallback from '../media/ImageWithFallback';
 interface Post {
   vote_user: number;
   post_id: string;
+  image_path?: string | null;
 }
 
 interface PostMediaProps {
@@ -19,7 +20,7 @@ const PostMedia = ({ media, post, quality }: PostMediaProps) => {
     <div className="relative w-full">
       <Link href={`/protected/media/${media.media_type}/${media.media_id}`} className="w-full">
         <ImageWithFallback
-          imageUrl={getImageUrlFromMediaDetails(media)}
+          imageUrl={post.image_path || getImageUrlFromMediaDetails(media)}
           altText={post.post_id}
           quality={quality}
         />

@@ -42,7 +42,7 @@ const PostModalFull = ({ post_media_data, user_id }: PostModalFullProps) => {
                 className="w-full"
               >
                 <ImageWithFallback
-                  imageUrl={getImageUrlFromMediaDetails(media_data)}
+                  imageUrl={post_data.post.image_path || getImageUrlFromMediaDetails(media_data)}
                   altText={post_data.post.post_id}
                   quality={'original'}
                 />
@@ -66,6 +66,16 @@ const PostModalFull = ({ post_media_data, user_id }: PostModalFullProps) => {
                     className="line-clamp-1 font-medium"
                   >
                     {media_data && (media_data.title || media_data.name)}
+                    {media_data.media_type === 'tv' && (
+                      <span className="text-foreground/50">
+                        {' · '}
+                        {post_data.post.season_number == null
+                          ? 'Full Series'
+                          : post_data.post.season_number === 0
+                            ? 'Specials'
+                            : `Season ${post_data.post.season_number}`}
+                      </span>
+                    )}
                   </Link>
                 </div>
               </div>

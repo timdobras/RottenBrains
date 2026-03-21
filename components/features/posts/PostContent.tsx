@@ -37,6 +37,16 @@ const PostContent = ({ media, post, post_link }: PostContentProps) => {
             className="line-clamp-1 font-medium"
           >
             {media && (media.title || media.name)}
+            {post.media_type === 'tv' && (
+              <span className="text-foreground/50">
+                {' · '}
+                {post.season_number == null
+                  ? 'Full Series'
+                  : post.season_number === 0
+                    ? 'Specials'
+                    : `Season ${post.season_number}`}
+              </span>
+            )}
           </Link>
         </div>
         <UserReviewText post_review={post.review_user || 'No review'} post_link={post_link} />
