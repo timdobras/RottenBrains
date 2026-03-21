@@ -128,7 +128,7 @@ export default function VideoShell() {
       window.removeEventListener('scroll', measure);
       window.removeEventListener('resize', measure);
     };
-  }, [mounted, mode, state.theaterMode]);
+  }, [mounted, mode, state.theaterMode, media_id, season_number, episode_number]);
 
   // Reset iframe loaded state when media changes
   useEffect(() => {
@@ -433,6 +433,7 @@ export default function VideoShell() {
           <>
             {!isIframeLoaded && <MiniplayerSkeleton />}
             <iframe
+              key={`${media_type}-${media_id}-${season_number}-${episode_number}-${provider}`}
               src={src}
               allowFullScreen
               loading="eager"
