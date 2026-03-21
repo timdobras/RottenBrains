@@ -222,10 +222,10 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
   // -------------------------------
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger className="relative h-auto">
-        <NotificationIcon className="m-0 flex-shrink-0 fill-current p-0" width={24} height={24} />
+      <DropdownMenuTrigger className="relative rounded-full p-2 text-foreground/70 transition hover:bg-foreground/10 hover:text-foreground">
+        <NotificationIcon className="h-5 w-5 flex-shrink-0 fill-current" />
         {unreadCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-medium text-white">
             {unreadCount >= 9 ? '9+' : unreadCount}
           </span>
         )}

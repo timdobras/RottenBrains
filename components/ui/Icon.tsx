@@ -65,6 +65,12 @@ export const DevBlogIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
     <path d="m384-336 56-58-86-86 86-86-56-58-144 144 144 144Zm192 0 144-144-144-144-56 58 86 86-86 86 56 58ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h168q13-36 43.5-58t68.5-22q38 0 68.5 22t43.5 58h168q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm280-590q13 0 21.5-8.5T510-820q0-13-8.5-21.5T480-850q-13 0-21.5 8.5T450-820q0 13 8.5 21.5T480-790ZM200-200v-560 560Z" />
   </svg>
 );
+export const FeedIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" {...props}>
+    <path d="M120-400v-400h400v400H120Zm80-80h240v-240H200v240Zm-80 400v-280h80v200h200v80H120Zm320 0v-280h80v200h200v80H440Zm120-400v-400h280v280H560Zm80-80h120v-120H640v120Z" />
+  </svg>
+);
+
 export const PlusIcon: FC<SVGProps<SVGSVGElement>> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" {...props}>
     <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />

@@ -1,6 +1,7 @@
 import { usePathname } from 'next/navigation';
 import {
   ExploreIcon,
+  FeedIcon,
   HistoryIcon,
   HomeIcon,
   HomeIconFill,
@@ -36,9 +37,9 @@ const NavBottom = () => {
           {/* Home Link */}
           <NavLinkMobile href={'/'} icon={HomeIcon} label={'Home'}></NavLinkMobile>
           <NavLinkMobile
-            href={'/protected/explore'}
-            icon={ExploreIcon}
-            label={'Explore'}
+            href={'/protected/feed'}
+            icon={FeedIcon}
+            label={'Feed'}
           ></NavLinkMobile>
           {/* <NavSearchIconWithOverlay /> */}
           <NavSearchIconNew></NavSearchIconNew>

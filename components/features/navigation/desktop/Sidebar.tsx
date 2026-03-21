@@ -25,6 +25,7 @@ import {
   CookiesIcon,
   LegalIcon,
   InfoIcon,
+  FeedIcon,
 } from '../../../ui/Icon';
 import NavLink from './NavLink';
 
@@ -73,6 +74,7 @@ const Sidebar = () => {
             </button> */}
           </div>
           <NavLink href="/" icon={HomeIcon} icon_fill={HomeIconFill} label="Home" />
+          <NavLink href="/protected/feed" icon={FeedIcon} label="Feed" />
           <NavLink href="/protected/explore" icon={ExploreIcon} label="Explore" />
           <div className="mx-auto my-2 h-[1px] w-[90%] bg-foreground/20"></div>
           <NavLink href="/protected/profile" icon={ProfileIcon} label="Your profile" />
@@ -119,6 +121,7 @@ const Sidebar = () => {
             </button>
           </div>
           <NavLink href="/" icon={HomeIcon} />
+          <NavLink href="/protected/feed" icon={FeedIcon} />
           <NavLink href="/protected/explore" icon={ExploreIcon} />
           <div className="mx-auto my-2 h-[1px] w-[90%] bg-foreground/20"></div>
           <NavLink href="/protected/profile" icon={ProfileIcon} />

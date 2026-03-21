@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
-import { SearchIcon } from '@/components/ui/Icon';
+import { PlusIcon, SearchIcon } from '@/components/ui/Icon';
 import { useUser } from '@/hooks/UserContext';
 import { cn } from '@/lib/utils';
 import NotificationButton from '@/components/features/notifications/NotificationButton';
@@ -21,7 +21,7 @@ const ProfilePictureNew = dynamic(
 const NAV_LINKS = [
   { label: 'Movies', href: '/protected/explore?type=movie' },
   { label: 'Shows', href: '/protected/explore?type=tv' },
-  { label: 'Feed', href: '/' },
+  { label: 'Feed', href: '/protected/feed' },
 ] as const;
 
 export default function Navbar() {
@@ -83,6 +83,16 @@ export default function Navbar() {
             >
               <SearchIcon className="h-5 w-5 fill-current" />
             </button>
+
+            {user && (
+              <Link
+                href="/protected/create-post"
+                aria-label="Create Post"
+                className="hidden rounded-full p-2 text-foreground/70 transition hover:bg-foreground/10 hover:text-foreground md:block"
+              >
+                <PlusIcon className="h-5 w-5 fill-current" />
+              </Link>
+            )}
 
             {isLoading ? (
               <div className="h-8 w-8 animate-pulse rounded-full bg-foreground/10" />

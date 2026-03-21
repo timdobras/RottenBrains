@@ -22,6 +22,7 @@ import {
   CookiesIcon,
   LegalIcon,
   InfoIcon,
+  FeedIcon,
 } from '../../../ui/Icon';
 import NavLinkMobile from './SidebarLink';
 
@@ -55,6 +56,7 @@ const NavMenuSidebarButton: React.FC = () => {
           </button>
           <ul className="flex flex-col justify-start px-4 py-2">
             <NavLinkMobile href="/" icon={HomeIcon} icon_fill={HomeIconFill} label="Home" />
+            <NavLinkMobile href="/protected/feed" icon={FeedIcon} label="Feed" />
             <NavLinkMobile href="/protected/explore" icon={ExploreIcon} label="Explore" />
             <div className="mx-auto my-2 h-[1px] w-[90%] bg-foreground/20"></div>
             <NavLinkMobile href="/protected/profile" icon={ProfileIcon} label="Your profile" />

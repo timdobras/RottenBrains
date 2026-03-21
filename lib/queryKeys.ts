@@ -75,6 +75,12 @@ export const queryKeys = {
       [...queryKeys.home.all, 'infinite', userId, movieGenres, tvGenres] as const,
   },
 
+  // Feed (followed users' posts)
+  feed: {
+    all: ['feed'] as const,
+    infinite: (userId: string) => [...queryKeys.feed.all, 'infinite', userId] as const,
+  },
+
   // Search
   search: {
     all: ['search'] as const,

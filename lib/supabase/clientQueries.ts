@@ -80,6 +80,30 @@ export const getUserPostsType = async (
   }
 };
 
+export const getFollowedUsersPosts = async (
+  userId: string,
+  page: number
+): Promise<IPost[] | null> => {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc('fetch_posts_from_followed_users', {
+      current_user_id: userId,
+      result_limit: PAGINATION.POSTS_PER_PAGE,
+      result_offset: page * PAGINATION.POSTS_PER_PAGE,
+    });
+
+    if (error) {
+      logger.error('Database error in getFollowedUsersPosts:', error);
+      throw new DatabaseError('Failed to fetch followed users posts');
+    }
+
+    return data as IPost[];
+  } catch (error) {
+    handleAppError(error, 'getFollowedUsersPosts');
+    return null;
+  }
+};
+
 export const getPostComments = async (postId: string): Promise<any | null> => {
   try {
     const { data, error } = await supabase

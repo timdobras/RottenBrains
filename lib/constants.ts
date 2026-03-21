@@ -132,6 +132,7 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  FEED: '/protected/feed',
   EXPLORE: '/protected/explore',
   DISCOVER_MOVIES: '/protected/explore?type=movie',
   DISCOVER_TV: '/protected/explore?type=tv',
