@@ -1,13 +1,8 @@
--- 1. Drop the jellyfin_sync_log table entirely.
---    Anti-loop dedup is now handled in-memory in the application layer.
---    This frees up storage on Supabase.
-DROP TABLE IF EXISTS jellyfin_sync_log;
-
--- 2. Fix Jellyfin sync percentage behavior.
---    Previously, Jellyfin used GREATEST(existing, new) which meant
---    the percentage could only go up, never down. If a user goes back
---    in a movie or rewatches it, the progress should reflect the actual
---    position — same as Videasy (direct overwrite).
+-- Fix Jellyfin sync percentage behavior.
+-- Previously, Jellyfin used GREATEST(existing, new) which meant
+-- the percentage could only go up, never down. If a user goes back
+-- in a movie or rewatches it, the progress should reflect the actual
+-- position — same as Videasy (direct overwrite).
 CREATE OR REPLACE FUNCTION upsert_watch_history_atomic(
     p_user_id UUID,
     p_media_type TEXT,
@@ -74,7 +69,3 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
-
--- Re-grant permissions
-GRANT EXECUTE ON FUNCTION upsert_watch_history_atomic(UUID, TEXT, INTEGER, INTEGER, NUMERIC, INTEGER, INTEGER, TEXT, INTEGER) TO authenticated;
-GRANT EXECUTE ON FUNCTION upsert_watch_history_atomic(UUID, TEXT, INTEGER, INTEGER, NUMERIC, INTEGER, INTEGER, TEXT, INTEGER) TO service_role;

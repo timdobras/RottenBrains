@@ -68,8 +68,7 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
   }, [isOpen]);
 
   const handleItemSelect = (item: any) => {
-    // For example, if 'item' has an 'id' and 'media_type'
-    // you can route accordingly:
+    onClose();
     switch (item.media_type) {
       case 'user':
         router.push(`/protected/user/${item.id}`);
@@ -192,6 +191,38 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
     []
   );
 
+  // Scroll the highlighted item into view whenever highlightedIndex changes.
+  useEffect(() => {
+    const el = itemRefs.current[highlightedIndex];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [highlightedIndex, searchResults]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (searchResults.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        setHighlightedIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        setHighlightedIndex((prev) => Math.max(prev - 1, 0));
+        break;
+      case 'Enter':
+        event.preventDefault();
+        const selectedItem = searchResults[highlightedIndex];
+        if (selectedItem) {
+          handleItemSelect(selectedItem);
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
   // Fire the debounced search whenever `query` changes
   useEffect(() => {
     search(searchQuery);
@@ -240,6 +271,7 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
                   placeholder="Search movies, TV, people, users..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   autoFocus
                 />
                 {loading && (
