@@ -124,8 +124,8 @@ export default async function mediaPage({ params }: { params: Params }) {
         />
       )}
       <WatchPageWrapper>
-        <div className="flex flex-col md:w-full md:gap-4">
-          <VideoEmbed />
+        <VideoEmbed />
+        <div className="flex flex-col md:w-full">
           <WatchPageDetails
             media={media}
             media_type="tv"
