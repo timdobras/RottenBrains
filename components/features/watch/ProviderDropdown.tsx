@@ -14,11 +14,11 @@ const ProviderDropdown = () => {
   const { toast } = useToast();
   const { setState } = useVideo();
   const [open, setOpen] = useState(false);
+
   const handleProviderSelection = (providerName: string) => {
     localStorage.setItem('video_provider', providerName);
 
     const selectedProvider = iframeLinks.find((link) => link.name === providerName);
-    // Update VideoContext state instead of full page reload
     setState((prev) => ({ ...prev, provider: providerName }));
     setOpen(!open);
     toast({
@@ -26,6 +26,7 @@ const ProviderDropdown = () => {
       description: `${selectedProvider?.name} has been set as your default video provider.`,
     });
   };
+
   return (
     <div>
       <DropdownMenu open={open} onOpenChange={() => setOpen(!open)}>

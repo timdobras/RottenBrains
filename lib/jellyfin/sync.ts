@@ -61,6 +61,30 @@ export async function getJellyfinConfig(userId: string): Promise<JellyfinConfig 
 }
 
 /**
+ * Fetch a user's Jellyfin config for playback purposes.
+ * Unlike getJellyfinConfig, this does NOT require sync_enabled to be true —
+ * a user may want to play from Jellyfin without bidirectional sync.
+ */
+export async function getJellyfinConfigForPlayback(
+  userId: string
+): Promise<JellyfinConfig | null> {
+  try {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from('user_jellyfin_config')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return null;
+    return data as JellyfinConfig;
+  } catch (error) {
+    logger.warn('Failed to fetch Jellyfin config for playback:', error);
+    return null;
+  }
+}
+
+/**
  * Look up a user by their Jellyfin webhook secret token.
  * Used by the webhook endpoint to identify which user a webhook belongs to.
  */

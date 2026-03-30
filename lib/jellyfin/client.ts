@@ -78,6 +78,15 @@ async function jellyfinFetch<T>(
 // ============================================================
 
 /**
+ * Fetch public server info (includes the server ID needed for web client URLs).
+ */
+export async function getServerInfo(
+  config: Pick<JellyfinConfig, 'server_url' | 'api_key'>
+): Promise<JellyfinServerInfo> {
+  return jellyfinFetch<JellyfinServerInfo>(config, '/System/Info/Public');
+}
+
+/**
  * Validate that a Jellyfin connection is working.
  * Tests the server URL, API key, and user ID.
  */
@@ -148,7 +157,11 @@ export async function getItemByTmdbId(
     const response = await jellyfinFetch<JellyfinItemsResponse>(config, path);
 
     if (response.Items && response.Items.length > 0) {
-      return response.Items[0];
+      // AnyProviderIdEquals can return fuzzy matches — verify the TMDB ID is exact
+      const exactMatch = response.Items.find(
+        (item) => item.ProviderIds?.Tmdb === String(tmdbId)
+      );
+      return exactMatch || null;
     }
 
     return null;

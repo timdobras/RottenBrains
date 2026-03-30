@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import ImageWithFallback from '@/components/features/media/ImageWithFallback';
+import JellyfinPlayButton from '@/components/features/media/JellyfinPlayButton';
 import MoreOptions from '@/components/features/media/MoreOptions';
 import GoBackArrow from '@/components/features/navigation/GoBackArrow';
 import { fetchMediaData } from '@/lib/client/fetchMediaData';
@@ -181,6 +182,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                       />
                       <p className="text-sm">Rate</p>
                     </Link>
+                    <JellyfinPlayButton media_type={media_type} media_id={media_id} />
                     <div className="flex flex-row items-center gap-2 rounded-[8px] bg-foreground/20 px-6 py-2 drop-shadow-lg">
                       <img
                         src="/assets/icons/star-solid.svg"

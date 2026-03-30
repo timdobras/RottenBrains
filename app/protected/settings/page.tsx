@@ -1,27 +1,19 @@
 import React from 'react';
 import NavThemeSwitch from '@/components/features/navigation/NavThemeSwitch';
 import DefaultSettingsForm from '@/components/features/settings/DefaultSettingsForm';
-import IPAddressManager from '@/components/features/settings/IPAddressManager';
-import JellyfinSettings from '@/components/features/settings/JellyfinSettings';
-import UserSettingsForm from '@/components/features/settings/UserSettingsForm';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import SettingsSection from '@/components/features/settings/SettingsSection';
 
-const page = async () => {
-  const user = await getCurrentUser();
+const GeneralSettingsPage = () => {
   return (
-    <div className="mx-auto h-full w-full max-w-4xl px-4 pb-64 md:px-0">
-      <h1 className="my-4 text-xl font-semibold">Settings</h1>
-      <NavThemeSwitch></NavThemeSwitch>
-      <h1 className="my-4 text-lg font-semibold">Defaults</h1>
-      <DefaultSettingsForm></DefaultSettingsForm>
-      <h1 className="my-4 text-lg font-semibold">Profile</h1>
-      <UserSettingsForm user={user}></UserSettingsForm>
-      <h1 className="my-4 text-lg font-semibold">Jellyfin Integration</h1>
-      <JellyfinSettings userId={user?.id} />
-      <h1 className="my-4 text-lg font-semibold">VPN & Security</h1>
-      <IPAddressManager userId={user?.id} />
-    </div>
+    <>
+      <SettingsSection title="Theme" description="Choose your preferred appearance">
+        <NavThemeSwitch />
+      </SettingsSection>
+      <SettingsSection title="Defaults" description="Default video provider and playback settings">
+        <DefaultSettingsForm />
+      </SettingsSection>
+    </>
   );
 };
 
-export default page;
+export default GeneralSettingsPage;
