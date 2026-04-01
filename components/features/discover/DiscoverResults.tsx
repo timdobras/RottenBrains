@@ -205,6 +205,7 @@ export default function DiscoverResults() {
             <MediaCardClient
               media_type={mediaType}
               media_id={item.id}
+              rounded
               user_id={user?.id ? String(user.id) : undefined}
             />
           </div>

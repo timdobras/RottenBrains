@@ -103,17 +103,6 @@ export default function Navbar() {
                 <div className="hidden md:block">
                   <ProfilePictureNew />
                 </div>
-                {/* Mobile: just the avatar */}
-                <Link href="/protected/profile" className="md:hidden">
-                  <Image
-                    src={user.image_url}
-                    alt={user.username}
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 rounded-full object-cover"
-                    unoptimized
-                  />
-                </Link>
               </>
             ) : (
               <Link
