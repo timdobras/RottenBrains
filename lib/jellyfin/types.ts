@@ -11,8 +11,10 @@ export interface JellyfinConfig {
   id: string;
   user_id: string;
   server_url: string;
+  /** Stores either an admin API key or a per-user access token from AuthenticateByName — both use X-Emby-Token */
   api_key: string;
   jellyfin_user_id: string;
+  jellyfin_username: string | null;
   sync_enabled: boolean;
   webhook_secret: string;
   created_at: string;
@@ -20,6 +22,20 @@ export interface JellyfinConfig {
 }
 
 export type SyncSource = 'app' | 'jellyfin';
+
+// ============================================================
+// Authentication types
+// ============================================================
+
+export interface JellyfinAuthResponse {
+  User: {
+    Id: string;
+    Name: string;
+    ServerId: string;
+  };
+  AccessToken: string;
+  ServerId: string;
+}
 
 // ============================================================
 // Jellyfin API response types

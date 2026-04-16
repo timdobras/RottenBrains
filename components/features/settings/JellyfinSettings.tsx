@@ -7,7 +7,6 @@ import {
   Copy,
   Check,
   Loader2,
-  RefreshCw,
   Power,
   Play,
   Bug,
@@ -17,17 +16,13 @@ import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/client';
 
-interface JellyfinUser {
-  Id: string;
-  Name: string;
-}
-
 interface JellyfinConfigRow {
   id: string;
   user_id: string;
   server_url: string;
   api_key: string;
   jellyfin_user_id: string;
+  jellyfin_username: string | null;
   sync_enabled: boolean;
   webhook_secret: string;
   created_at: string;
@@ -43,9 +38,8 @@ type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
 const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
   // Form state
   const [serverUrl, setServerUrl] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [jellyfinUsers, setJellyfinUsers] = useState<JellyfinUser[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [syncEnabled, setSyncEnabled] = useState(true);
 
   // UI state
@@ -53,7 +47,6 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
   const [serverName, setServerName] = useState('');
   const [webhookSecret, setWebhookSecret] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetchingUsers, setFetchingUsers] = useState(false);
   const [existingConfig, setExistingConfig] = useState<JellyfinConfigRow | null>(null);
   const [copied, setCopied] = useState(false);
   const [debugLoading, setDebugLoading] = useState(false);
@@ -81,8 +74,6 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
         const config = data as JellyfinConfigRow;
         setExistingConfig(config);
         setServerUrl(config.server_url);
-        setApiKey(config.api_key);
-        setSelectedUserId(config.jellyfin_user_id);
         setSyncEnabled(config.sync_enabled);
         setWebhookSecret(config.webhook_secret);
         setConnectionState('connected');
@@ -96,101 +87,49 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
     loadExistingConfig();
   }, [loadExistingConfig]);
 
-  // Fetch Jellyfin users from the server
-  const fetchJellyfinUsers = async () => {
-    if (!serverUrl || !apiKey) {
+  // Sign in to Jellyfin with username and password
+  const signIn = async () => {
+    if (!serverUrl || !username || !password) {
       toast({
         title: 'Error',
-        description: 'Enter a server URL and API key first',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setFetchingUsers(true);
-    try {
-      const response = await fetch('/api/jellyfin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ server_url: serverUrl, api_key: apiKey }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch users');
-      }
-
-      setJellyfinUsers(data.users);
-
-      if (data.users.length > 0 && !selectedUserId) {
-        setSelectedUserId(data.users[0].Id);
-      }
-
-      setConnectionState('connecting');
-      toast({
-        title: 'Users loaded',
-        description: `Found ${data.users.length} user(s). Select one and save.`,
-      });
-    } catch (error) {
-      logger.error('Error fetching Jellyfin users:', error);
-      setConnectionState('error');
-      toast({
-        title: 'Connection failed',
-        description: error instanceof Error ? error.message : 'Could not reach Jellyfin server',
-        variant: 'destructive',
-      });
-    } finally {
-      setFetchingUsers(false);
-    }
-  };
-
-  // Validate and save the configuration
-  const saveConfig = async () => {
-    if (!serverUrl || !apiKey || !selectedUserId) {
-      toast({
-        title: 'Error',
-        description: 'Please fill in all fields and select a user',
+        description: 'Please fill in all fields',
         variant: 'destructive',
       });
       return;
     }
 
     setLoading(true);
+    setConnectionState('connecting');
     try {
-      const response = await fetch('/api/jellyfin/validate', {
+      const response = await fetch('/api/jellyfin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          server_url: serverUrl,
-          api_key: apiKey,
-          jellyfin_user_id: selectedUserId,
-          save: true,
-        }),
+        body: JSON.stringify({ server_url: serverUrl, username, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Validation failed');
+        throw new Error(data.error || 'Authentication failed');
       }
 
       setServerName(data.serverName);
       setConnectionState('connected');
+      setPassword('');
 
-      // Reload config to get the webhook secret
+      // Reload config to get the webhook secret and full config
       await loadExistingConfig();
 
       toast({
         title: 'Connected',
-        description: `Successfully connected to ${data.serverName}`,
+        description: `Signed in as ${data.jellyfinUserName} on ${data.serverName}`,
       });
     } catch (error) {
-      logger.error('Error saving Jellyfin config:', error);
+      logger.error('Error signing in to Jellyfin:', error);
       setConnectionState('error');
       toast({
         title: 'Connection failed',
-        description: error instanceof Error ? error.message : 'Failed to validate connection',
+        description: error instanceof Error ? error.message : 'Could not connect to Jellyfin',
         variant: 'destructive',
       });
     } finally {
@@ -240,9 +179,8 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
       // Reset all state
       setExistingConfig(null);
       setServerUrl('');
-      setApiKey('');
-      setSelectedUserId('');
-      setJellyfinUsers([]);
+      setUsername('');
+      setPassword('');
       setWebhookSecret('');
       setSyncEnabled(true);
       setConnectionState('disconnected');
@@ -391,8 +329,8 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
       {!existingConfig ? (
         <div className="space-y-4">
           <p className="text-sm text-foreground/70">
-            Connect your Jellyfin server to sync watch progress bidirectionally. You will need your
-            server URL and an API key (generate one in Jellyfin Dashboard &rarr; API Keys).
+            Connect your Jellyfin server to sync watch progress bidirectionally. Sign in with your
+            Jellyfin username and password.
           </p>
 
           {/* Server URL */}
@@ -407,65 +345,43 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
             />
           </div>
 
-          {/* API Key */}
+          {/* Username */}
           <div>
-            <label className="mb-1 block text-sm font-medium">API Key</label>
+            <label className="mb-1 block text-sm font-medium">Username</label>
             <input
-              type="password"
-              placeholder="Your Jellyfin API key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              type="text"
+              placeholder="Your Jellyfin username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full rounded-lg bg-foreground/10 px-4 py-2 text-sm"
             />
           </div>
 
-          {/* Fetch Users Button */}
+          {/* Password */}
+          <div>
+            <label className="mb-1 block text-sm font-medium">Password</label>
+            <input
+              type="password"
+              placeholder="Your Jellyfin password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg bg-foreground/10 px-4 py-2 text-sm"
+            />
+          </div>
+
+          {/* Sign In Button */}
           <button
-            onClick={fetchJellyfinUsers}
-            disabled={fetchingUsers || !serverUrl || !apiKey}
-            className="flex items-center gap-2 rounded-lg bg-foreground/10 px-4 py-2 text-sm hover:bg-foreground/20 disabled:opacity-50"
+            onClick={signIn}
+            disabled={loading || !serverUrl || !username || !password}
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm text-white hover:bg-accent/90 disabled:opacity-50"
           >
-            {fetchingUsers ? (
+            {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <Link className="h-4 w-4" />
             )}
-            Fetch Users
+            Sign In
           </button>
-
-          {/* User Selection */}
-          {jellyfinUsers.length > 0 && (
-            <div>
-              <label className="mb-1 block text-sm font-medium">Jellyfin User</label>
-              <select
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full rounded-lg bg-foreground/10 px-4 py-2 text-sm"
-              >
-                {jellyfinUsers.map((u) => (
-                  <option key={u.Id} value={u.Id}>
-                    {u.Name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Save Button */}
-          {jellyfinUsers.length > 0 && selectedUserId && (
-            <button
-              onClick={saveConfig}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm text-white hover:bg-accent/90 disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Link className="h-4 w-4" />
-              )}
-              Connect & Save
-            </button>
-          )}
         </div>
       ) : (
         /* Connected State */
@@ -474,8 +390,8 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
           <div>
             <label className="mb-1 block text-sm font-medium">Webhook URL</label>
             <p className="mb-2 text-xs text-foreground/50">
-              Paste this URL into your Jellyfin Webhook plugin configuration. Events to enable:
-              Playback Start, Playback Stop, Playback Progress, Mark Played.
+              One webhook URL handles all users on the server who have connected their accounts. Only
+              the Jellyfin admin needs to set this up once.
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 truncate rounded-lg bg-foreground/10 px-3 py-2 text-xs">
@@ -495,13 +411,45 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
             </div>
           </div>
 
+          {/* Webhook Setup Guide */}
+          <div className="rounded-lg border border-foreground/10 p-3">
+            <p className="mb-2 text-sm font-medium">Webhook Setup (Jellyfin Admin)</p>
+            <ol className="list-inside list-decimal space-y-1.5 text-xs text-foreground/60">
+              <li>
+                Install the{' '}
+                <span className="font-medium text-foreground/80">Webhook</span> plugin in Jellyfin
+                (Dashboard &rarr; Plugins &rarr; Catalog &rarr; Webhook)
+              </li>
+              <li>Restart Jellyfin after installing the plugin</li>
+              <li>
+                Go to Dashboard &rarr; Plugins &rarr; Webhook &rarr;{' '}
+                <span className="font-medium text-foreground/80">Add Generic Destination</span>
+              </li>
+              <li>Paste the webhook URL from above into the Webhook URL field</li>
+              <li>
+                Enable these notification types:{' '}
+                <span className="font-medium text-foreground/80">
+                  Playback Start, Playback Stop, Playback Progress, Mark Played
+                </span>
+              </li>
+              <li>Leave the User filter empty so it works for all users on the server</li>
+              <li>Check &quot;Send All Properties&quot; and save</li>
+            </ol>
+            <p className="mt-2 text-xs text-foreground/40">
+              Other users on the server just need to sign in here with their own Jellyfin
+              credentials — no extra webhook setup needed.
+            </p>
+          </div>
+
           {/* Server Info */}
           <div className="rounded-lg border border-foreground/10 p-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="text-foreground/50">Server</div>
               <div className="truncate font-mono text-xs">{existingConfig.server_url}</div>
-              <div className="text-foreground/50">User ID</div>
-              <div className="truncate font-mono text-xs">{existingConfig.jellyfin_user_id}</div>
+              <div className="text-foreground/50">Jellyfin User</div>
+              <div className="truncate text-xs">
+                {existingConfig.jellyfin_username || existingConfig.jellyfin_user_id}
+              </div>
               <div className="text-foreground/50">Connected</div>
               <div className="text-xs">
                 {new Date(existingConfig.created_at).toLocaleDateString()}

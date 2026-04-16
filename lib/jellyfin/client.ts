@@ -7,10 +7,10 @@
 import { API_CONFIG } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import type {
+  JellyfinAuthResponse,
   JellyfinConfig,
   JellyfinItem,
   JellyfinItemsResponse,
-  JellyfinUser,
   JellyfinServerInfo,
   ValidateConnectionResult,
 } from './types';
@@ -87,8 +87,52 @@ export async function getServerInfo(
 }
 
 /**
+ * Authenticate with a Jellyfin server using username and password.
+ * Returns a persistent access token scoped to the authenticated user.
+ * The password is used once and should NOT be stored.
+ */
+export async function authenticateByName(
+  serverUrl: string,
+  username: string,
+  password: string
+): Promise<{ accessToken: string; userId: string; userName: string; serverId: string }> {
+  const url = `${normalizeUrl(serverUrl)}/Users/AuthenticateByName`;
+  const deviceId = `rottenbrains-${crypto.randomUUID()}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Emby-Authorization': `MediaBrowser Client="RottenBrains", Device="Web", DeviceId="${deviceId}", Version="1.0.0"`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ Username: username, Pw: password }),
+    signal: AbortSignal.timeout(API_CONFIG.REQUEST_TIMEOUT),
+  });
+
+  if (response.status === 401) {
+    throw new Error('Invalid username or password');
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`Jellyfin authentication failed (${response.status}): ${errorText}`);
+  }
+
+  const data = (await response.json()) as JellyfinAuthResponse;
+
+  return {
+    accessToken: data.AccessToken,
+    userId: data.User.Id,
+    userName: data.User.Name,
+    serverId: data.ServerId,
+  };
+}
+
+/**
  * Validate that a Jellyfin connection is working.
- * Tests the server URL, API key, and user ID.
+ * Tests the server URL, token, and user ID using user-scoped endpoints
+ * (does not require admin access).
  */
 export async function validateConnection(
   serverUrl: string,
@@ -98,23 +142,14 @@ export async function validateConnection(
   try {
     const config = { server_url: serverUrl, api_key: apiKey };
 
-    // Test 1: Get server info
+    // Test 1: Get server info (unauthenticated endpoint)
     const serverInfo = await jellyfinFetch<JellyfinServerInfo>(config, '/System/Info/Public');
     if (!serverInfo.ServerName) {
       return { valid: false, error: 'Could not reach Jellyfin server' };
     }
 
-    // Test 2: Validate the API key by fetching users
-    const users = await jellyfinFetch<JellyfinUser[]>(config, '/Users');
-
-    // Test 3: Verify the specified user exists
-    const userExists = users.some((u) => u.Id === jellyfinUserId);
-    if (!userExists) {
-      return {
-        valid: false,
-        error: `User ID "${jellyfinUserId}" not found on this Jellyfin server`,
-      };
-    }
+    // Test 2: Validate the token by fetching the specific user (user-scoped, no admin required)
+    await jellyfinFetch<{ Id: string; Name: string }>(config, `/Users/${jellyfinUserId}`);
 
     return { valid: true, serverName: serverInfo.ServerName };
   } catch (error) {
@@ -124,15 +159,6 @@ export async function validateConnection(
       error: error instanceof Error ? error.message : 'Connection failed',
     };
   }
-}
-
-/**
- * List all users on a Jellyfin server.
- * Used in settings UI so the user can pick which Jellyfin account to sync with.
- */
-export async function listUsers(serverUrl: string, apiKey: string): Promise<JellyfinUser[]> {
-  const config = { server_url: serverUrl, api_key: apiKey };
-  return jellyfinFetch<JellyfinUser[]>(config, '/Users');
 }
 
 /**

@@ -86,7 +86,8 @@ export async function getJellyfinConfigForPlayback(
 
 /**
  * Look up a user by their Jellyfin webhook secret token.
- * Used by the webhook endpoint to identify which user a webhook belongs to.
+ * Used by the webhook endpoint to authenticate the request source.
+ * Does NOT require sync_enabled — the token just proves the webhook is legitimate.
  */
 export async function getUserByWebhookSecret(
   webhookSecret: string
@@ -97,13 +98,39 @@ export async function getUserByWebhookSecret(
       .from('user_jellyfin_config')
       .select('*')
       .eq('webhook_secret', webhookSecret)
-      .eq('sync_enabled', true)
       .single();
 
     if (error || !data) return null;
     return data as JellyfinConfig;
   } catch (error) {
     logger.warn('Failed to look up user by webhook secret:', error);
+    return null;
+  }
+}
+
+/**
+ * Look up a RottenBrains user by their Jellyfin user ID on a specific server.
+ * Used by the webhook to route events to the correct user — the admin adds
+ * one webhook URL, and any connected user on that server gets synced.
+ */
+export async function getUserByJellyfinUserOnServer(
+  jellyfinUserId: string,
+  serverUrl: string
+): Promise<JellyfinConfig | null> {
+  try {
+    const supabase = createServiceClient();
+    const { data, error } = await supabase
+      .from('user_jellyfin_config')
+      .select('*')
+      .eq('jellyfin_user_id', jellyfinUserId)
+      .eq('server_url', serverUrl)
+      .eq('sync_enabled', true)
+      .single();
+
+    if (error || !data) return null;
+    return data as JellyfinConfig;
+  } catch (error) {
+    logger.warn('Failed to look up user by Jellyfin user ID on server:', error);
     return null;
   }
 }

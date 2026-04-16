@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ticksToPercentage, ticksToSeconds } from '@/lib/jellyfin/client';
-import { getUserByWebhookSecret, syncFromJellyfin } from '@/lib/jellyfin/sync';
+import {
+  getUserByJellyfinUserOnServer,
+  getUserByWebhookSecret,
+  syncFromJellyfin,
+} from '@/lib/jellyfin/sync';
 import type { JellyfinConfig } from '@/lib/jellyfin/types';
 import { logger } from '@/lib/logger';
 
@@ -100,6 +104,10 @@ function extractPayloadFields(payload: Record<string, unknown>) {
 
   const eventType = (payload.NotificationType as string) || (payload.Event as string) || '';
 
+  // Extract the Jellyfin user ID from the payload for user separation
+  const user = payload.User as Record<string, unknown> | undefined;
+  const jellyfinUserId = (user?.Id as string) || (payload.UserId as string) || '';
+
   const itemName = (item?.Name as string) || (payload.Name as string) || '';
   const itemType = (item?.Type as string) || (payload.ItemType as string) || '';
   const runtimeTicks = safeNumber(item?.RunTimeTicks ?? payload.RunTimeTicks);
@@ -120,6 +128,7 @@ function extractPayloadFields(payload: Record<string, unknown>) {
 
   return {
     eventType,
+    jellyfinUserId,
     itemName,
     itemType,
     runtimeTicks,
@@ -210,8 +219,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing token' }, { status: 401 });
     }
 
-    const config = await getUserByWebhookSecret(token);
-    if (!config) {
+    const tokenOwner = await getUserByWebhookSecret(token);
+    if (!tokenOwner) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -245,7 +254,37 @@ export async function POST(req: NextRequest) {
     // 3. Extract fields — handles both nested and flat formats
     const fields = extractPayloadFields(payload);
 
-    // 4. Only process playback and mark-played events
+    // 4. Route to the correct RottenBrains user based on the Jellyfin user ID in the payload.
+    // The token authenticates the request, but the payload's User.Id determines WHO gets the sync.
+    // This allows a single webhook URL (added by the admin) to serve all users on the server.
+    let config: JellyfinConfig;
+    if (!fields.jellyfinUserId) {
+      // Payload missing user ID — fall back to the token owner
+      logger.warn('[Jellyfin webhook] Payload missing user ID — falling back to token owner', {
+        event: fields.eventType,
+        item: fields.itemName,
+      });
+      config = tokenOwner;
+    } else if (fields.jellyfinUserId === tokenOwner.jellyfin_user_id) {
+      // Event is for the token owner — use their config directly
+      config = tokenOwner;
+    } else {
+      // Event is for a different Jellyfin user on the same server — look them up
+      const targetUser = await getUserByJellyfinUserOnServer(
+        fields.jellyfinUserId,
+        tokenOwner.server_url
+      );
+      if (!targetUser) {
+        return NextResponse.json({
+          success: true,
+          action: 'ignored',
+          reason: 'No RottenBrains account linked for this Jellyfin user',
+        });
+      }
+      config = targetUser;
+    }
+
+    // 5. Only process playback and mark-played events
     const processableEvents = [
       'PlaybackStart',
       'PlaybackStop',
@@ -261,7 +300,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 5. Resolve TMDB ID
+    // 6. Resolve TMDB ID
     // For episodes, we MUST use the series TMDB ID (not the episode's own TMDB ID)
     // because watch_history is keyed by (series_tmdb_id, season, episode).
     // The episode-level TMDB ID is a different number and won't match.
@@ -291,7 +330,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 6. Determine media type
+    // 7. Determine media type
     const mediaType = resolveMediaType(fields.itemType);
     if (!mediaType) {
       return NextResponse.json({
@@ -301,12 +340,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 7. Resolve season/episode for TV
+    // 8. Resolve season/episode for TV
     const seasonNumber = mediaType === 'tv' && fields.seasonNumber > 0 ? fields.seasonNumber : null;
     const episodeNumber =
       mediaType === 'tv' && fields.episodeNumber > 0 ? fields.episodeNumber : null;
 
-    // 8. Throttle PlaybackProgress — only write every 30 seconds per item
+    // 9. Throttle PlaybackProgress — only write every 30 seconds per item
     if (fields.eventType === 'PlaybackProgress') {
       const key = makeThrottleKey(config.user_id, mediaType, tmdbId, seasonNumber, episodeNumber);
       if (shouldThrottleProgress(key)) {
@@ -319,7 +358,7 @@ export async function POST(req: NextRequest) {
       // Will record the write after successful sync below
     }
 
-    // 9. Calculate progress
+    // 10. Calculate progress
     let percentageWatched = 0;
     let timeSpentSeconds = 0;
 
@@ -337,7 +376,7 @@ export async function POST(req: NextRequest) {
       timeSpentSeconds = fields.positionTicks > 0 ? ticksToSeconds(fields.positionTicks) : 0;
     }
 
-    // 10. Sync to local database
+    // 11. Sync to local database
     // Pass timeSpentSeconds as playbackPosition so the Videasy player
     // can resume from where the user left off on Jellyfin.
     const result = await syncFromJellyfin({
