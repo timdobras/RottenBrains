@@ -112,7 +112,15 @@ sentry-release:
     SENTRY_URL: https://sentry.timdobras.com
     SENTRY_ORG: sentry
   before_script:
-    - command -v sentry-cli >/dev/null 2>&1 || curl -sL https://sentry.io/get-cli/ | INSTALL_DIR="$HOME/.local/bin" sh
+    # AdGuard on the homelab DNS blocks sentry.io, so we fetch the CLI binary
+    # straight from GitHub releases (pinned for reproducibility).
+    - mkdir -p "$HOME/.local/bin"
+    - |
+      if ! command -v sentry-cli >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/sentry-cli" ]; then
+        curl -sL -o "$HOME/.local/bin/sentry-cli" \
+          "https://github.com/getsentry/sentry-cli/releases/download/3.4.2/sentry-cli-Linux-x86_64"
+        chmod +x "$HOME/.local/bin/sentry-cli"
+      fi
     - export PATH="$HOME/.local/bin:$PATH"
     - sentry-cli --version
   script:
