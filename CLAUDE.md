@@ -40,7 +40,7 @@ npx supabase migration new <name>  # Create new migration file
 - **State Management**: React Context (UserContext, VideoProvider, SidebarContext)
 - **Data Fetching**: Server Components for SSR, client-side fetch for interactivity
 - **External APIs**: TMDB for movie/TV metadata
-- **Deployment**: Vercel
+- **Deployment**: Coolify (self-hosted, branch `master`)
 - **Analytics**: Vercel Analytics & Speed Insights
 
 ### Project Structure

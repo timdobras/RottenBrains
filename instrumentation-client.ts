@@ -7,8 +7,15 @@ import * as Sentry from '@sentry/nextjs';
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-  // Performance Monitoring
-  tracesSampleRate: 1.0,
+  environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+  release: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
+
+  // Performance Monitoring: 100% in dev, 10% in prod by default; override with
+  // NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE if you need a different value.
+  tracesSampleRate: parseFloat(
+    process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ??
+      (process.env.NODE_ENV === 'production' ? '0.1' : '1.0'),
+  ),
 
   // Session Replay
   replaysSessionSampleRate: 0.1, // 10% of sessions
