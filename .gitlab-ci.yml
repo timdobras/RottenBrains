@@ -1,6 +1,7 @@
 stages:
   - build
   - deploy
+  - notify
   - cleanup
 
 # -------------------------------------------------------
@@ -95,5 +96,32 @@ cleanup-runner:
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
   when: always
+  needs: ['deploy-to-coolify']
+  allow_failure: true
+
+# -------------------------------------------------------
+# Sentry release + deploy notification
+# Registers rotten-brains@<sha>, attaches commits, marks
+# deployed to production. Requires CI var: SENTRY_AUTH_TOKEN.
+# -------------------------------------------------------
+sentry-release:
+  stage: notify
+  tags:
+    - shell
+  variables:
+    SENTRY_URL: https://sentry.timdobras.com
+    SENTRY_ORG: sentry
+  before_script:
+    - command -v sentry-cli >/dev/null 2>&1 || curl -sL https://sentry.io/get-cli/ | INSTALL_DIR="$HOME/.local/bin" sh
+    - export PATH="$HOME/.local/bin:$PATH"
+    - sentry-cli --version
+  script:
+    - VERSION="rotten-brains@${CI_COMMIT_SHORT_SHA}"
+    - sentry-cli releases new "$VERSION" -p rotten-brains
+    - sentry-cli releases set-commits "$VERSION" --auto --ignore-missing
+    - sentry-cli releases finalize "$VERSION"
+    - sentry-cli releases deploys "$VERSION" new -e production -n "coolify-deploy-$CI_PIPELINE_ID"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
   needs: ['deploy-to-coolify']
   allow_failure: true
