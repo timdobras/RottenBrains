@@ -10,9 +10,9 @@ const nextConfig = {
   output: 'standalone',
   serverExternalPackages: ['sharp'],
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
+    // Lint errors fail the build. Warnings (any, <img>, import order, etc.)
+    // still pass — those are tracked separately for incremental cleanup.
+    ignoreDuringBuilds: false,
   },
   images: {
     remotePatterns: [

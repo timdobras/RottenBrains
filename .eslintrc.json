@@ -32,7 +32,7 @@
     ],
     "prefer-const": "warn",
     "no-var": "error",
-    "eqeqeq": ["error", "always"],
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
     "no-duplicate-imports": "error",
 
     // Import organization

@@ -35,7 +35,7 @@ export default function FeedFollowing() {
           ))}
         </div>
       ) : following.length === 0 ? (
-        <p className="text-xs text-foreground/40">You aren't following anyone yet.</p>
+        <p className="text-xs text-foreground/40">You aren&apos;t following anyone yet.</p>
       ) : (
         <ul className="flex flex-col gap-1">
           {following.map((item: any) => {

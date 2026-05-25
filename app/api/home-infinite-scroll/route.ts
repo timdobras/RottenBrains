@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchInfiniteScrollHome } from '@/lib/server/fetchInfiniteScrollHome';
 import { getPopular } from '@/lib/tmdb';
 import { logger } from '@/lib/logger';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,14 +31,20 @@ function parseGenres(str: string | null): { genre_code: string }[] {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get('page') || '1', 10);
-  const userId = searchParams.get('userId');
   const movieGenres = parseGenres(searchParams.get('movieGenres'));
   const tvGenres = parseGenres(searchParams.get('tvGenres'));
 
+  // Derive identity from the session cookie. Never trust a client-supplied
+  // user id — doing so let any caller read another user's personalized feed.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   try {
-    if (userId) {
+    if (user) {
       // Authenticated users get personalized content - don't cache
-      const results = await fetchInfiniteScrollHome(movieGenres, tvGenres, page, userId);
+      const results = await fetchInfiniteScrollHome(movieGenres, tvGenres, page, user.id);
       return NextResponse.json(results || [], {
         headers: {
           'Cache-Control': 'private, no-store, max-age=0',

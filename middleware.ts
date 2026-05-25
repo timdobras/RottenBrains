@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from './lib/supabase/middleware';
+import {
+  PREMIUM_COOKIE_NAME,
+  signPremiumStatus,
+  verifyPremiumStatus,
+} from './lib/auth/premiumCookie';
 
 // Routes that do not require authentication
 const PUBLIC_ROUTES = [
@@ -65,15 +70,21 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Check premium status from cookie first to avoid DB query on every request
-  const premiumCookie = request.cookies.get('premium_status');
-  let isPremium = false;
+  // Check premium status from a SIGNED cookie first to avoid a DB query on
+  // every request. The cookie value is HMAC-signed and bound to this user id,
+  // so it cannot be forged or replayed (an unsigned `premium_status=true`
+  // previously let anyone bypass the paywall).
+  const premiumCookie = request.cookies.get(PREMIUM_COOKIE_NAME);
+  const cached = await verifyPremiumStatus(premiumCookie?.value, user.id);
 
-  if (premiumCookie?.value === 'true') {
-    // Cookie exists and is valid — skip DB query
-    isPremium = true;
+  let isPremium: boolean;
+
+  if (cached !== null) {
+    // Signature valid and not expired — trust the cached value.
+    isPremium = cached;
   } else {
-    // Cookie missing or expired — check DB and set cookie
+    // Cookie missing, expired, tampered with, or no signing secret configured
+    // — fall back to the authoritative DB check.
     const { data: userData } = await supabase
       .from('users')
       .select('premium')
@@ -82,14 +93,19 @@ export async function middleware(request: NextRequest) {
 
     isPremium = userData?.premium === true;
 
-    // Cache premium status in a cookie for 5 minutes
-    response.cookies.set('premium_status', isPremium ? 'true' : 'false', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 5 * 60, // 5 minutes
-      path: '/',
-    });
+    // Cache the result in a signed cookie for 5 minutes. If no secret is
+    // configured signPremiumStatus returns null and we skip the cookie,
+    // falling back to a DB check every request (correct but slower).
+    const signed = await signPremiumStatus(user.id, isPremium);
+    if (signed) {
+      response.cookies.set(PREMIUM_COOKIE_NAME, signed, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 5 * 60, // 5 minutes
+        path: '/',
+      });
+    }
   }
 
   if (!isPremium) {
