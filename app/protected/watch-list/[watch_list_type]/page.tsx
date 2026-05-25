@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import React from 'react';
 import WatchListInfiniteScroll from '@/components/features/library/InfiniteScroll';
 import { getCurrentUser, getWatchListSpecific } from '@/lib/supabase/serverQueries';
@@ -5,8 +6,10 @@ type Params = Promise<{ watch_list_type: string }>;
 const page = async ({ params }: { params: Params }) => {
   const { watch_list_type } = await params;
 
-  let user = await getCurrentUser();
-  user = user;
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect('/login');
+  }
   const limit = 10;
   const offset = 0;
 

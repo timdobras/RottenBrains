@@ -154,8 +154,8 @@ export default async function mediaPage({ params }: { params: Params }) {
               <TVShowDetails
                 tv_show_id={media_id}
                 season_number={season_number}
-                user_id={user?.id.toString()}
-                is_premium={user?.premium}
+                user_id={user?.id.toString() ?? ''}
+                is_premium={user?.premium ?? false}
                 tvDetails={media}
                 current_episode_number={episode_number}
               />

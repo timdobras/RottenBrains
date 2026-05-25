@@ -2,6 +2,7 @@
  * Mock Supabase client for offline development
  * Mimics the Supabase client interface with proper TypeScript compatibility
  */
+import type { TypedSupabaseClient } from '@/lib/supabase/types';
 
 import { mockUsers, MOCK_CURRENT_USER_ID, getMockUserById, searchMockUsers } from '../data/users';
 import {
@@ -482,7 +483,7 @@ const createMockStorage = () => ({
 let mockChannels: Map<string, any> = new Map();
 
 // Create the mock server client (for Server Components)
-export function createMockServerClient(): any {
+export function createMockServerClient(): TypedSupabaseClient {
   return {
     auth: createMockAuth(),
     from: (table: string) => createMockQueryBuilder(table),
@@ -497,11 +498,12 @@ export function createMockServerClient(): any {
       return Promise.resolve();
     },
     getChannels: () => Array.from(mockChannels.values()),
-  };
+    // The mock only implements the subset of the client the app actually uses.
+  } as unknown as TypedSupabaseClient;
 }
 
 // Create the mock browser client (for Client Components)
-export function createMockBrowserClient(): any {
+export function createMockBrowserClient(): TypedSupabaseClient {
   return {
     auth: createMockAuth(),
     from: (table: string) => createMockQueryBuilder(table),
@@ -516,7 +518,8 @@ export function createMockBrowserClient(): any {
       return Promise.resolve();
     },
     getChannels: () => Array.from(mockChannels.values()),
-  };
+    // The mock only implements the subset of the client the app actually uses.
+  } as unknown as TypedSupabaseClient;
 }
 
 // Export for convenience

@@ -73,7 +73,7 @@ const MediaCardSmall = async ({
         <MediaCardOverlay
           runtime={runtime}
           voteAverage={vote_average}
-          watchTime={fetchedWatchTime}
+          watchTime={fetchedWatchTime != null ? Number(fetchedWatchTime) : null}
           transformRuntime={transformRuntime}
         />
         <ImageWithFallback

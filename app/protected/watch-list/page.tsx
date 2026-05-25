@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import React from 'react';
 import WatchListCard from '@/components/features/library/CategoryCard';
 import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
@@ -9,6 +10,9 @@ export const dynamic = 'force-dynamic';
 const page = async () => {
   // Auth is enforced by middleware — user is guaranteed to exist here
   const user = await getCurrentUser();
+  if (!user) {
+    redirect('/login');
+  }
 
   const limit = 1;
   const offset = 0;

@@ -38,7 +38,15 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setIpAddresses(data || []);
+      setIpAddresses(
+        (data || []).map((row) => ({
+          id: row.id,
+          ip_address: String(row.ip_address),
+          label: row.label ?? undefined,
+          is_trusted: row.is_trusted ?? false,
+          created_at: row.created_at ?? '',
+        }))
+      );
     } catch (error) {
       logger.error('Error fetching IP addresses:', error);
       toast({

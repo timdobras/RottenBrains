@@ -38,7 +38,8 @@ const fetchUser = async () => {
     throw error;
   }
 
-  return userData as IUser;
+  // IUser type is out of sync with the DB row; cast until reconciled
+  return userData as unknown as IUser;
 };
 
 const UserProvider = ({ children, initialUser }: { children: ReactNode; initialUser?: IUser }) => {

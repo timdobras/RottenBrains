@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import type { Json } from '@/database.types';
 import { PAGINATION } from '@/lib/constants';
 import { handleError as handleAppError, DatabaseError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
@@ -418,7 +419,8 @@ export interface LastEpisodeInfo {
 export async function updateUserFeedGenres(userId: string, feedGenres: FeedGenre[]) {
   const { data, error } = await supabase
     .from('users')
-    .update({ feed_genres: feedGenres })
+    // feed_genres is a jsonb[] column (typed Json[]); FeedGenre is JSON-shaped.
+    .update({ feed_genres: feedGenres as unknown as Json[] })
     .eq('id', userId)
     .single();
 

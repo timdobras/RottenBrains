@@ -37,9 +37,13 @@ export async function getUserFromDB(id: string): Promise<{ user: IUser } | null>
       throw new DatabaseError('Failed to fetch user from database');
     }
 
-    return { user: user as IUser };
+    // NOTE: the `IUser` type in @/types is out of sync with the actual DB row
+    // (it declares `id: number` but the column is a UUID string, and has
+    // postsId/likes/saves fields that don't exist on `users`). Double-cast
+    // until IUser is reconciled with database.types.ts.
+    return { user: user as unknown as IUser };
   } catch (error) {
-    const errorInfo = handleAppError(error, 'getUserFromDB');
+    handleAppError(error, 'getUserFromDB');
     return null;
   }
 }
@@ -51,13 +55,20 @@ export const getCurrentUser = cache(async () => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: userData } = await supabase
+  const { data: userData, error } = await supabase
     .from('users')
     .select(
       'id, name, username, email, image_url, backdrop_url, feed_genres, premium, bio, created_at'
     )
     .eq('id', user.id)
     .single();
+
+  if (error) {
+    // Runs on nearly every request — log but fail soft so the app can still
+    // render in a logged-out-ish state rather than crashing.
+    handleAppError(error, 'getCurrentUser');
+    return null;
+  }
 
   return userData;
 });
@@ -82,6 +93,7 @@ export const getPostById = async (post_id: string): Promise<any | null> => {
     return data;
   } catch (error) {
     handleAppError(error, 'getPostById');
+    return null;
   }
 };
 
@@ -152,8 +164,8 @@ export const upsertWatchHistory = async (
       p_season_number: normalizedSeasonNumber,
       p_episode_number: normalizedEpisodeNumber,
       p_sync_source: sync_source,
-      p_playback_position: playback_position,
-    } as any);
+      p_playback_position: playback_position ?? undefined,
+    });
 
     if (error) {
       // Fallback to manual upsert if the RPC doesn't exist yet (migration not applied)
@@ -177,7 +189,7 @@ export const upsertWatchHistory = async (
     logger.debug('Atomic upsert successful:', data);
     return { success: true, action: 'upserted', data };
   } catch (error) {
-    const errorInfo = handleAppError(error, 'upsertWatchHistory');
+    handleAppError(error, 'upsertWatchHistory');
     throw error;
   }
 };
@@ -258,13 +270,19 @@ export const getWatchTime = async (
       p_user_id: user_id,
       p_media_type: media_type,
       p_media_id: media_id,
-      p_season_number: season_number || null,
-      p_episode_number: episode_number || null,
+      p_season_number: season_number ?? undefined,
+      p_episode_number: episode_number ?? undefined,
     });
+
+    if (error) {
+      logger.warn('Error in getWatchTime:', error);
+      return null;
+    }
 
     return data;
   } catch (error) {
     logger.warn('Error in getWatchTime:', error);
+    return null;
   }
 };
 
@@ -282,12 +300,12 @@ export const getPlaybackPosition = async (
 ): Promise<number | null> => {
   try {
     const supabase = await getSupabaseClient();
-    const { data, error } = await (supabase.rpc as any)('get_playback_position', {
+    const { data, error } = await supabase.rpc('get_playback_position', {
       p_user_id: user_id,
       p_media_type: media_type,
       p_media_id: media_id,
-      p_season_number: season_number ?? null,
-      p_episode_number: episode_number ?? null,
+      p_season_number: season_number ?? undefined,
+      p_episode_number: episode_number ?? undefined,
     });
 
     if (error) {
@@ -416,7 +434,8 @@ async function getTopGenresForUser(
   user: IUser | undefined,
   mediaType: 'movie' | 'tv'
 ) {
-  const user_id = user ? user.id : userId;
+  const user_id = user ? String(user.id) : userId;
+  if (!user_id) return [];
   try {
     const supabase = await getSupabaseClient();
     // Choose the appropriate RPC based on the media type
@@ -456,7 +475,9 @@ export const getTopTvGenresForUser = async (userId?: string, user?: IUser) => {
 export async function updateGenreStats({ genreIds, mediaType, userId }: UpdateGenreStatsParams) {
   const supabase = await getSupabaseClient();
   const { data, error } = await supabase.rpc('update_genre_stats', {
-    genre_ids: genreIds,
+    // genreIds is typed bigint[] in UpdateGenreStatsParams but the RPC expects
+    // number[] (genre ids are small ints) — convert at the boundary.
+    genre_ids: genreIds.map((id) => Number(id)),
     media_type: mediaType,
     user_id: userId,
   });
@@ -543,7 +564,9 @@ export async function getTvWatchListForUser(userId: string): Promise<WatchListIt
     logger.error(`Error fetching watch_list for user=${userId}:`, error);
     return [];
   }
-  return data ?? [];
+  // media_id is nullable in the column but WatchListItem requires it — drop rows
+  // without one rather than asserting.
+  return (data ?? []).filter((row): row is WatchListItem => row.media_id !== null);
 }
 
 export async function upsertNewEpisodeRecord(

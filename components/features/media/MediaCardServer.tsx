@@ -49,7 +49,7 @@ const MediaCardServer: React.FC<MediaCardServerProps> = async ({
         media_id={media_id}
         season_number={season_number}
         episode_number={episode_number}
-        watch_time={watchTime}
+        watch_time={watchTime != null ? Number(watchTime) : undefined}
         quality={quality}
         user_id={user_id}
         rounded={rounded}

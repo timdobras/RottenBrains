@@ -41,6 +41,12 @@ const MoreOptions = ({ user_id, media_type, media_id, genre_ids }: MoreOptionsPr
         // Only proceed if isSaving is not null
         try {
           const data = await addToWatchList(user_id, media_type, media_id, isSaving);
+          if (!data) {
+            toast({
+              title: 'Error saving to watch list',
+            });
+            return;
+          }
           if (!data.includes('Error')) {
             await updateGenreStats({
               genreIds: genre_ids,

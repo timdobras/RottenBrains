@@ -10,17 +10,18 @@ const RecommendedCard = async ({ media_id, media_type, user_id }: any) => {
     getMediaDetails(media_type, media_id),
     getWatchTime(user_id, 'movie', media_id),
   ]);
+  const watchTimePercent = Number(watchTime ?? 0);
   return (
     <div className="mb-4 flex w-full flex-col gap-2 hover:border-accent hover:bg-foreground/20 md:mb-2 md:flex-row md:p-2">
       <Link
         className="relative w-full flex-shrink-0 overflow-hidden md:w-1/2 md:rounded-[4px]"
         href={getHrefFromMedia(media_type, media_id)}
       >
-        {watchTime > 0 && (
+        {watchTimePercent > 0 && (
           <div
             className="absolute bottom-0 left-0 h-1 bg-accent"
             style={{
-              width: `${watchTime}%`,
+              width: `${watchTimePercent}%`,
             }}
           ></div>
         )}

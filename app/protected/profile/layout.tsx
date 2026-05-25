@@ -1,13 +1,18 @@
+import { redirect } from 'next/navigation';
 import React from 'react';
 import FollowButton from '@/components/features/profile/FollowButton';
 import FollowInfo from '@/components/features/profile/FollowInfo';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 import NewTabs from '@/components/features/profile/NewTabs';
 import ProfilePicture from '@/components/features/profile/ProfilePictureChange';
+import { IUser } from '@/types';
 
 const ProfileLayout = async ({ children }: { children: React.ReactNode }) => {
   // Auth is enforced by middleware — user is guaranteed to exist here
   const user = await getCurrentUser();
+  if (!user) {
+    redirect('/login');
+  }
   const dateString = user.created_at;
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
@@ -23,7 +28,7 @@ const ProfileLayout = async ({ children }: { children: React.ReactNode }) => {
         <div className="w-full">
           <div className="aspect-[5/1] w-full overflow-hidden md:rounded-[16px]">
             <img
-              src={user.backdrop_url}
+              src={user.backdrop_url ?? ''}
               alt=""
               className="h-full w-full object-cover object-center"
             />
@@ -39,7 +44,8 @@ const ProfileLayout = async ({ children }: { children: React.ReactNode }) => {
                   <FollowButton user_to_follow_id={user.id} />
                 </div>
                 <div className="flex w-full flex-col gap-2 md:flex-row md:items-center">
-                  <FollowInfo user={user} />
+                  {/* IUser type is out of sync with the DB row; cast until reconciled */}
+                  <FollowInfo user={user as unknown as IUser} />
                   <p className="text-sm text-foreground/50">Member since {formattedDate}</p>
                 </div>
               </div>

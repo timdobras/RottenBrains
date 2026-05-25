@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { fetchBlogPostById } from '@/lib/supabase/serverQueries';
@@ -14,16 +15,24 @@ export default async function AsyncPage({ params }: { params: Params }) {
   const { blog_id } = await params;
 
   // Fetch the blog post by ID
-  const data = await fetchBlogPostById(blog_id);
+  const post = await fetchBlogPostById(blog_id);
+
+  // No such post (or fetch failed) — render the 404 page rather than crashing.
+  if (!post) {
+    notFound();
+  }
 
   // Replace escaped newline characters with actual newlines
-  data.content = data.content.replace(/\\n/g, '\n');
-  const post = data;
+  const content = post.content.replace(/\\n/g, '\n');
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-4 text-3xl font-bold">{post.title}</h1>
-      <div className="mb-6">Published on {new Date(post.created_at).toLocaleDateString()}</div>
+      <div className="mb-6">
+        {post.created_at
+          ? `Published on ${new Date(post.created_at).toLocaleDateString()}`
+          : null}
+      </div>
       {post.images && post.images.length > 0 ? (
         <div className="grid aspect-[16/9] w-full grid-cols-4 gap-4 rounded-xl bg-foreground/20 p-4">
           {post.images.map((url: string, idx: number) => (
@@ -43,7 +52,11 @@ export default async function AsyncPage({ params }: { params: Params }) {
           ))}
         </div>
       ) : (
-        <img src={post.thumbnail} alt="Thumbnail" className="aspect-[16/9] w-full rounded shadow" />
+        <img
+          src={post.thumbnail ?? ''}
+          alt="Thumbnail"
+          className="aspect-[16/9] w-full rounded shadow"
+        />
       )}
       {post.features && post.features.length > 0 && (
         <div className="my-6">
@@ -56,7 +69,7 @@ export default async function AsyncPage({ params }: { params: Params }) {
         </div>
       )}
       <div className="prose prose-lg text-foreground">
-        <ReactMarkdown>{post.content}</ReactMarkdown>
+        <ReactMarkdown>{content}</ReactMarkdown>
       </div>
     </div>
   );

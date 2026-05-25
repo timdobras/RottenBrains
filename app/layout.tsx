@@ -4,6 +4,7 @@ import TopLoader from '@/components/features/loaders/TopLoader';
 import UserProvider from '@/hooks/UserContext';
 import VideoProvider from '@/hooks/VideoProvider';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { IUser } from '@/types';
 import MainContent from '@/components/common/MainContent';
 import Navbar from '@/components/features/navigation/Navbar';
 import './globals.css';
@@ -80,7 +81,10 @@ export default async function NotProtectedLayout({ children }: { children: React
         className={`${roboto.variable} custom-scrollbar max-h-[100dvh] w-full overflow-x-hidden bg-background font-roboto text-foreground transition-all duration-300`}
       >
         <Providers>
-          <UserProvider initialUser={initialUser}>
+          <UserProvider
+            // IUser type is out of sync with the DB row; cast until reconciled
+            initialUser={(initialUser as unknown as IUser) ?? undefined}
+          >
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
               <VideoProvider>
                 <OfflineIndicator />

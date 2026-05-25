@@ -72,7 +72,7 @@ const MediaCardClient: React.FC<MediaCardClientProps> = ({
       media_id={media_id}
       season_number={season_number}
       episode_number={episode_number}
-      watch_time={watchTimeQuery.data ?? 0}
+      watch_time={watchTimeQuery.data != null ? Number(watchTimeQuery.data) : undefined}
       quality={quality}
       user_id={user_id}
       rounded={rounded}

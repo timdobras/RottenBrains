@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import PostModalFull from '@/components/features/posts/PostModalFul';
 import UserPosts from '@/components/features/profile/UserPosts';
 import { fetchPostById } from '@/lib/server/fetchPostsData';
@@ -15,6 +16,9 @@ export default async function ProtectedPage({
   const { userId } = await params;
   const { post_id } = await searchParams;
   const current_user = await getCurrentUser();
+  if (!current_user) {
+    redirect('/login');
+  }
   const post_media_data = post_id ? await fetchPostById(post_id, current_user.id) : null;
   return (
     <>

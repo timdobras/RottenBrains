@@ -23,17 +23,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    // Use authenticated user ID instead of client-provided userId
-    const response = await updateGenreStats({ genreIds, mediaType, userId: user.id });
+    // Use authenticated user ID instead of client-provided userId.
+    // updateGenreStats() resolves (with void) on success and throws on failure,
+    // so reaching this point means the update succeeded; failures fall through
+    // to the catch block below and return a 500.
+    await updateGenreStats({ genreIds, mediaType, userId: user.id });
 
-    if (response.success) {
-      return NextResponse.json({ message: 'Genre stats updated successfully' });
-    } else {
-      return NextResponse.json(
-        { error: 'Failed to update genre stats', details: response.error },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ message: 'Genre stats updated successfully' });
   } catch (error) {
     logger.error('Error updating genres:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

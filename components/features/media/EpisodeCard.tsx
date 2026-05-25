@@ -35,14 +35,16 @@ const EpisodeCard = async ({
       : Promise.resolve(0),
   ]);
 
+  const watchTimePercent = Number(watchTime ?? 0);
+
   return (
     <div className="mb-4 flex w-full flex-col gap-2 hover:border-accent hover:bg-foreground/20 md:mb-2 md:flex-row md:rounded-[8px] md:p-2">
       <div className="relative w-full flex-shrink-0 overflow-hidden md:w-1/2 md:rounded-[4px]">
-        {watchTime > 0 && (
+        {watchTimePercent > 0 && (
           <div
             className="absolute bottom-0 left-0 h-1 bg-accent"
             style={{
-              width: `${watchTime}%`,
+              width: `${watchTimePercent}%`,
             }}
           ></div>
         )}
