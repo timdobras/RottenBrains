@@ -16,6 +16,12 @@ COPY . .
 # Next.js collects anonymous telemetry — disable it during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Raise the Node heap for the build only. Wiring the generated Supabase
+# `Database` types into the client makes `next build` type-checking
+# memory-heavy and it OOMs at Node's default ~2GB limit. (Build stage only —
+# the runtime `runner` stage below starts from a fresh image.)
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
 # NEXT_PUBLIC_* vars must be provided at build time — Next.js inlines them
 # into client-side JS bundles. Pass them as --build-arg in CI/CD.
 ARG NEXT_PUBLIC_SUPABASE_URL
