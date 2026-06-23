@@ -34,6 +34,7 @@ const CommentCard: FC<FollowCardProps> = ({ notification }) => {
         <p className="">{notification.comment.content}</p>
         <Link
           href={post_link}
+          scroll={false}
           className="flex flex-col gap-2 rounded-[16px] bg-foreground/10 p-4 md:flex-row"
         >
           <div className="flex flex-col gap-2">

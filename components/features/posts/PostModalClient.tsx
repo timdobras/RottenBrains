@@ -7,6 +7,7 @@ import { useUser } from '@/hooks/UserContext';
 import { fetchPostByIdClient } from '@/lib/client/fetchPostByIdClient';
 import { getSeededPostData } from '@/lib/client/postModalStore';
 import PostModalContent from './PostModalContent';
+import PostModalSkeleton from './PostModalSkeleton';
 
 /**
  * Client modal rendered by the intercepting route app/@modal/(.)post/[post_id].
@@ -49,13 +50,28 @@ const PostModalClient = ({ postId }: { postId: string }) => {
   const handleClose = () => setOpen(false);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    // Position-preserving scroll lock: pin the background where it is (instead of
+    // letting it jump to top) and restore the exact scroll position on close.
+    const scrollY = window.scrollY;
+    const body = document.body;
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.overflow = 'hidden';
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
     window.addEventListener('keydown', onKey);
+
     return () => {
-      document.body.style.overflow = '';
+      body.style.position = '';
+      body.style.top = '';
+      body.style.left = '';
+      body.style.right = '';
+      body.style.overflow = '';
+      window.scrollTo(0, scrollY);
       window.removeEventListener('keydown', onKey);
     };
   }, []);
@@ -80,7 +96,7 @@ const PostModalClient = ({ postId }: { postId: string }) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 6 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="relative max-h-[90vh] w-full max-w-[95vw] overflow-hidden rounded-[16px] bg-background text-foreground shadow-lg md:aspect-[16/9] md:max-h-[90vh] md:w-[60vw]"
+            className="relative h-[80vh] max-h-[90vh] w-full max-w-[95vw] overflow-hidden rounded-[16px] bg-background text-foreground shadow-lg md:aspect-[16/9] md:h-auto md:max-h-[90vh] md:w-[60vw]"
           >
             <button
               onClick={handleClose}
@@ -89,11 +105,9 @@ const PostModalClient = ({ postId }: { postId: string }) => {
             >
               <p>&times;</p>
             </button>
-            <div className="h-full w-full overflow-y-auto">
+            <div className="h-full w-full overflow-hidden">
               {loading && !postMediaData ? (
-                <div className="flex h-full min-h-[300px] items-center justify-center">
-                  <span className="opacity-50">Loading…</span>
-                </div>
+                <PostModalSkeleton />
               ) : postMediaData ? (
                 <PostModalContent
                   post_media_data={postMediaData}

@@ -35,6 +35,7 @@ const PostCard: FC<FollowCardProps> = ({ notification }) => {
         </p>
         <Link
           href={post_link}
+          scroll={false}
           className="flex w-full flex-col justify-between gap-2 rounded-[16px] bg-foreground/10 p-4 md:flex-row"
         >
           <div className="flex flex-col gap-2">

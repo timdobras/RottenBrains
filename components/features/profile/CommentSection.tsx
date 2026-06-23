@@ -29,7 +29,7 @@ const CommentsSkeleton = () => (
   </div>
 );
 
-const CommentSection = ({ post_data, current_user }: any) => {
+const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any) => {
   const post = post_data.post;
   const comment_data = post_data.comments;
   const postId = post.id;
@@ -164,6 +164,9 @@ const CommentSection = ({ post_data, current_user }: any) => {
   }, [state.show_comments]);
 
   useEffect(() => {
+    // Skip when embedded in the post modal — the modal owns the body scroll lock,
+    // and a second (non position-preserving) lock here causes the page to jump.
+    if (!lockBodyScroll) return;
     if (state.show_comments) {
       document.documentElement.style.overflow = 'hidden'; // Prevent scrolling
       document.documentElement.style.position = 'fixed'; // Keep position fixed
@@ -184,7 +187,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
       document.body.style.overflow = '';
       document.body.style.position = '';
     };
-  }, [state.show_comments]);
+  }, [state.show_comments, lockBodyScroll]);
 
   // This function is used for the like button
   const handleLike = useCallback(async () => {

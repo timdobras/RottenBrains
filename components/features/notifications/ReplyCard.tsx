@@ -18,7 +18,7 @@ const ReplyCard: FC<FollowCardProps> = ({ notification }) => {
           className="aspect-square h-12 rounded-full"
         />
       </Link>
-      <Link href={post_link} className="flex flex-col gap-4">
+      <Link href={post_link} scroll={false} className="flex flex-col gap-4">
         <p className="text-lg">
           <Link
             href={`/protected/user/${notification.triggered_by_user.id}`}

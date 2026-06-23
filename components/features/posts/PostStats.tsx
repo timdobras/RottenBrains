@@ -117,7 +117,7 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
       </div>
       <div className="flex flex-row items-center gap-2">
         <div>
-          <Link href={post_link} className="text-foreground">
+          <Link href={post_link} scroll={false} className="text-foreground">
             <img
               src="/assets/icons/comment-outline.svg"
               alt="Comment"
