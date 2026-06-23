@@ -119,7 +119,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
           page margins framing the image in light mode */}
       <div className="w-full">
         <div
-          className="relative h-[60vh] min-h-[420px] w-full overflow-hidden sm:h-auto sm:aspect-[4/3] md:aspect-video md:max-h-[80vh]"
+          className="relative h-[72vh] min-h-[500px] w-full overflow-hidden bg-black sm:h-auto sm:min-h-0 sm:aspect-[4/3] md:aspect-video md:max-h-[80vh]"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -136,7 +136,11 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
               <div
                 key={m.id}
                 className={cn(
-                  'absolute inset-0 transition-opacity duration-700',
+                  // Mobile: image occupies only the top portion; the lower area
+                  // becomes a solid black stage for the content, and the image
+                  // dissolves into it instead of being hard-cropped at the page
+                  // edge. Desktop: full-bleed.
+                  'absolute left-0 right-0 top-0 h-[62%] transition-opacity duration-700 sm:inset-0 sm:h-auto',
                   i === current ? 'opacity-100' : 'opacity-0'
                 )}
               >
@@ -179,12 +183,22 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                 'linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 20%, rgba(0, 0, 0, 0.25) 40%, transparent 60%)',
             }}
           />
-          {/* Mobile: single bottom->top scrim only, so the image breathes at the top */}
+          {/* Mobile top gradient — a soft darkening from the top so the hero
+              still has depth/contrast when the backdrop is a light image */}
           <div
             className="pointer-events-none absolute inset-0 block sm:hidden"
             style={{
               background:
-                'linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.7) 22%, rgba(0, 0, 0, 0.35) 45%, transparent 72%)',
+                'linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.25) 12%, transparent 32%)',
+            }}
+          />
+          {/* Mobile bottom stage — solid black up to where the image ends (~62%)
+              so the backdrop dissolves into black, then fades up into the image */}
+          <div
+            className="pointer-events-none absolute inset-0 block sm:hidden"
+            style={{
+              background:
+                'linear-gradient(to top, #000 0%, #000 40%, rgba(0, 0, 0, 0.55) 58%, rgba(0, 0, 0, 0.15) 80%, transparent 95%)',
             }}
           />
           {/* Desktop: bottom scrim behind the left-aligned content */}
@@ -193,6 +207,16 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
             style={{
               background:
                 'linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 20%, transparent 45%)',
+            }}
+          />
+          {/* Smooth the hand-off into the page below by fading the very bottom
+              to the page background colour. Dark mode only — in light mode this
+              would fade to white and wash the image / hide the white content. */}
+          <div
+            className="pointer-events-none absolute inset-0 hidden dark:block"
+            style={{
+              background:
+                'linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background)) 5%, transparent 22%)',
             }}
           />
 
@@ -264,10 +288,10 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   </p>
 
                   {/* CTAs */}
-                  <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex w-full flex-row items-stretch gap-2.5 sm:w-auto sm:items-center sm:gap-3">
                     <a
                       href={`/protected/watch/${m.media_type}/${m.id}`}
-                      className="group flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3.5 text-base font-semibold text-black shadow-lg shadow-black/30 transition-all duration-200 hover:shadow-xl hover:shadow-black/40 sm:w-auto sm:px-6 sm:py-3 sm:text-sm sm:hover:scale-105"
+                      className="group flex flex-1 items-center justify-center gap-2 rounded-lg bg-white px-4 py-3.5 text-base font-semibold text-black shadow-lg shadow-black/30 transition-all duration-200 hover:shadow-xl hover:shadow-black/40 sm:flex-none sm:px-6 sm:py-3 sm:text-sm sm:hover:scale-105"
                     >
                       <svg
                         className="h-5 w-5 transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4"
@@ -280,9 +304,25 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                     </a>
                     <a
                       href={`/protected/media/${m.media_type}/${m.id}`}
-                      className="flex w-full items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/50 hover:bg-white/20 sm:w-auto sm:px-6 sm:py-3 sm:text-sm"
+                      aria-label="More info"
+                      className="flex shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/50 hover:bg-white/20 sm:w-auto sm:px-6 sm:py-3 sm:text-sm"
                     >
-                      More Info
+                      {/* Mobile: compact icon-only. Desktop: text label. */}
+                      <svg
+                        className="h-5 w-5 sm:hidden"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4" />
+                        <path d="M12 8h.01" />
+                      </svg>
+                      <span className="hidden sm:inline">More Info</span>
                     </a>
                   </div>
                 </div>
