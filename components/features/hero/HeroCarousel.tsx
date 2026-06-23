@@ -115,10 +115,11 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
 
   return (
     <div className="flex w-full flex-col bg-background">
-      {/* Hero carousel */}
-      <div className="w-full px-2 sm:px-4 md:px-8">
+      {/* Hero carousel — full-bleed (no side gutter) so there are no white
+          page margins framing the image in light mode */}
+      <div className="w-full">
         <div
-          className="relative aspect-[3/4] w-full overflow-hidden sm:aspect-[4/3] md:aspect-video md:max-h-[80vh]"
+          className="relative h-[60vh] min-h-[420px] w-full overflow-hidden sm:h-auto sm:aspect-[4/3] md:aspect-video md:max-h-[80vh]"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -150,35 +151,45 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
           })}
 
           {/*
-            Vignette overlays. Two distinct jobs:
-            1. Edge feather — blends the image into the page, so it stays
-               theme-aware via --background (fades to white in light mode,
-               near-black in dark mode) at the top/right edges.
-            2. Content scrims (left + bottom) — sit behind the title/CTAs and
-               are ALWAYS dark in both themes, so the hero reads as a cinematic
-               dark island and the light text stays legible over any photo.
-               They paint after the edge feather, so they win where the content
-               lives. (Previously these also used --background, which turned
-               into a white wash that bleached the image in light mode.)
+            Vignette overlays — ALWAYS dark in both themes (never theme-aware),
+            so the hero stays a consistent cinematic black frame instead of
+            washing out to white in light mode.
+
+            Mobile: a single bottom->top scrim only (below), so the full-bleed
+            image breathes at the top and is framed just from the bottom where
+            the centered content sits.
+
+            Desktop (sm+): a soft dark vignette on all edges + heavier left and
+            bottom scrims behind the left-aligned title/CTAs. Later overlays
+            paint on top, so the scrims win where the content lives.
           */}
           <div
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 hidden sm:block"
             style={{
               background: `
-                linear-gradient(to right, hsl(var(--background)) 0%, transparent 15%, transparent 85%, hsl(var(--background)) 100%),
-                linear-gradient(to bottom, hsl(var(--background)) 0%, transparent 15%, transparent 85%, hsl(var(--background)) 100%)
+                linear-gradient(to right, rgba(0, 0, 0, 0.7) 0%, transparent 15%, transparent 85%, rgba(0, 0, 0, 0.7) 100%),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, transparent 15%, transparent 85%, rgba(0, 0, 0, 0.7) 100%)
               `,
             }}
           />
           <div
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 hidden sm:block"
             style={{
               background:
                 'linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 20%, rgba(0, 0, 0, 0.25) 40%, transparent 60%)',
             }}
           />
+          {/* Mobile: single bottom->top scrim only, so the image breathes at the top */}
           <div
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 block sm:hidden"
+            style={{
+              background:
+                'linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.7) 22%, rgba(0, 0, 0, 0.35) 45%, transparent 72%)',
+            }}
+          />
+          {/* Desktop: bottom scrim behind the left-aligned content */}
+          <div
+            className="pointer-events-none absolute inset-0 hidden sm:block"
             style={{
               background:
                 'linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 20%, transparent 45%)',
@@ -210,22 +221,22 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
               <div
                 key={m.id}
                 className={cn(
-                  'absolute inset-0 z-10 flex items-end px-4 pb-14 transition-opacity duration-700 sm:items-center sm:px-6 sm:pb-0 md:px-16 lg:px-24',
+                  'absolute inset-0 z-10 flex items-end justify-center px-4 pb-12 text-center transition-opacity duration-700 sm:items-center sm:justify-start sm:px-6 sm:pb-0 sm:text-left md:px-16 lg:px-24',
                   i === current
                     ? 'pointer-events-auto opacity-100'
                     : 'pointer-events-none opacity-0'
                 )}
               >
-                <div className="flex max-w-3xl flex-col gap-3 sm:gap-4 md:gap-5">
+                <div className="flex w-full max-w-3xl flex-col items-center gap-4 sm:w-auto sm:items-start sm:gap-4 md:gap-5">
                   {/* Logo or fallback title — displayed first and larger */}
-                  <div className="flex h-24 w-[300px] items-end sm:h-28 sm:w-[420px] md:h-48 md:w-[600px]">
+                  <div className="flex h-24 w-full items-end justify-center sm:h-28 sm:w-[420px] sm:justify-start md:h-48 md:w-[600px]">
                     {logoPath ? (
                       <Image
                         src={`https://image.tmdb.org/t/p/${API_CONFIG.TMDB_IMAGE_SIZES.POSTER_LARGE}${logoPath}`}
                         alt={title}
                         width={600}
                         height={192}
-                        className="max-h-full max-w-full object-contain object-left drop-shadow-lg"
+                        className="max-h-full max-w-full object-contain object-center drop-shadow-lg sm:object-left"
                         unoptimized
                       />
                     ) : (
@@ -236,7 +247,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   </div>
 
                   {/* Metadata pills */}
-                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-start sm:gap-2">
                     {pills.map((pill, idx) => (
                       <span
                         key={idx}
@@ -253,13 +264,13 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   </p>
 
                   {/* CTAs */}
-                  <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
                     <a
                       href={`/protected/watch/${m.media_type}/${m.id}`}
-                      className="group flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black shadow-lg shadow-black/30 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-black/40 sm:px-6 sm:py-3 sm:text-sm"
+                      className="group flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3.5 text-base font-semibold text-black shadow-lg shadow-black/30 transition-all duration-200 hover:shadow-xl hover:shadow-black/40 sm:w-auto sm:px-6 sm:py-3 sm:text-sm sm:hover:scale-105"
                     >
                       <svg
-                        className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4"
+                        className="h-5 w-5 transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4"
                         viewBox="0 0 24 24"
                         fill="currentColor"
                       >
@@ -269,7 +280,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                     </a>
                     <a
                       href={`/protected/media/${m.media_type}/${m.id}`}
-                      className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/50 hover:bg-white/20 sm:px-6 sm:py-3 sm:text-sm"
+                      className="flex w-full items-center justify-center rounded-lg border border-white/30 bg-white/10 px-4 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/50 hover:bg-white/20 sm:w-auto sm:px-6 sm:py-3 sm:text-sm"
                     >
                       More Info
                     </a>
@@ -281,7 +292,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
 
           {/* Dot indicators */}
           {top.length > 1 && (
-            <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 sm:bottom-6 sm:left-6 sm:gap-2 md:left-16 lg:left-24">
+            <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 sm:bottom-6 sm:left-6 sm:translate-x-0 sm:gap-2 md:left-16 lg:left-24">
               {top.map((_, i) => (
                 <button
                   key={i}
