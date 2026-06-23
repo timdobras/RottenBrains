@@ -11,7 +11,7 @@ const CommentCard: FC<FollowCardProps> = ({ notification }) => {
   const imageUrl =
     notification.media_data?.images?.backdrops?.[0]?.file_path ||
     notification.media_data.backdrop_path;
-  const post_link = `/protected/user/${notification.post.creatorid}?post_id=${notification.post.id}`;
+  const post_link = `/protected/post/${notification.post.id}`;
   return (
     <div className="flex w-full flex-row gap-4 p-4">
       <Link href={`/protected/user/${notification.triggered_by_user.id}`} className="flex-shrink-0">
