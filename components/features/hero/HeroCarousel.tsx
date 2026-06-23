@@ -229,7 +229,13 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
             const typeLabel = m.media_type === 'movie' ? 'Movie' : 'Series';
             const genres = m.genres?.slice(0, 2) || [];
             const year = getMediaYear(m);
-            const duration = getMediaDuration(m);
+            // In the hero, TV shows display episode count only (no season count).
+            const duration =
+              m.media_type === 'tv'
+                ? m.number_of_episodes
+                  ? `${m.number_of_episodes} Episodes`
+                  : ''
+                : getMediaDuration(m);
             const rating = m.vote_average ? `★ ${m.vote_average.toFixed(1)}` : undefined;
 
             // Collect all pill items
