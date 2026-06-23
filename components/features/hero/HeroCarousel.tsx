@@ -149,7 +149,18 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
             );
           })}
 
-          {/* Vignette overlays — using theme-aware background color */}
+          {/*
+            Vignette overlays. Two distinct jobs:
+            1. Edge feather — blends the image into the page, so it stays
+               theme-aware via --background (fades to white in light mode,
+               near-black in dark mode) at the top/right edges.
+            2. Content scrims (left + bottom) — sit behind the title/CTAs and
+               are ALWAYS dark in both themes, so the hero reads as a cinematic
+               dark island and the light text stays legible over any photo.
+               They paint after the edge feather, so they win where the content
+               lives. (Previously these also used --background, which turned
+               into a white wash that bleached the image in light mode.)
+          */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{
@@ -163,14 +174,14 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                'linear-gradient(to right, hsl(var(--background)) 0%, hsl(var(--background) / 0.7) 20%, hsl(var(--background) / 0.3) 40%, transparent 60%)',
+                'linear-gradient(to right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 20%, rgba(0, 0, 0, 0.25) 40%, transparent 60%)',
             }}
           />
           <div
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                'linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0.5) 20%, transparent 45%)',
+                'linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 20%, transparent 45%)',
             }}
           />
 
@@ -218,7 +229,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                         unoptimized
                       />
                     ) : (
-                      <h1 className="text-4xl font-bold text-foreground drop-shadow-lg sm:text-5xl md:text-7xl">
+                      <h1 className="text-4xl font-bold text-white drop-shadow-lg sm:text-5xl md:text-7xl">
                         {title}
                       </h1>
                     )}
@@ -229,7 +240,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                     {pills.map((pill, idx) => (
                       <span
                         key={idx}
-                        className="rounded-[4px] bg-foreground/10 px-2 py-[2px] text-xs font-medium text-foreground/70 sm:px-3 sm:py-1 sm:text-sm"
+                        className="rounded-[4px] bg-white/15 px-2 py-[2px] text-xs font-medium text-white/80 backdrop-blur-sm sm:px-3 sm:py-1 sm:text-sm"
                       >
                         {pill}
                       </span>
@@ -237,7 +248,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   </div>
 
                   {/* Description */}
-                  <p className="line-clamp-2 text-xs text-foreground/80 drop-shadow sm:line-clamp-3 sm:h-[4.5em] sm:text-sm md:text-base">
+                  <p className="line-clamp-2 text-xs text-white/80 drop-shadow sm:line-clamp-3 sm:h-[4.5em] sm:text-sm md:text-base">
                     {m.overview}
                   </p>
 
@@ -245,7 +256,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   <div className="flex items-center gap-2 sm:gap-3">
                     <a
                       href={`/protected/watch/${m.media_type}/${m.id}`}
-                      className="group flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-xs font-semibold text-background shadow-lg shadow-foreground/10 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-foreground/20 sm:px-6 sm:py-3 sm:text-sm"
+                      className="group flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black shadow-lg shadow-black/30 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-black/40 sm:px-6 sm:py-3 sm:text-sm"
                     >
                       <svg
                         className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110 sm:h-4 sm:w-4"
@@ -258,7 +269,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                     </a>
                     <a
                       href={`/protected/media/${m.media_type}/${m.id}`}
-                      className="rounded-lg border border-foreground/30 bg-foreground/10 px-4 py-2 text-xs font-semibold text-foreground backdrop-blur-sm transition-all duration-200 hover:border-foreground/50 hover:bg-foreground/20 sm:px-6 sm:py-3 sm:text-sm"
+                      className="rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:border-white/50 hover:bg-white/20 sm:px-6 sm:py-3 sm:text-sm"
                     >
                       More Info
                     </a>
@@ -279,8 +290,8 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   className={cn(
                     'h-1 rounded-full transition-all duration-300 sm:h-1.5',
                     i === current
-                      ? 'w-6 bg-foreground sm:w-8'
-                      : 'w-1 bg-foreground/40 hover:bg-foreground/60 sm:w-1.5'
+                      ? 'w-6 bg-white sm:w-8'
+                      : 'w-1 bg-white/40 hover:bg-white/60 sm:w-1.5'
                   )}
                 />
               ))}
