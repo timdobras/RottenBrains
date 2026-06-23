@@ -26,8 +26,6 @@ const PostModalClient = ({ postId }: { postId: string }) => {
   const seeded = getSeededPostData(postId);
   const [postMediaData, setPostMediaData] = useState<any>(seeded ?? null);
   const [loading, setLoading] = useState<boolean>(!seeded);
-  // Keeps the skeleton behind the content during the fade-in, then drops it.
-  const [showSkeletonBehind, setShowSkeletonBehind] = useState(true);
   // Drives the enter/exit animation; flipping to false triggers the exit, and
   // onExitComplete performs the actual navigation back.
   const [open, setOpen] = useState(true);
@@ -109,31 +107,14 @@ const PostModalClient = ({ postId }: { postId: string }) => {
             >
               <p>&times;</p>
             </button>
-            <div className="relative h-full w-full overflow-hidden">
-              {postMediaData ? (
-                <>
-                  {/* Skeleton stays behind so the content cross-fades over it
-                      (instead of snapping in), then is dropped once faded. */}
-                  {showSkeletonBehind && (
-                    <div className="absolute inset-0">
-                      <PostModalSkeleton />
-                    </div>
-                  )}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3, ease: 'easeOut' }}
-                    onAnimationComplete={() => setShowSkeletonBehind(false)}
-                    className="relative h-full w-full"
-                  >
-                    <PostModalContent
-                      post_media_data={postMediaData}
-                      user_id={user?.id != null ? String(user.id) : undefined}
-                    />
-                  </motion.div>
-                </>
-              ) : loading ? (
+            <div className="h-full w-full overflow-hidden">
+              {loading && !postMediaData ? (
                 <PostModalSkeleton />
+              ) : postMediaData ? (
+                <PostModalContent
+                  post_media_data={postMediaData}
+                  user_id={user?.id != null ? String(user.id) : undefined}
+                />
               ) : (
                 <div className="flex h-full min-h-[300px] items-center justify-center">
                   <span className="opacity-50">Post not found.</span>
