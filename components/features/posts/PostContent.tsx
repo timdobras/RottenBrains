@@ -20,9 +20,10 @@ interface PostContentProps {
   media: any;
   post: any;
   post_link: string;
+  expanded?: boolean;
 }
 
-const PostContent = ({ media, post, post_link }: PostContentProps) => {
+const PostContent = ({ media, post, post_link, expanded }: PostContentProps) => {
   return (
     <div className="flex flex-col px-2">
       <div className="mt-2 flex flex-col gap-2">
@@ -49,7 +50,11 @@ const PostContent = ({ media, post, post_link }: PostContentProps) => {
             )}
           </Link>
         </div>
-        <UserReviewText post_review={post.review_user || 'No review'} post_link={post_link} />
+        <UserReviewText
+          post_review={post.review_user || 'No review'}
+          post_link={post_link}
+          expanded={expanded}
+        />
       </div>
     </div>
   );

@@ -63,7 +63,16 @@ export const viewport = {
   ],
 };
 
-export default async function NotProtectedLayout({ children }: { children: React.ReactNode }) {
+export default async function NotProtectedLayout({
+  children,
+  modal,
+}: {
+  children: React.ReactNode;
+  // `modal` is the @modal parallel-route slot. It lives at the root layout (not
+  // app/protected) so the intercepting post modal works from EVERY surface,
+  // including the homepage `/`, which renders the post feed outside /protected.
+  modal: React.ReactNode;
+}) {
   // Use getCurrentUser() which is wrapped with React cache() for deduplication.
   // This avoids a raw select('*') and shares the result with any page-level
   // getCurrentUser() calls in the same render pass.
@@ -94,6 +103,7 @@ export default async function NotProtectedLayout({ children }: { children: React
                 {initialUser && process.env.NODE_ENV === 'development' && <VPNDebugPanel />}
                 <Navbar />
                 <MainContent>{children}</MainContent>
+                {modal}
                 <div id="player-root" />
                 <footer></footer>
                 {/* <CookieConsent /> */}

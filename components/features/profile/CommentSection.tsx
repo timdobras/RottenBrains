@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
+import { getCachedComments, setCachedComments } from '@/lib/client/commentCache';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/supabase/serverQueries';
 import AddComment from './AddCommentModal';
@@ -14,22 +15,76 @@ const cardVariants = {
   exit: { y: '100%', transition: { duration: 0.3 } },
 };
 
+const CommentsSkeleton = () => (
+  <div className="flex w-full flex-col gap-3 p-2">
+    {[0, 1, 2].map((i) => (
+      <div key={i} className="flex w-full animate-pulse flex-row gap-2">
+        <div className="h-8 w-8 shrink-0 rounded-full bg-foreground/10" />
+        <div className="flex w-full flex-col gap-2">
+          <div className="h-3 w-1/3 rounded bg-foreground/10" />
+          <div className="h-3 w-2/3 rounded bg-foreground/10" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const CommentSection = ({ post_data, current_user }: any) => {
   const post = post_data.post;
   const comment_data = post_data.comments;
   const postId = post.id;
   const { user } = useUser();
   const user_id = user?.id;
+  // Comments are NOT loaded when a post arrives in a feed; they load lazily the
+  // first time this post's comments are shown, then stay cached (commentCache)
+  // so reopening the same post is instant and refetch-free.
+  const initialComments = comment_data ?? getCachedComments(postId);
   const [state, setState] = useState({
     liked: current_user.has_liked,
     likes: post.total_likes,
     animate: false,
     isOpen: false,
-    comments: comment_data,
+    comments: initialComments,
     commentCount: post.total_comments || 0,
     loading: false,
+    commentsLoading: initialComments === undefined,
     show_comments: false,
   });
+  const commentsLoadingRef = useRef(false);
+
+  // Loads comments once (if not already present/in-flight) and caches them.
+  const ensureCommentsLoaded = useCallback(async () => {
+    if (state.comments !== undefined || commentsLoadingRef.current) return;
+    commentsLoadingRef.current = true;
+    setState((s) => ({ ...s, commentsLoading: true }));
+    try {
+      const comments = await getCommentsByPostId(
+        String(postId),
+        user_id ? String(user_id) : undefined
+      );
+      setCachedComments(postId, (comments as any[]) ?? []);
+      setState((s) => ({ ...s, comments: comments ?? [], commentsLoading: false }));
+    } catch (error) {
+      console.error('Error loading comments:', error);
+      setState((s) => ({ ...s, comments: [], commentsLoading: false }));
+    } finally {
+      commentsLoadingRef.current = false;
+    }
+  }, [state.comments, postId, user_id]);
+
+  // Desktop shows the comments column inline → load as soon as it mounts.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
+      ensureCommentsLoaded();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Mobile keeps comments behind a sheet → load when it's opened.
+  useEffect(() => {
+    if (state.show_comments) ensureCommentsLoaded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.show_comments]);
 
   const [viewportDimensions, setViewportDimensions] = useState({
     top: 40,
@@ -39,6 +94,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
   const fetchComments = async () => {
     try {
       const comments = await getCommentsByPostId(String(postId), String(user_id));
+      setCachedComments(postId, (comments as any[]) ?? []);
       setState((prevState) => ({
         ...prevState,
         comments,
@@ -172,7 +228,9 @@ const CommentSection = ({ post_data, current_user }: any) => {
         id="comment_card_desktop"
         className="hidden h-full w-full flex-col gap-2 overflow-y-auto md:flex"
       >
-        {state.comments ? (
+        {state.commentsLoading && !state.comments ? (
+          <CommentsSkeleton />
+        ) : state.comments && state.comments.length > 0 ? (
           <>
             {state.comments.map((comment: any) => {
               if (comment.parent_id === null) {
@@ -284,7 +342,11 @@ const CommentSection = ({ post_data, current_user }: any) => {
                   <p>&times;</p>
                 </button>
               </div>
-              {state.comments ? (
+              {state.commentsLoading && !state.comments ? (
+                <div className="h-full w-full overflow-y-auto">
+                  <CommentsSkeleton />
+                </div>
+              ) : state.comments && state.comments.length > 0 ? (
                 <div className="flex h-full w-full flex-col gap-2 overflow-y-auto p-2">
                   {state.comments.map((comment: any) => {
                     if (comment.parent_id === null) {

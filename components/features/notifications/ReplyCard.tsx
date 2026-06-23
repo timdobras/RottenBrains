@@ -8,7 +8,7 @@ interface FollowCardProps {
 }
 
 const ReplyCard: FC<FollowCardProps> = ({ notification }) => {
-  const post_link = `/protected/post/${notification.post.id}`;
+  const post_link = `/post/${notification.post.id}`;
   return (
     <div className="flex w-full flex-row gap-4 p-4">
       <Link href={`/protected/user/${notification.triggered_by_user.id}`} className="flex-shrink-0">

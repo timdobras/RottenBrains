@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
-import PostDetailView from '@/components/features/posts/PostDetailView';
+import PostModalContent from '@/components/features/posts/PostModalContent';
 import { fetchPostById } from '@/lib/server/fetchPostsData';
 import { getCurrentUser } from '@/lib/supabase/serverQueries';
 
 type Params = Promise<{ post_id: string }>;
 
 // Standalone post page — the canonical/deep-link target for a single post.
-// Soft navigations from a post card are intercepted by app/protected/@modal/(.)post/[post_id]
+// Soft navigations from a post card are intercepted by app/@modal/(.)post/[post_id]
 // and shown as a modal instead; this page renders on a hard load / direct visit.
 export default async function PostPage({ params }: { params: Params }) {
   const { post_id } = await params;
@@ -22,8 +22,8 @@ export default async function PostPage({ params }: { params: Params }) {
 
   return (
     <div className="mx-auto w-full max-w-4xl p-2 md:p-6">
-      <div className="overflow-hidden rounded-[16px] bg-white/5">
-        <PostDetailView post_media_data={post_media_data} current_user_id={current_user.id} />
+      <div className="overflow-hidden rounded-[16px]">
+        <PostModalContent post_media_data={post_media_data} user_id={current_user.id} />
       </div>
     </div>
   );
