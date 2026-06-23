@@ -24,21 +24,40 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  // When the user is interacting (hover / touch / focus) we freeze autoplay so a
+  // slide can't rotate out from under a click and send them to the wrong media.
+  const isPausedRef = useRef(false);
+
+  const stopAutoplay = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
 
   const startAutoplay = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    stopAutoplay();
+    if (isPausedRef.current || top.length <= 1) return;
     intervalRef.current = setInterval(() => {
       setCurrent((prev) => (prev + 1) % top.length);
     }, AUTOPLAY_INTERVAL);
-  }, [top.length]);
+  }, [stopAutoplay, top.length]);
+
+  const pauseAutoplay = useCallback(() => {
+    isPausedRef.current = true;
+    stopAutoplay();
+  }, [stopAutoplay]);
+
+  const resumeAutoplay = useCallback(() => {
+    isPausedRef.current = false;
+    startAutoplay();
+  }, [startAutoplay]);
 
   useEffect(() => {
     if (top.length <= 1) return;
     startAutoplay();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [startAutoplay, top.length]);
+    return () => stopAutoplay();
+  }, [startAutoplay, stopAutoplay, top.length]);
 
   const goTo = useCallback(
     (index: number) => {
@@ -55,9 +74,16 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
     [current, goTo, top.length]
   );
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  }, []);
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      // Freeze rotation for the duration of the touch so the tapped slide
+      // can't swap before the click resolves.
+      pauseAutoplay();
+      touchStartX.current = e.touches[0].clientX;
+      touchEndX.current = e.touches[0].clientX;
+    },
+    [pauseAutoplay]
+  );
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     touchEndX.current = e.touches[0].clientX;
@@ -69,7 +95,8 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
       if (diff > 0) goNext();
       else goPrev();
     }
-  }, [goNext, goPrev]);
+    resumeAutoplay();
+  }, [goNext, goPrev, resumeAutoplay]);
 
   /**
    * Only render slides within VISIBLE_RANGE of the current index.
@@ -95,6 +122,11 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={resumeAutoplay}
+          onMouseEnter={pauseAutoplay}
+          onMouseLeave={resumeAutoplay}
+          onFocusCapture={pauseAutoplay}
+          onBlurCapture={resumeAutoplay}
         >
           {/* Backdrop images — progressive loading, only active ± 1 rendered */}
           {top.map((m, i) => {
