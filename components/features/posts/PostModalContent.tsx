@@ -68,7 +68,7 @@ const PostModalContent = ({ post_media_data, user_id }: PostModalContentProps) =
       </div>
 
       {/* Comments column (desktop) / action bar + sheet (mobile) */}
-      <div className="flex min-h-0 shrink-0 flex-col border-foreground/10 md:w-[40%] md:flex-1 md:border-l">
+      <div className="flex min-h-0 shrink-0 flex-col border-foreground/10 bg-white/10 md:w-[40%] md:flex-1 md:border-l">
         <CommentSection
           post_data={post_data}
           current_user={post_data.current_user ?? {}}

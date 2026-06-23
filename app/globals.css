@@ -101,6 +101,14 @@
   .post_border {
     @apply border border-foreground/20;
   }
+
+  /* Opaque "elevated" surface that matches a post card's bg-white/10 over the
+     page background — used for the comment bar/column and the mobile comment
+     sheet so they match the post column instead of showing the darker base. */
+  .surface-elevated {
+    background-color: hsl(var(--background));
+    background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
+  }
 }
 
 /*

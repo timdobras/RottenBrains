@@ -92,7 +92,9 @@ const PostModalClient = ({ postId }: { postId: string }) => {
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            // No enter animation: the zoom-in already played on loading.tsx, so the
+            // real panel just replaces the skeleton in place. Only the exit animates.
+            initial={{ opacity: 1, scale: 1, y: 0 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 6 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}

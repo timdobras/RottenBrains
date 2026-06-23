@@ -16,9 +16,14 @@ export default function PostModalLoading() {
       transition={{ duration: 0.18, ease: 'easeOut' }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2"
     >
-      <div className="relative h-[80vh] max-h-[90vh] w-full max-w-[95vw] overflow-hidden rounded-[16px] bg-background shadow-lg md:aspect-[16/9] md:h-auto md:w-[60vw]">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className="relative h-[80vh] max-h-[90vh] w-full max-w-[95vw] overflow-hidden rounded-[16px] bg-background shadow-lg md:aspect-[16/9] md:h-auto md:w-[60vw]"
+      >
         <PostModalSkeleton />
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

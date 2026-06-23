@@ -261,7 +261,7 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
       </div>
 
       <div className="w-full">
-        <div className="flex w-full flex-row items-center gap-4 border-t border-foreground/10 bg-background p-4 md:p-2">
+        <div className="flex w-full flex-row items-center gap-4 border-t border-foreground/10 p-4 md:p-2">
           <div className="flex flex-row gap-2">
             <button onClick={handleLike} className={state.animate ? 'pop' : ''}>
               {state.liked ? (
@@ -325,7 +325,7 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="fixed left-0 z-50 flex w-full flex-col rounded-[16px] bg-background text-foreground"
+              className="surface-elevated fixed left-0 z-50 flex w-full flex-col rounded-[16px] text-foreground shadow-2xl"
               style={{
                 top: `${viewportDimensions.top}px`,
                 height: `${viewportDimensions.height}px`,
