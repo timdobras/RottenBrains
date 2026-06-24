@@ -15,6 +15,7 @@ import Providers from '@/components/providers/Providers';
 import VPNWarningProduction from '@/components/features/navigation/VPNWarningProduction';
 import VPNDebugPanel from '@/components/features/navigation/VPNDebugPanel';
 import OfflineIndicator from '@/components/features/pwa/OfflineIndicator';
+import SplashScreen from '@/components/features/loaders/SplashScreen';
 import { OfflineModeIndicator } from '@/components/features/dev/OfflineModeIndicator';
 import { Toaster } from '@/components/ui/toaster';
 import PWAInstallBanner from '@/components/features/pwa/PWAInstallBanner';
@@ -89,6 +90,10 @@ export default async function NotProtectedLayout({
       <body
         className={`${roboto.variable} custom-scrollbar max-h-[100dvh] w-full overflow-x-hidden bg-background font-roboto text-foreground transition-all duration-300`}
       >
+        {/* First-load only; mounts once per full document load, never on
+            client-side navigations. Rendered outside Providers so it shows
+            instantly, before any context/theme work. */}
+        <SplashScreen />
         <Providers>
           <UserProvider
             // IUser type is out of sync with the DB row; cast until reconciled

@@ -536,4 +536,19 @@
   animation: loading 2s linear;
 }
 
+/* First-load splash screen (see components/features/loaders/SplashScreen.tsx).
+   Rendered once per full document load (cold app launch / hard refresh), not on
+   client-side navigations. The R logo breathes while an arc ring spins. */
+@keyframes splash-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
 /* .bottombar, .bottombar-inner, .bottombar-link removed -- dead code, safe-area handling now in NavBottom component */

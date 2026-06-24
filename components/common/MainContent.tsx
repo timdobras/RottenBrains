@@ -36,9 +36,9 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
   // On watch pages, NavBottom is hidden so no margin needed
   const mobileBottomMargin = isWatchPage ? 'mb-0' : 'mb-20';
 
-  // Top margin: clear the fixed Navbar (h-14 mobile, h-16 desktop)
+  // Top margin: clear the fixed Navbar (h-12 mobile, h-16 desktop)
   // Always applied since the navbar is visible on all pages including watch pages
-  const topMargin = 'mt-14 md:mt-16';
+  const topMargin = 'mt-12 md:mt-16';
 
   return (
     <>

@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PlusIcon, SearchIcon } from '@/components/ui/Icon';
 import { useUser } from '@/hooks/UserContext';
 import { cn } from '@/lib/utils';
@@ -29,21 +29,64 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Mobile hide-on-scroll-down / reveal-on-scroll-up.
+  // The transform is driven imperatively (no React re-render, no CSS transition)
+  // so it tracks the scroll position 1:1 — buttery smooth, no smear.
+  const navRef = useRef<HTMLElement>(null);
+  const lastScrollY = useRef(0);
+  const currentTranslateY = useRef(0);
+  const MOBILE_NAV_HEIGHT = 48; // matches h-12
+
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    lastScrollY.current = window.scrollY;
+    setScrolled(window.scrollY > 50);
+
+    const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+
+    const update = () => {
+      const currentScrollY = window.scrollY;
+      const deltaY = currentScrollY - lastScrollY.current;
+
+      setScrolled(currentScrollY > 50);
+
+      if (isMobile()) {
+        // Scrolling down pushes the bar up (hidden); scrolling up reveals it
+        // proportionally to the scroll-up distance. Clamp to [-height, 0].
+        let next = currentTranslateY.current - deltaY;
+        next = Math.min(0, Math.max(-MOBILE_NAV_HEIGHT, next));
+        currentTranslateY.current = next;
+        if (navRef.current) navRef.current.style.transform = `translateY(${next}px)`;
+      } else if (currentTranslateY.current !== 0) {
+        // Keep the bar pinned on desktop
+        currentTranslateY.current = 0;
+        if (navRef.current) navRef.current.style.transform = 'translateY(0)';
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        update();
+        ticking = false;
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
     <>
       <nav
+        ref={navRef}
+        style={{ transform: 'translateY(0)', willChange: 'transform' }}
         className={cn(
-          'fixed left-0 right-0 top-0 z-50 flex h-14 w-full items-center justify-center px-4 transition-all duration-300 md:h-16 md:px-8',
-          scrolled
-            ? 'border-b border-foreground/10 bg-background/60 backdrop-blur-md'
-            : 'bg-transparent'
+          'fixed left-0 right-0 top-0 z-50 flex h-12 w-full items-center justify-center px-4 transition-colors duration-200 md:h-16 md:px-8',
+          scrolled ? 'border-b border-foreground/10 bg-background' : 'bg-transparent'
         )}
       >
         <div className="flex h-full w-full items-center justify-between">
