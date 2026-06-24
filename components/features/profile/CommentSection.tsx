@@ -1,23 +1,19 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useUser } from '@/hooks/UserContext';
 import { getCachedComments, setCachedComments } from '@/lib/client/commentCache';
+import { getLikedCommentIds } from '@/lib/client/commentLikes';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/supabase/serverQueries';
 import AddComment from './AddCommentModal';
 import CommentCard from './CommentCardModal';
 
-const cardVariants = {
-  hidden: { y: '100%' },
-  visible: { y: 0, transition: { duration: 0.2 } },
-  exit: { y: '100%', transition: { duration: 0.3 } },
-};
-
 const CommentsSkeleton = () => (
-  <div className="flex w-full flex-col gap-3 p-2">
-    {[0, 1, 2].map((i) => (
+  <div className="flex w-full flex-col gap-4 p-3">
+    {[0, 1, 2, 3].map((i) => (
       <div key={i} className="flex w-full animate-pulse flex-row gap-2">
         <div className="h-8 w-8 shrink-0 rounded-full bg-foreground/10" />
         <div className="flex w-full flex-col gap-2">
@@ -29,50 +25,72 @@ const CommentsSkeleton = () => (
   </div>
 );
 
+const EmptyState = () => (
+  <div className="flex h-full w-full flex-col items-center justify-center gap-1 py-10">
+    <p className="text-base font-semibold">No comments yet</p>
+    <p className="text-xs text-foreground/50">Start the conversation.</p>
+  </div>
+);
+
+// Collect every comment id (top-level + nested replies) so we can load the
+// current user's per-comment liked state in one query.
+const collectCommentIds = (comments: any[] | undefined): string[] => {
+  const ids: string[] = [];
+  const walk = (list: any[] | undefined) =>
+    list?.forEach((c) => {
+      if (c?.id) ids.push(c.id);
+      if (c?.replies?.length) walk(c.replies);
+    });
+  walk(comments);
+  return ids;
+};
+
 const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any) => {
   const post = post_data.post;
   const comment_data = post_data.comments;
   const postId = post.id;
   const { user } = useUser();
-  const user_id = user?.id;
-  // Comments are NOT loaded when a post arrives in a feed; they load lazily the
-  // first time this post's comments are shown, then stay cached (commentCache)
-  // so reopening the same post is instant and refetch-free.
+  const user_id = user?.id != null ? String(user.id) : undefined;
+
+  // Comments load lazily (first time shown) then stay cached so reopening a post
+  // is instant. The feed never loads comments up front.
   const initialComments = comment_data ?? getCachedComments(postId);
-  const [state, setState] = useState({
-    liked: current_user.has_liked,
-    likes: post.total_likes,
-    animate: false,
-    isOpen: false,
-    comments: initialComments,
-    commentCount: post.total_comments || 0,
-    loading: false,
-    commentsLoading: initialComments === undefined,
-    show_comments: false,
-  });
+  const [comments, setComments] = useState<any[] | undefined>(initialComments);
+  const [commentsLoading, setCommentsLoading] = useState<boolean>(initialComments === undefined);
+  const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(new Set());
+  const [showSheet, setShowSheet] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const commentsLoadingRef = useRef(false);
 
-  // Loads comments once (if not already present/in-flight) and caches them.
+  // Portal target only exists on the client.
+  useEffect(() => setMounted(true), []);
+
+  // Post-level like
+  const [liked, setLiked] = useState<boolean>(!!current_user?.has_liked);
+  const [likes, setLikes] = useState<number>(post.total_likes || 0);
+  const [likeAnimate, setLikeAnimate] = useState(false);
+  const commentCount = post.total_comments || 0;
+
+  const dragControls = useDragControls();
+
   const ensureCommentsLoaded = useCallback(async () => {
-    if (state.comments !== undefined || commentsLoadingRef.current) return;
+    if (comments !== undefined || commentsLoadingRef.current) return;
     commentsLoadingRef.current = true;
-    setState((s) => ({ ...s, commentsLoading: true }));
+    setCommentsLoading(true);
     try {
-      const comments = await getCommentsByPostId(
-        String(postId),
-        user_id ? String(user_id) : undefined
-      );
-      setCachedComments(postId, (comments as any[]) ?? []);
-      setState((s) => ({ ...s, comments: comments ?? [], commentsLoading: false }));
+      const data = await getCommentsByPostId(String(postId), user_id ? String(user_id) : undefined);
+      setCachedComments(postId, (data as any[]) ?? []);
+      setComments((data as any[]) ?? []);
     } catch (error) {
       console.error('Error loading comments:', error);
-      setState((s) => ({ ...s, comments: [], commentsLoading: false }));
+      setComments([]);
     } finally {
+      setCommentsLoading(false);
       commentsLoadingRef.current = false;
     }
-  }, [state.comments, postId, user_id]);
+  }, [comments, postId, user_id]);
 
-  // Desktop shows the comments column inline → load as soon as it mounts.
+  // Desktop shows comments inline → load on mount. Mobile loads when the sheet opens.
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
       ensureCommentsLoaded();
@@ -80,300 +98,213 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Mobile keeps comments behind a sheet → load when it's opened.
   useEffect(() => {
-    if (state.show_comments) ensureCommentsLoaded();
+    if (showSheet) ensureCommentsLoaded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.show_comments]);
+  }, [showSheet]);
 
-  const [viewportDimensions, setViewportDimensions] = useState({
-    top: 40,
-    height: typeof window !== 'undefined' ? window.innerHeight : 800,
-  });
+  // Load which comments the current user has liked whenever the set changes.
+  useEffect(() => {
+    const ids = collectCommentIds(comments);
+    if (!ids.length || !user_id) return;
+    let cancelled = false;
+    getLikedCommentIds(String(user_id), ids).then((set) => {
+      if (!cancelled) setLikedCommentIds(set);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [comments, user_id]);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
-      const comments = await getCommentsByPostId(String(postId), String(user_id));
-      setCachedComments(postId, (comments as any[]) ?? []);
-      setState((prevState) => ({
-        ...prevState,
-        comments,
-        loading: false,
-      }));
+      const data = await getCommentsByPostId(String(postId), String(user_id));
+      setCachedComments(postId, (data as any[]) ?? []);
+      setComments((data as any[]) ?? []);
     } catch (error) {
       console.error('Error fetching comments:', error);
-      setState((prevState) => ({
-        ...prevState,
-        loading: false,
-      }));
     }
-  };
+  }, [postId, user_id]);
 
-  const fetchReplies = async (commentId: string) => {
-    try {
-      const replies = await getRepliesByCommentId(String(commentId), String(user_id));
-
-      setState((prevState) => {
-        const updatedComments = prevState.comments.map((comment: any) => {
-          if (comment.id === commentId) {
-            return {
-              ...comment,
-              replies: replies || [], // Ensuring a new array reference
-            };
-          }
-          return comment;
-        });
-
-        return {
-          ...prevState,
-          comments: [...updatedComments], // Ensure a new reference for the array
-        };
-      });
-    } catch (error) {
-      console.error('Error fetching replies:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (!state.show_comments) return;
-
-    const handleViewportChange = () => {
-      const visualViewport = window.visualViewport;
-      if (visualViewport) {
-        setViewportDimensions({
-          top: 80,
-          height: visualViewport.height - 80,
-        });
-      }
-    };
-
-    const viewport = window.visualViewport;
-    if (viewport) {
-      viewport.addEventListener('resize', handleViewportChange);
-      viewport.addEventListener('scroll', handleViewportChange);
-      handleViewportChange(); // Initial calculation
-    }
-    return () => {
-      if (viewport) {
-        viewport.removeEventListener('resize', handleViewportChange);
-        viewport.removeEventListener('scroll', handleViewportChange);
-      }
-      // Unlock body scroll
-      document.body.classList.remove('overflow-hidden');
-    };
-  }, [state.show_comments]);
-
-  useEffect(() => {
-    // Skip when embedded in the post modal — the modal owns the body scroll lock,
-    // and a second (non position-preserving) lock here causes the page to jump.
-    if (!lockBodyScroll) return;
-    if (state.show_comments) {
-      document.documentElement.style.overflow = 'hidden'; // Prevent scrolling
-      document.documentElement.style.position = 'fixed'; // Keep position fixed
-      document.documentElement.style.width = '100%'; // Ensure full width
-      document.body.style.overflow = 'hidden'; // Prevent scrolling
-      document.body.style.position = 'fixed'; // Prevent body scroll
-      document.body.style.width = '100%';
-    } else {
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-    }
-
-    return () => {
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-    };
-  }, [state.show_comments, lockBodyScroll]);
-
-  // This function is used for the like button
-  const handleLike = useCallback(async () => {
-    if (user_id) {
-      const newLikedState = !state.liked;
-      const newLikesCount = newLikedState ? state.likes + 1 : state.likes - 1;
-
-      setState((prevState) => ({
-        ...prevState,
-        liked: newLikedState,
-        likes: newLikesCount,
-        animate: true,
-      }));
-
+  const fetchReplies = useCallback(
+    async (commentId: string) => {
       try {
-        if (newLikedState) {
-          await likePost(String(user_id), String(postId));
-        } else {
-          await removeLike(String(user_id), String(postId));
-        }
+        const replies = await getRepliesByCommentId(String(commentId), String(user_id));
+        setComments((prev) =>
+          (prev ?? []).map((c: any) =>
+            c.id === commentId ? { ...c, replies: replies || [] } : c
+          )
+        );
       } catch (error) {
-        setState((prevState) => ({
-          ...prevState,
-          liked: !newLikedState,
-          likes: state.likes,
-          animate: false,
-        }));
-        console.error('Error toggling like:', error);
+        console.error('Error fetching replies:', error);
       }
+    },
+    [user_id]
+  );
+
+  // Lock the page behind the mobile sheet (skipped inside the modal, which owns it).
+  useEffect(() => {
+    if (!lockBodyScroll) return;
+    if (showSheet) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
-  }, [state.liked, state.likes, user_id, postId]);
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showSheet, lockBodyScroll]);
 
-  if (state.loading) {
-    return <div>loading</div>;
-  }
+  const handlePostLike = useCallback(async () => {
+    if (!user_id) return;
+    const next = !liked;
+    setLiked(next);
+    setLikes((n) => Math.max(0, n + (next ? 1 : -1)));
+    setLikeAnimate(true);
+    setTimeout(() => setLikeAnimate(false), 300);
+    try {
+      if (next) await likePost(String(user_id), String(postId));
+      else await removeLike(String(user_id), String(postId));
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      setLiked(!next);
+      setLikes((n) => Math.max(0, n + (next ? -1 : 1)));
+    }
+  }, [liked, user_id, postId]);
 
-  return (
-    <div className="flex h-full w-full flex-col">
-      {/* Desktop Comments Section */}
-      <div
-        id="comment_card_desktop"
-        className="hidden h-full w-full flex-col gap-2 overflow-y-auto md:flex"
-      >
-        {state.commentsLoading && !state.comments ? (
-          <CommentsSkeleton />
-        ) : state.comments && state.comments.length > 0 ? (
-          <>
-            {state.comments.map((comment: any) => {
-              if (comment.parent_id === null) {
-                return (
-                  <div key={comment.id} className="w-full">
-                    <CommentCard
-                      comment={comment}
-                      post={post}
-                      user_id={user_id}
-                      fetchComments={fetchComments}
-                      fetchReplies={fetchReplies}
-                    />
-                  </div>
-                );
-              }
-              return null;
-            })}
-          </>
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center">
-            <p className="text-lg font-medium">No comments yet</p>
-            <p className="text-xs text-foreground/50">Start the conversation.</p>
-          </div>
-        )}
-      </div>
-
-      <div className="w-full">
-        <div className="flex w-full flex-row items-center gap-4 border-t border-foreground/10 p-4 md:p-2">
-          <div className="flex flex-row gap-2">
-            <button onClick={handleLike} className={state.animate ? 'pop' : ''}>
-              {state.liked ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  height="24px"
-                  viewBox="0 -960 960 960"
-                  width="24px"
-                  fill="0000000"
-                  className={`heart-icon ${state.animate ? 'pop' : ''} fill-accent`}
-                >
-                  <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
-                </svg>
-              ) : (
-                <img
-                  src={'/assets/icons/heart-outline.svg'}
-                  alt="Not Liked"
-                  width="24px"
-                  height="24px"
-                  className={`heart-icon invert-on-dark ${state.animate ? 'pop' : ''}`}
-                />
-              )}
-            </button>
-            <p className="font-bold">{state.likes}</p>
-          </div>
-          <div className="flex flex-row gap-2 md:hidden">
-            <button
-              onClick={() =>
-                setState((prevState) => ({
-                  ...prevState,
-                  show_comments: true,
-                }))
-              }
-              className="text-foreground"
-            >
-              <img
-                src="/assets/icons/comment-outline.svg"
-                alt="Comment"
-                width={24}
-                height={24}
-                className="invert-on-dark max-h-[24px] min-h-[24px] min-w-[24px] max-w-[24px]"
-              />
-            </button>
-            <p className="font-bold">{state.commentCount}</p>
-          </div>
-        </div>
-        {/* Desktop comment input */}
-        <div className="hidden w-full md:flex">
-          <AddComment
+  const renderList = () => {
+    if (commentsLoading && !comments) return <CommentsSkeleton />;
+    const topLevel = (comments ?? []).filter((c: any) => c.parent_id === null);
+    if (!topLevel.length) return <EmptyState />;
+    return (
+      <div className="flex w-full flex-col gap-4">
+        {topLevel.map((comment: any) => (
+          <CommentCard
+            key={comment.id}
+            comment={comment}
             post={post}
             user_id={user_id}
             fetchComments={fetchComments}
             fetchReplies={fetchReplies}
+            likedCommentIds={likedCommentIds}
           />
+        ))}
+      </div>
+    );
+  };
+
+  const HeartButton = ({ size = 24 }: { size?: number }) => (
+    <button onClick={handlePostLike} className={likeAnimate ? 'pop' : ''} aria-label="Like post">
+      {liked ? (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 -960 960 960"
+          width={size}
+          height={size}
+          className="fill-accent"
+        >
+          <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
+        </svg>
+      ) : (
+        <img
+          src="/assets/icons/heart-outline.svg"
+          alt=""
+          width={size}
+          height={size}
+          className="invert-on-dark"
+        />
+      )}
+    </button>
+  );
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      {/* Desktop: inline comments column */}
+      <div className="hidden min-h-0 flex-1 md:flex md:flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">{renderList()}</div>
+        <div className="flex items-center gap-2 border-t border-foreground/10 px-3 py-2">
+          <HeartButton size={22} />
+          <span className="text-sm font-semibold">{likes}</span>
         </div>
-        {/* Mobile Comments Modal */}
-        <AnimatePresence>
-          {state.show_comments && (
+        <AddComment
+          post={post}
+          user_id={user_id}
+          fetchComments={fetchComments}
+          fetchReplies={fetchReplies}
+        />
+      </div>
+
+      {/* Mobile: action bar (opens the sheet) */}
+      <div className="flex w-full items-center gap-5 border-t border-foreground/10 p-3 md:hidden">
+        <div className="flex items-center gap-2">
+          <HeartButton />
+          <span className="font-semibold">{likes}</span>
+        </div>
+        <button
+          onClick={() => setShowSheet(true)}
+          className="flex items-center gap-2 text-foreground"
+          aria-label="View comments"
+        >
+          <img
+            src="/assets/icons/comment-outline.svg"
+            alt=""
+            width={24}
+            height={24}
+            className="invert-on-dark"
+          />
+          <span className="font-semibold">{commentCount}</span>
+        </button>
+      </div>
+
+      {/* Mobile: Instagram-style bottom sheet with drag-to-dismiss.
+          Portaled to <body> so the modal panel's transform doesn't trap the
+          fixed positioning, and so the dim/sheet cover the whole screen. */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {showSheet && (
+              <div className="md:hidden">
             <motion.div
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="surface-elevated fixed left-0 z-50 flex w-full flex-col rounded-[16px] text-foreground shadow-2xl"
-              style={{
-                top: `${viewportDimensions.top}px`,
-                height: `${viewportDimensions.height}px`,
+              key="dim"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowSheet(false)}
+              className="fixed inset-0 z-40 bg-black/50"
+            />
+            <motion.div
+              key="sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 34, stiffness: 320 }}
+              drag="y"
+              dragListener={false}
+              dragControls={dragControls}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.4 }}
+              onDragEnd={(_e, info) => {
+                if (info.offset.y > 120 || info.velocity.y > 600) setShowSheet(false);
               }}
+              className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex max-h-[82vh] flex-col rounded-t-[20px] text-foreground shadow-2xl"
             >
-              <div className="flex w-full flex-row items-center justify-between border-b border-foreground/20">
-                <h2 className="p-4 text-lg font-semibold">Comments</h2>
-                <button
-                  className="aspect-square h-12 text-2xl font-medium text-foreground"
-                  onClick={() =>
-                    setState((prevState) => ({
-                      ...prevState,
-                      show_comments: false,
-                    }))
-                  }
-                >
-                  <p>&times;</p>
-                </button>
+              {/* Grab handle + title — the only drag-initiating region, so the
+                  comment list below still scrolls normally. */}
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="shrink-0 cursor-grab touch-none select-none active:cursor-grabbing"
+              >
+                <div className="flex justify-center pt-2.5">
+                  <div className="h-1.5 w-10 rounded-full bg-foreground/25" />
+                </div>
+                <div className="px-4 py-2 text-center text-sm font-semibold">Comments</div>
+                <div className="h-px w-full bg-foreground/10" />
               </div>
-              {state.commentsLoading && !state.comments ? (
-                <div className="h-full w-full overflow-y-auto">
-                  <CommentsSkeleton />
-                </div>
-              ) : state.comments && state.comments.length > 0 ? (
-                <div className="flex h-full w-full flex-col gap-2 overflow-y-auto p-2">
-                  {state.comments.map((comment: any) => {
-                    if (comment.parent_id === null) {
-                      return (
-                        <div key={comment.id} className="w-full">
-                          <CommentCard
-                            comment={comment}
-                            post={post}
-                            user_id={user_id}
-                            fetchComments={fetchComments}
-                            fetchReplies={fetchReplies}
-                          />
-                        </div>
-                      );
-                    }
-                  })}
-                </div>
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center">
-                  <p className="text-lg font-medium">No comments yet</p>
-                  <p className="text-xs text-foreground/50">Start the conversation.</p>
-                </div>
-              )}
-              <div className="w-full">
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">{renderList()}</div>
+
+              <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
                 <AddComment
                   post={post}
                   user_id={user_id}
@@ -382,9 +313,11 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
                 />
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 };

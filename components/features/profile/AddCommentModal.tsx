@@ -3,68 +3,91 @@ import { useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
 import { createClient } from '@/lib/supabase/client';
 
-const AddComment: React.FC<any> = ({ post, user_id, fetchComments, fetchReplies, parent_id }) => {
+interface AddCommentProps {
+  post: any;
+  user_id?: string;
+  fetchComments?: () => Promise<void> | void;
+  fetchReplies?: (parentId: string) => Promise<void> | void;
+  parent_id?: string;
+  autoFocus?: boolean;
+  placeholder?: string;
+}
+
+const AddComment: React.FC<AddCommentProps> = ({
+  post,
+  user_id,
+  fetchComments,
+  fetchReplies,
+  parent_id,
+  autoFocus,
+  placeholder,
+}) => {
   const [content, setContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const postId = post.id;
   const { user } = useUser();
-
   const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    const text = content.trim();
+    if (!text || submitting) return;
     if (!user_id) {
       alert('You must be logged in to comment');
       return;
     }
 
-    const { data, error } = await supabase
-      .from('comments')
-      .insert([{ post_id: postId, user_id: user_id, content, parent_id }])
-      .select();
+    setSubmitting(true);
+    setContent(''); // optimistic clear
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert([{ post_id: postId, user_id: user_id, content: text, parent_id }])
+        .select();
+      if (error) throw error;
 
-    const { error: incrementError } = await supabase.rpc('increment_comments', {
-      post_id: postId,
-    });
-    if (incrementError) throw incrementError;
+      await supabase.rpc('increment_comments', { post_id: postId });
 
-    if (error) {
-      console.error(error);
-    } else {
-      setContent('');
-
-      if (parent_id) {
-        await fetchReplies(parent_id); // Fetch replies when a reply is added
-      } else {
-        await fetchComments(); // Fetch comments when a new top-level comment is added
-      }
+      if (parent_id) await fetchReplies?.(parent_id);
+      else await fetchComments?.();
+    } catch (err) {
+      console.error(err);
+      setContent(text); // restore so the user doesn't lose their text
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="md:text-s4 flex w-full flex-row items-center gap-2 border-t border-foreground/10 bg-background px-2"
+      className="flex w-full items-center gap-2 border-t border-foreground/10 p-2"
     >
-      <img src={user.image_url} alt="prof_picture" className="aspect-square h-8 rounded-full" />
-      <input
-        type="text"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        required
-        className="w-full appearance-none bg-background py-4 text-foreground focus:outline-none md:p-2"
-        placeholder="Add comment..."
+      <img
+        src={user.image_url}
+        alt=""
+        className="aspect-square h-8 shrink-0 rounded-full bg-foreground/10 object-cover"
       />
-      <button
-        type="submit"
-        className="bg-background font-medium text-foreground/50 hover:text-primary md:px-2"
-      >
-        Post
-      </button>
+      <div className="flex w-full items-center gap-2 rounded-full bg-foreground/10 px-3">
+        <input
+          type="text"
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus={autoFocus}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="w-full appearance-none bg-transparent py-2 text-sm text-foreground focus:outline-none"
+          placeholder={placeholder || 'Add a comment…'}
+        />
+        <button
+          type="submit"
+          disabled={!content.trim() || submitting}
+          className="shrink-0 text-sm font-semibold text-accent transition-opacity disabled:opacity-40"
+        >
+          Post
+        </button>
+      </div>
     </form>
   );
 };
