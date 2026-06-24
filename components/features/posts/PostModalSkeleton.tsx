@@ -14,7 +14,8 @@ const Bar = ({ className = '' }: { className?: string }) => (
  * the header/title/text regions are padded).
  */
 const PostModalSkeleton = () => (
-  <div className="flex h-full w-full animate-pulse flex-col md:flex-row">
+  <div className="relative flex h-full w-full flex-col overflow-hidden md:flex-row">
+    <div className="skeleton-shimmer z-10" />
     {/* Post column */}
     <div className="flex min-h-0 flex-1 flex-col bg-white/10 md:w-[60%] md:flex-none">
       <div className="flex items-center gap-2 p-3">

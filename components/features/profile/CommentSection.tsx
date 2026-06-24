@@ -12,9 +12,10 @@ import AddComment from './AddCommentModal';
 import CommentCard from './CommentCardModal';
 
 const CommentsSkeleton = () => (
-  <div className="flex w-full flex-col gap-4 p-3">
+  <div className="relative flex w-full flex-col gap-4 overflow-hidden p-3">
+    <div className="skeleton-shimmer z-10" />
     {[0, 1, 2, 3].map((i) => (
-      <div key={i} className="flex w-full animate-pulse flex-row gap-2">
+      <div key={i} className="flex w-full flex-row gap-2">
         <div className="h-8 w-8 shrink-0 rounded-full bg-foreground/10" />
         <div className="flex w-full flex-col gap-2">
           <div className="h-3 w-1/3 rounded bg-foreground/10" />
@@ -287,7 +288,7 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
               onDragEnd={(_e, info) => {
                 if (info.offset.y > 120 || info.velocity.y > 600) setShowSheet(false);
               }}
-              className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex max-h-[82vh] flex-col rounded-t-[20px] text-foreground shadow-2xl"
+              className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl"
             >
               {/* Grab handle + title — the only drag-initiating region, so the
                   comment list below still scrolls normally. */}
@@ -302,7 +303,9 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
                 <div className="h-px w-full bg-foreground/10" />
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">{renderList()}</div>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+                {renderList()}
+              </div>
 
               <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
                 <AddComment
