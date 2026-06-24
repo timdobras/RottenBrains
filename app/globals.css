@@ -280,10 +280,10 @@
 .dt-heart {
   position: absolute;
   /* left/top are the tap point; center the heart on it. */
-  margin-left: -48px;
-  margin-top: -48px;
-  width: 96px;
-  height: 96px;
+  margin-left: -34px;
+  margin-top: -34px;
+  width: 68px;
+  height: 68px;
   color: #ff3040;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
   will-change: transform, opacity;
