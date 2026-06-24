@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -755,6 +791,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      decrement_comment_likes: {
+        Args: { p_comment_id: string }
+        Returns: undefined
+      }
       decrement_comments: { Args: { post_id: string }; Returns: undefined }
       decrement_likes: { Args: { post_id: string }; Returns: undefined }
       fetch_comments_by_post_id: {
@@ -1123,6 +1163,10 @@ export type Database = {
           media_id: number
           media_type: string
         }[]
+      }
+      increment_comment_likes: {
+        Args: { p_comment_id: string }
+        Returns: undefined
       }
       increment_comments: { Args: { post_id: string }; Returns: undefined }
       increment_likes: { Args: { post_id: string }; Returns: undefined }

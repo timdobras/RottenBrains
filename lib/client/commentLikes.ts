@@ -2,12 +2,10 @@
 
 import { createClient } from '@/lib/supabase/client';
 
-// comment_likes + the increment/decrement RPCs are added by
-// supabase/migrations/20260624000_comment_likes.sql. Until database.types.ts is
-// regenerated they aren't in the generated types, so we go through an untyped
-// client here. All calls fail soft (the heart shows counts; liking just won't
-// persist) so the UI works before the migration is applied.
-const db = createClient() as any;
+// comment_likes + the increment/decrement RPCs (migration 20260624000) are now in
+// the generated types. Calls still fail soft in the UI layer so a transient error
+// never breaks rendering.
+const db = createClient();
 
 /** Which of the given comment ids the user has liked. Empty set on any error. */
 export async function getLikedCommentIds(
