@@ -58,6 +58,11 @@ export const getSavedStatus = async (userId: string, postId: string): Promise<bo
   }
 };
 
+// Like a post. Idempotent: the (user_id, post_id) unique constraint plus
+// ignoreDuplicates means liking an already-liked post is a no-op instead of an
+// error or a duplicate row. posts.total_likes is maintained by the DB trigger
+// `trg_likes_count`, so the client no longer touches the counter (the old
+// increment_likes RPC is now a no-op).
 export const likePost = async (
   userId: string,
   postId: string
@@ -65,14 +70,11 @@ export const likePost = async (
   try {
     const { data, error } = await supabase
       .from('likes')
-      .insert([{ user_id: userId, post_id: postId }]);
+      .upsert([{ user_id: userId, post_id: postId }], {
+        onConflict: 'user_id,post_id',
+        ignoreDuplicates: true,
+      });
     if (error) throw error;
-
-    const { error: incrementError } = await supabase.rpc('increment_likes', {
-      post_id: postId,
-    });
-    if (incrementError) throw incrementError;
-
     return { data, error: null };
   } catch (error) {
     handleError('likePost', error);
@@ -91,12 +93,7 @@ export const removeLike = async (
       .eq('user_id', userId)
       .eq('post_id', postId);
     if (error) throw error;
-
-    const { error: decrementError } = await supabase.rpc('decrement_likes', {
-      post_id: postId,
-    });
-    if (decrementError) throw decrementError;
-
+    // total_likes is decremented by the DB trigger `trg_likes_count`.
     return { data, error: null };
   } catch (error) {
     handleError('removeLike', error);
