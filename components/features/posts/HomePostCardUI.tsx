@@ -1,7 +1,9 @@
 import React from 'react';
+import DoubleTapLike from './DoubleTapLike';
 import PostContent from './PostContent';
 import PostFooter from './PostFooter';
 import PostHeader from './PostHeader';
+import { PostLikeProvider } from './PostLikeContext';
 import PostMedia from './PostMedia';
 import SeedPostData from './SeedPostData';
 
@@ -32,27 +34,34 @@ const HomePostCardUI = ({
   const post_link = `/post/${post_data.post.id}`;
   const sizeClasses = variant === 'feed' ? 'w-full' : 'md:min-w-[250px] md:max-w-[300px]';
   return (
-    <div
-      className={`relative flex h-min flex-col ${rounded ? 'post_border rounded-[8px]' : ''} bg-white/10 ${sizeClasses}`}
+    <PostLikeProvider
+      postId={post_data.post.id}
+      userId={user_id}
+      initialLiked={!!post_data.current_user?.has_liked}
+      initialLikes={post_data.post.total_likes || 0}
     >
-      {seed && !expanded && <SeedPostData id={post_data.post.id} data={post_media_data} />}
-      <PostHeader creator={post_data.creator} post={post_data.post} user_id={user_id} />
-      <PostMedia media={media_data} post={post_data.post} />
-      <PostContent
-        media={media_data}
-        post={post_data.post}
-        post_link={post_link}
-        expanded={expanded}
-      />
-      <PostFooter
-        post={post_data.post}
-        media={media_data}
-        current_user={post_data.current_user}
-        user_id={user_id}
-        post_link={post_link}
-        genreIds={genreIds}
-      />
-    </div>
+      <DoubleTapLike
+        className={`relative flex h-min flex-col ${rounded ? 'post_border rounded-[8px]' : ''} bg-white/10 ${sizeClasses}`}
+      >
+        {seed && !expanded && <SeedPostData id={post_data.post.id} data={post_media_data} />}
+        <PostHeader creator={post_data.creator} post={post_data.post} user_id={user_id} />
+        <PostMedia media={media_data} post={post_data.post} />
+        <PostContent
+          media={media_data}
+          post={post_data.post}
+          post_link={post_link}
+          expanded={expanded}
+        />
+        <PostFooter
+          post={post_data.post}
+          media={media_data}
+          current_user={post_data.current_user}
+          user_id={user_id}
+          post_link={post_link}
+          genreIds={genreIds}
+        />
+      </DoubleTapLike>
+    </PostLikeProvider>
   );
 };
 

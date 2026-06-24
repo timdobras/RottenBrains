@@ -1,63 +1,54 @@
 'use client';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getPostComments } from '@/lib/supabase/clientQueries';
 import AddComment from './AddComment';
 import CommentCard from './CommentCard';
+import { usePostLike } from './PostLikeContext';
 
 const PostStats = ({ post, user_id, current_user, post_link }: any) => {
   const postId = post.id;
   const [state, setState] = useState({
-    liked: current_user.has_liked,
-    likes: post.total_likes,
-    animate: false,
     isOpen: false,
     comments: [],
     commentCount: post.total_comments || 0,
     loading: true,
   });
 
-  const handleLike = useCallback(async () => {
-    if (user_id) {
-      // Optimistically update the state
-      const newLikedState = !state.liked;
-      const newLikesCount = newLikedState ? state.likes + 1 : state.likes - 1;
+  // Shared like state (kept in sync with the double-tap-to-like gesture). Falls back
+  // to a local toggle if this card is ever rendered outside a PostLikeProvider.
+  const shared = usePostLike();
+  const [localLike, setLocalLike] = useState({
+    liked: !!current_user?.has_liked,
+    likes: post.total_likes || 0,
+    animate: false,
+  });
 
-      setState((prevState) => ({
-        ...prevState,
-        liked: newLikedState,
-        likes: newLikesCount,
-        animate: true,
-      }));
+  const liked = shared ? shared.liked : localLike.liked;
+  const likes = shared ? shared.likes : localLike.likes;
+  const animate = shared ? shared.animate : localLike.animate;
 
-      try {
-        if (newLikedState) {
-          await likePost(user_id, postId);
-        } else {
-          await removeLike(user_id, postId);
-        }
-      } catch (error) {
-        // Revert the state in case of an error
-        setState((prevState) => ({
-          ...prevState,
-          liked: !newLikedState,
-          likes: state.likes, // Revert to the previous like count
-          animate: false,
-        }));
+  const handleLike = () => {
+    if (!user_id) return;
+    if (shared) {
+      shared.toggleLike();
+      return;
+    }
+    // Fallback path (no provider): optimistic local toggle.
+    const next = !localLike.liked;
+    const prevLikes = localLike.likes;
+    setLocalLike({ liked: next, likes: next ? prevLikes + 1 : prevLikes - 1, animate: true });
+    const run = next ? likePost(user_id, postId) : removeLike(user_id, postId);
+    Promise.resolve(run)
+      .then((res: any) => {
+        if (res?.error) throw res.error;
+      })
+      .catch((error) => {
+        setLocalLike({ liked: !next, likes: prevLikes, animate: false });
         console.error('Error toggling like:', error);
-      }
-    }
-  }, [user_id, postId, state.liked, state.likes]);
-
-  useEffect(() => {
-    if (state.animate) {
-      const timer = setTimeout(() => {
-        setState((prevState) => ({ ...prevState, animate: false }));
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [state.animate]);
+      });
+  };
 
   const fetchComments = async () => {
     try {
@@ -91,15 +82,15 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
   return (
     <div className="flex flex-row items-center gap-4 px-2">
       <div className="flex flex-row items-center gap-2">
-        <button onClick={handleLike} className={state.animate ? 'pop' : ''}>
-          {state.liked ? (
+        <button onClick={handleLike} className={animate ? 'pop' : ''}>
+          {liked ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
               height="24px"
               viewBox="0 -960 960 960"
               width="24px"
               fill="0000000"
-              className={`heart-icon ${state.animate ? 'pop' : ''} fill-accent`}
+              className={`heart-icon ${animate ? 'pop' : ''} fill-accent`}
             >
               <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
             </svg>
@@ -109,11 +100,11 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
               alt="Not Liked"
               width="24px"
               height="24px"
-              className={`heart-icon invert-on-dark ${state.animate ? 'pop' : ''}`}
+              className={`heart-icon invert-on-dark ${animate ? 'pop' : ''}`}
             />
           )}
         </button>
-        <p className="font-bold">{state.likes}</p>
+        <p className="font-bold">{likes}</p>
       </div>
       <div className="flex flex-row items-center gap-2">
         <div>
@@ -127,7 +118,10 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
             />
           </Link>
           {state.isOpen && (
-            <div className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50">
+            <div
+              data-no-doubletap
+              className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50"
+            >
               <div className="relative max-h-[90%] w-screen rounded-lg bg-background p-4 pt-16 shadow-lg md:h-auto md:max-h-[80%] md:max-w-4xl">
                 <button
                   onClick={togglePopup}

@@ -274,6 +274,56 @@
   animation: pop 0.2s ease-in-out;
 }
 
+/* Double-tap-to-like floating heart. Positioned at the tap point; per-heart random
+   rotation (--dt-rot) and scale (--dt-scale) are supplied inline so repeated taps
+   never look identical. Quick pop in, brief hold, then a fast fade + drift out. */
+.dt-heart {
+  position: absolute;
+  /* left/top are the tap point; center the heart on it. */
+  margin-left: -48px;
+  margin-top: -48px;
+  width: 96px;
+  height: 96px;
+  color: #ff3040;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+  will-change: transform, opacity;
+  pointer-events: none;
+  transform-origin: center;
+  animation: dt-heart-pop 720ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+.dt-heart svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+@keyframes dt-heart-pop {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--dt-rot, 0deg)) scale(0);
+  }
+  15% {
+    opacity: 0.95;
+    transform: rotate(var(--dt-rot, 0deg)) scale(calc(var(--dt-scale, 1) * 1.25));
+  }
+  30% {
+    opacity: 1;
+    transform: rotate(var(--dt-rot, 0deg)) scale(var(--dt-scale, 1));
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(var(--dt-rot, 0deg)) translateY(-6px) scale(var(--dt-scale, 1));
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--dt-rot, 0deg)) translateY(-32px) scale(calc(var(--dt-scale, 1) * 0.85));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dt-heart {
+    animation-duration: 400ms;
+  }
+}
+
 .loader {
   @apply mt-4 h-12 w-12 rounded-full border-4 border-t-4 border-solid;
   border-color: theme('colors.accent.DEFAULT') transparent transparent transparent;
