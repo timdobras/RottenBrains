@@ -156,6 +156,21 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
     };
   }, [showSheet, lockBodyScroll]);
 
+  // Disable native pull-to-refresh ONLY while the sheet is open (so dragging it
+  // down doesn't refresh the page), leaving pull-to-refresh working everywhere else.
+  useEffect(() => {
+    if (!showSheet) return;
+    const html = document.documentElement;
+    const prevHtml = html.style.overscrollBehaviorY;
+    const prevBody = document.body.style.overscrollBehaviorY;
+    html.style.overscrollBehaviorY = 'none';
+    document.body.style.overscrollBehaviorY = 'none';
+    return () => {
+      html.style.overscrollBehaviorY = prevHtml;
+      document.body.style.overscrollBehaviorY = prevBody;
+    };
+  }, [showSheet]);
+
   const handlePostLike = useCallback(async () => {
     if (!user_id) return;
     const next = !liked;

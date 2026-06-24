@@ -110,13 +110,6 @@
     background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
   }
 
-  /* Disable the browser's native pull-to-refresh / overscroll bounce so dragging
-     the comment sheet (or any in-app pull) doesn't trigger a page refresh. */
-  html,
-  body {
-    overscroll-behavior-y: none;
-  }
-
   /* Skeleton shimmer: a light band sweeping across, instead of an opacity pulse. */
   @keyframes skeleton-shimmer {
     0% {
