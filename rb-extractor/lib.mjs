@@ -34,42 +34,42 @@ const HEADED_PROVIDERS = new Set(['VidSrc.fyi', 'SuperEmbed', 'vidlink.pro']);
 
 // --- per-provider drivers: navigate + interact; sniffing is generic ---
 const DRIVERS = {
-  Videasy: async (page, _ctx, params) => {
+  Videasy: async (page, _ctx, params, stop) => {
     await page.goto(videasyUrl(params), { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 3);
+    await poke(page, 3, { stop });
   },
-  SuperEmbed: async (page, _ctx, params) => {
+  SuperEmbed: async (page, _ctx, params, stop) => {
     // getsuperembed.link → streamingnow.mov (Cloudflare Turnstile + ad-walls).
     // Needs patchright headed + ~40s for the Turnstile to clear.
     await page.goto(superembedApi(params), { waitUntil: 'domcontentloaded', timeout: 30000 });
     const target = (await page.content()).match(/https?:\/\/[^\s"<]+/)?.[0];
     if (!target) throw new Error('superembed: no target url');
     await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 16);
+    await poke(page, 16, { stop });
   },
-  '2Embed': async (page, _ctx, params) => {
+  '2Embed': async (page, _ctx, params, stop) => {
     const tail = params.type === 'tv' ? `/${params.id}&s=${params.season || 1}&e=${params.episode || 1}` : `/${params.id}`;
     await page.goto(`https://www.2embed.cc/embed/${params.type}${tail}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 5);
+    await poke(page, 5, { stop });
   },
-  'VidSrc.cc': async (page, _ctx, params) => {
+  'VidSrc.cc': async (page, _ctx, params, stop) => {
     const tail = params.type === 'tv' ? `/${params.id}/${params.season || 1}/${params.episode || 1}` : `/${params.id}`;
     await page.goto(`https://vidsrc.cc/v2/embed/${params.type}${tail}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 5);
+    await poke(page, 5, { stop });
   },
-  'VidSrc.fyi': async (page, _ctx, params) => {
+  'VidSrc.fyi': async (page, _ctx, params, stop) => {
     // cloudnestra rcp + Cloudflare Turnstile — needs patchright headed and ~40s
     // for the Turnstile proof-of-work to complete before the m3u8 loads.
     const tail = params.type === 'tv' ? `/${params.id}/${params.season || 1}/${params.episode || 1}` : `/${params.id}`;
     await page.goto(`https://vidsrc.fyi/embed/${params.type}${tail}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 16);
+    await poke(page, 16, { stop });
   },
-  'vidlink.pro': async (page, _ctx, params) => {
+  'vidlink.pro': async (page, _ctx, params, stop) => {
     // MP4 source (not HLS) + SRT subtitles, served via api/b after some bot
     // checks — needs patchright headed. We sniff the played MP4 + .srt.
     const tail = params.type === 'tv' ? `/${params.id}/${params.season || 1}/${params.episode || 1}` : `/${params.id}`;
     await page.goto(`https://vidlink.pro/${params.type}${tail}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 14);
+    await poke(page, 14, { stop });
   },
 };
 
@@ -79,20 +79,30 @@ function withTimeout(p, ms) {
 }
 
 // Click center + try to start <video> / play buttons across all frames, a few rounds.
-async function poke(page, rounds) {
+// `stop()` (optional) lets the caller short-circuit the instant the stream is
+// captured — no point poking (and spawning more ad popups) once we have it.
+// We interact almost immediately (short initial settle) and poll on a tight
+// cadence so fast providers resolve in a couple seconds instead of being paced
+// by fixed 3s rounds. Turnstile-walled providers still get the full budget —
+// they just exit early via stop() the moment the m3u8 lands post-challenge.
+async function poke(page, rounds, { stop, cadence = 1200, initialDelay = 600 } = {}) {
+  await page.waitForTimeout(initialDelay);
   for (let i = 0; i < rounds; i++) {
-    await page.waitForTimeout(3000);
-    await withTimeout(page.mouse.click(640, 360).catch(() => {}), 2500);
+    if (stop?.()) return;
+    await withTimeout(page.mouse.click(640, 360).catch(() => {}), 2000);
     for (const f of page.frames()) {
+      if (stop?.()) return;
       await withTimeout(
         f.evaluate(() => {
           document.querySelectorAll('video').forEach((v) => v.play?.().catch(() => {}));
           for (const s of ['.jw-icon-display', '.vjs-big-play-button', '[class*=play i]', '.server', 'li.server', '[data-server]', 'button'])
             document.querySelector(s)?.click?.();
         }).catch(() => {}),
-        2500,
+        2000,
       );
     }
+    if (stop?.()) return;
+    await page.waitForTimeout(cadence);
   }
 }
 
@@ -138,15 +148,32 @@ export async function extractStream(providerName, params, { timeoutMs = 90000 } 
   try {
     // Run the driver, but resolve as soon as the m3u8 is captured — don't wait
     // for all poke rounds (ad iframes make that slow/hang). Cap at timeoutMs.
+    // `gotStream` doubles as the driver's stop() signal so poking halts the
+    // instant we have a stream.
+    const gotStream = () => hits.size > 0 || mp4s.size > 0;
     let driverDone = false;
-    driver(page, ctx, params)
-      .catch((e) => { result.error = e.message; })
+    driver(page, ctx, params, gotStream)
+      // Once we have a stream we close the browser early, which makes the
+      // still-running poke loop throw a teardown error — ignore it; it's not a
+      // real failure. Only surface driver errors when we got nothing.
+      .catch((e) => { if (!gotStream()) result.error = e.message; })
       .finally(() => { driverDone = true; });
     const start = Date.now();
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     while (Date.now() - start < timeoutMs) {
-      if (hits.size > 0 || mp4s.size > 0) { await new Promise((r) => setTimeout(r, 1500)); break; } // got a stream; brief settle for subs/master
+      if (gotStream()) {
+        // Got a stream — settle briefly to catch the master playlist + subtitle
+        // tracks (which can fire a beat later), but bail early once subs land or
+        // after a short cap instead of a fixed 1.5s.
+        const settleStart = Date.now();
+        while (Date.now() - settleStart < 1200) {
+          await sleep(200);
+          if (subs.size > 0 && Date.now() - settleStart >= 400) break;
+        }
+        break;
+      }
       if (driverDone) break;
-      await new Promise((r) => setTimeout(r, 500));
+      await sleep(250);
     }
 
     // Prefer HLS (adaptive); fall back to a progressive MP4 (e.g. vidlink).
