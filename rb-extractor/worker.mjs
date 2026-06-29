@@ -9,7 +9,12 @@ import { extractStream } from './lib.mjs';
 // --- config ---
 const QUEUE_NAME = process.env.STREAM_QUEUE || 'stream-extract';
 const REDIS_URL = process.env.REDIS_URL;
-const PROVIDER_ORDER = (process.env.PROVIDERS || 'Videasy').split(',').map((s) => s.trim());
+// Direct (browser-free, ~1s) resolvers first, browser drivers last. Each provider
+// is tried in order until one yields a stream — so the fast paths win when the
+// title is available there, and Videasy (browser) is the universal fallback.
+const PROVIDER_ORDER = (process.env.PROVIDERS || 'vidlink.pro,spencerdevs,vidrock,Videasy')
+  .split(',')
+  .map((s) => s.trim());
 const HEALTH_PORT = Number(process.env.PORT || 8790);
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 25 * 60 * 1000);
 
