@@ -6,11 +6,11 @@ import { useUser } from '@/hooks/UserContext';
 import movie_genres_json from '@/lib/constants/movie_genres.json';
 import tv_genres_json from '@/lib/constants/tv_genres.json';
 import { logger } from '@/lib/logger';
-import { updateUserFeedGenres } from '@/lib/db/client-actions';
 import {
+  updateUserFeedGenres,
   getTopMovieGenresForUser,
   getTopTvGenresForUser,
-} from '@/lib/supabase/clientQueries';
+} from '@/lib/db/client-actions';
 
 export interface Genre {
   id: number;

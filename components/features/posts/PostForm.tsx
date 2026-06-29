@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
 import { createPost, updatePost, deletePost } from '@/lib/db/mutations';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
-import { updateGenreStats } from '@/lib/supabase/clientQueries';
+import { updateGenreStats } from '@/lib/db/client-actions';
 import { getMediaDetails } from '@/lib/tmdb';
 import { useToast } from '../../ui/use-toast';
 import PostContent from './PostContent';

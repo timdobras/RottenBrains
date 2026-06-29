@@ -6,13 +6,19 @@ import { prisma } from '@/lib/prisma';
 import { PAGINATION } from '@/lib/constants';
 import { handleError as handleAppError, DatabaseError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
-import { FeedGenre, IPost } from '@/types';
+import { FeedGenre, IPost, IUser } from '@/types';
 import { getMediaDetails } from '../tmdb';
 import {
   getPostByIdNew as getPostByIdNewServer,
   getCommentsByPostId as getCommentsByPostIdServer,
   getRepliesByCommentId as getRepliesByCommentIdServer,
+  getWatchListSpecific as getWatchListSpecificServer,
+  getTopMovieGenresForUser as getTopMovieGenresForUserServer,
+  getTopTvGenresForUser as getTopTvGenresForUserServer,
+  updateGenreStats as updateGenreStatsServer,
+  getWatchTime as getWatchTimeServer,
 } from '@/lib/db/queries';
+import type { UpdateGenreStatsParams } from '@/lib/supabase/utils';
 
 /**
  * Server-action ports of the *data* functions in `lib/supabase/clientQueries.ts`.
@@ -430,4 +436,37 @@ export async function getCommentsByPostId(post_id: string, current_user_id?: str
 
 export async function getRepliesByCommentId(comment_id: string, current_user_id?: string) {
   return getRepliesByCommentIdServer(comment_id, current_user_id);
+}
+
+// Wrappers for 5 more server-only fns used by client components (watchlist,
+// genre fetch/update) — same delegation pattern as above.
+export async function getWatchListSpecific(
+  user_id: string,
+  limit: number,
+  offset: number,
+  watch_list_type: string
+) {
+  return getWatchListSpecificServer(user_id, limit, offset, watch_list_type);
+}
+
+export async function getTopMovieGenresForUser(userId?: string, user?: IUser) {
+  return getTopMovieGenresForUserServer(userId, user);
+}
+
+export async function getTopTvGenresForUser(userId?: string, user?: IUser) {
+  return getTopTvGenresForUserServer(userId, user);
+}
+
+export async function updateGenreStats(params: UpdateGenreStatsParams) {
+  return updateGenreStatsServer(params);
+}
+
+export async function getWatchTime(
+  user_id: string,
+  media_type: string,
+  media_id: number,
+  season_number?: number | null,
+  episode_number?: number | null
+) {
+  return getWatchTimeServer(user_id, media_type, media_id, season_number, episode_number);
 }

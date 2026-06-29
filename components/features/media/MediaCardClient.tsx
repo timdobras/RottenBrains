@@ -5,7 +5,7 @@ import React from 'react';
 import { useQueries } from '@tanstack/react-query';
 import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
-import { getWatchTime } from '@/lib/supabase/clientQueries';
+import { getWatchTime } from '@/lib/db/client-actions';
 import { getMediaDetails, getEpisodeDetails } from '@/lib/tmdb';
 import { queryKeys } from '@/lib/queryKeys';
 
