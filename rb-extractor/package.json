@@ -10,6 +10,7 @@
   "dependencies": {
     "bullmq": "^5.34.0",
     "ioredis": "^5.4.2",
+    "libsodium-wrappers": "^0.7.15",
     "patchright": "^1.61.1",
     "playwright": "^1.61.1"
   }

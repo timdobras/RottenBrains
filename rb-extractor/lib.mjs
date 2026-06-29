@@ -3,6 +3,8 @@
 // headed). Videasy works with it too.
 import { chromium } from 'patchright';
 
+import { tryDirect, hasDirect } from './direct.mjs';
+
 // A real Chrome UA; under headed+xvfb the Sec-CH-UA client hints match this
 // (no "HeadlessChrome"), which is what defeats the bot detection on these players.
 const UA =
@@ -107,6 +109,21 @@ async function poke(page, rounds, { stop, cadence = 1200, initialDelay = 600 } =
 }
 
 export async function extractStream(providerName, params, { timeoutMs = 90000 } = {}) {
+  // Browser-free fast path: providers with a direct resolver (vidlink.pro,
+  // spencerdevs, vidrock) resolve in ~1s with no browser.
+  if (hasDirect(providerName)) {
+    try {
+      // A clean null means "no source for this title" — don't waste a browser
+      // launch on the same backend; let the worker move to the next provider.
+      const direct = await tryDirect(providerName, params);
+      return { provider: providerName, params, stream: direct };
+    } catch (e) {
+      // The direct path itself broke (e.g. rotated key) — fall through to the
+      // browser driver if one exists, otherwise report the error.
+      if (!DRIVERS[providerName]) return { provider: providerName, params, stream: null, error: e.message };
+    }
+  }
+
   const driver = DRIVERS[providerName];
   if (!driver) throw new Error(`unknown provider ${providerName}`);
 
