@@ -30,10 +30,8 @@ export default function NativePlayerDevPage() {
   const [season, setSeason] = useState('1');
   const [episode, setEpisode] = useState('1');
 
-  // Dev-only safety net: this POC harness must never be reachable in prod.
-  if (process.env.NODE_ENV === 'production') {
-    return <div style={{ padding: 24 }}>Not available.</div>;
-  }
+  // NOTE: temporarily reachable in production to test the ad-free pipeline.
+  // Re-gate or remove this page once the player is wired into the watch UI.
 
   const playProxied = () => {
     setSubs([]);
