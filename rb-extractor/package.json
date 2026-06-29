@@ -4,6 +4,13 @@
   "private": true,
   "type": "module",
   "description": "Headless-browser HLS extractor microservice for RottenBrains native player",
-  "scripts": { "start": "node server.mjs" },
-  "dependencies": { "playwright": "^1.61.1" }
+  "scripts": {
+    "start": "node worker.mjs"
+  },
+  "dependencies": {
+    "bullmq": "^5.34.0",
+    "ioredis": "^5.4.2",
+    "patchright": "^1.61.1",
+    "playwright": "^1.61.1"
+  }
 }

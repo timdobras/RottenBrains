@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { publicOrigin } from '@/lib/stream/publicOrigin';
 import { resolveStream } from '@/lib/stream/resolvers';
 import type { ResolveParams } from '@/lib/stream/types';
 
@@ -12,7 +13,26 @@ function proxied(origin: string, url: string, headers: Record<string, string>): 
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams, origin } = new URL(req.url);
+  const { searchParams } = new URL(req.url);
+  const origin = publicOrigin(req);
+
+  // Temporary diagnostics: ?debug=1 probes the extractor service reachability.
+  if (searchParams.get('debug') === '1') {
+    const base = process.env.STREAM_EXTRACTOR_URL;
+    const probe: Record<string, unknown> = { STREAM_EXTRACTOR_URL: base ?? null };
+    if (base) {
+      try {
+        const r = await fetch(`${base.replace(/\/$/, '')}/health`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        probe.health_status = r.status;
+        probe.health_body = (await r.text()).slice(0, 300);
+      } catch (e) {
+        probe.health_error = String(e);
+      }
+    }
+    return NextResponse.json(probe);
+  }
 
   const media_type = searchParams.get('media_type');
   const media_id = searchParams.get('media_id');
