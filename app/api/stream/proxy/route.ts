@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { rewritePlaylist, looksLikePlaylist } from '@/lib/stream/hlsRewrite';
+import { publicOrigin } from '@/lib/stream/publicOrigin';
 import { assertPublicHttpUrl } from '@/lib/stream/ssrfGuard';
 
 // This route streams arbitrary-sized media; never statically optimize it.
@@ -29,7 +30,7 @@ export async function OPTIONS() {
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams, origin, pathname } = new URL(req.url);
+  const { searchParams, pathname } = new URL(req.url);
   const target = searchParams.get('url');
   if (!target) return new NextResponse('Missing url', { status: 400, headers: CORS });
 
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
   if (isPlaylist) {
     const body = await upstream.text();
     if (looksLikePlaylist(contentType, body)) {
-      const proxyBase = `${origin}${pathname}`;
+      const proxyBase = `${publicOrigin(req)}${pathname}`;
       const rewritten = rewritePlaylist(body, upstreamUrl.toString(), proxyBase, upstreamHeaders);
       return new NextResponse(rewritten, {
         status: 200,
