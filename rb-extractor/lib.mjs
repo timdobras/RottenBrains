@@ -76,8 +76,12 @@ export async function extractStream(providerName, params, { timeoutMs = 45000 } 
   const driver = DRIVERS[providerName];
   if (!driver) throw new Error(`unknown provider ${providerName}`);
 
+  // Default headless (works for Videasy and needs no X display). Set HEADED=1
+  // to run headed (requires an X server / xvfb) for providers that detect
+  // HeadlessChrome (e.g. SuperEmbed). The deployed Videasy-only worker uses
+  // headless so it needs no xvfb.
   const browser = await chromium.launch({
-    headless: false, // headed under xvfb → real client hints
+    headless: process.env.HEADED !== '1',
     args: ['--no-sandbox', '--disable-blink-features=AutomationControlled', '--autoplay-policy=no-user-gesture-required', '--mute-audio'],
   });
   const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 720 }, ignoreHTTPSErrors: true });
