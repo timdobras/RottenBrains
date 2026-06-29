@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/server/current-user';
 import { logger } from '@/lib/logger';
 
 interface HideItemData {
@@ -11,15 +12,10 @@ interface HideItemData {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-
     // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -27,37 +23,30 @@ export async function POST(req: NextRequest) {
 
     // For TV shows: hide ALL episodes of the series
     // For Movies: hide just the movie
-    const timestamp = new Date().toISOString();
-
-    let error;
+    const timestamp = new Date();
 
     if (data.media_type === 'tv') {
       // Hide all episodes of this TV series for this user
-      const result = await supabase
-        .from('watch_history')
-        .update({ hidden_until: timestamp })
-        .eq('user_id', user.id)
-        .eq('media_type', 'tv')
-        .eq('media_id', data.media_id); // Match all episodes of this series
-
-      error = result.error;
+      await prisma.watch_history.updateMany({
+        where: {
+          user_id: user.id,
+          media_type: 'tv',
+          media_id: data.media_id, // Match all episodes of this series
+        },
+        data: { hidden_until: timestamp },
+      });
     } else {
       // For movies, hide just this specific entry
-      const result = await supabase
-        .from('watch_history')
-        .update({ hidden_until: timestamp })
-        .eq('user_id', user.id)
-        .eq('media_type', data.media_type)
-        .eq('media_id', data.media_id)
-        .eq('season_number', data.season_number ?? -1)
-        .eq('episode_number', data.episode_number ?? -1);
-
-      error = result.error;
-    }
-
-    if (error) {
-      logger.error('Error hiding from continue watching:', error);
-      return NextResponse.json({ message: 'Error hiding from continue watching' }, { status: 500 });
+      await prisma.watch_history.updateMany({
+        where: {
+          user_id: user.id,
+          media_type: data.media_type,
+          media_id: data.media_id,
+          season_number: data.season_number ?? -1,
+          episode_number: data.episode_number ?? -1,
+        },
+        data: { hidden_until: timestamp },
+      });
     }
 
     return NextResponse.json({

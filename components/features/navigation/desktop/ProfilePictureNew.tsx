@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
 import { useUser } from '@/hooks/UserContext';
-import { signOut } from '@/lib/supabase/clientQueries';
+import { signOut } from '@/lib/auth-client';
 import { User, History, Settings, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';
 

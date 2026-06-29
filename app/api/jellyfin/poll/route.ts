@@ -1,20 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pollJellyfinWatchHistory } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/server/current-user';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
+    const user = await getCurrentUser();
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

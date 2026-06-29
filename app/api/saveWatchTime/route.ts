@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncToJellyfin } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/server/current-user';
 import { upsertWatchHistory } from '@/lib/db/queries';
 
 interface WatchTimeData {
@@ -16,15 +16,10 @@ interface WatchTimeData {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-
     // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -1,24 +1,18 @@
 import 'server-only';
 import { cache } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
 
 /**
- * Identity seam for the coexistence migration.
+ * Identity seam — the single place the app resolves the current user.
  *
- * During the strangler phase, auth still lives on Supabase, so this resolves
- * the current user from the Supabase session. Migrated Prisma/data modules call
- * THESE helpers (never supabase.auth directly) to get the current user id — so
- * at the final cutover we swap only this file over to Better Auth
- * (`lib/server/auth-session.ts#getServerUser`) and every data module follows.
- *
- * Request-scoped memoized so one render shares a single lookup.
+ * Now backed by Better Auth (was Supabase during the data-migration phase).
+ * Every migrated data module + API route calls these helpers, so flipping this
+ * one file moved the whole app's identity over. Request-scoped memoized.
  */
 export const getCurrentUser = cache(async () => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session?.user ?? null;
 });
 
 export async function getCurrentUserId(): Promise<string | null> {

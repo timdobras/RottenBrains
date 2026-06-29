@@ -9,8 +9,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationIcon } from '@/components/ui/Icon';
-import { createClient } from '@/lib/supabase/client';
-import { fetchUserNotifications } from '@/lib/db/client-actions';
+import {
+  fetchUserNotifications,
+  getUnreadNotificationCount,
+  markNotificationsRead,
+} from '@/lib/db/client-actions';
 import CommentCard from './CommentCard';
 import FollowCard from './FollowCard';
 import LikeCard from './LikeCard';
@@ -18,8 +21,6 @@ import NewEpisodeCard from './NewEpisodeCard';
 import NotificationSkeleton from './NotificationSkeleton';
 import PostCard from './PostCard';
 import ReplyCard from './ReplyCard';
-
-const supabase = createClient();
 
 interface NotificationButtonProps {
   user_id: string;
@@ -48,22 +49,18 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
     if (!user_id) return;
 
     const fetchUnreadCount = async () => {
-      const { data, count, error } = await supabase
-        .from('notifications')
-        .select('id', { count: 'exact' })
-        .eq('recipient_id', user_id)
-        .eq('read', false);
-
-      if (error) {
+      try {
+        const count = await getUnreadNotificationCount(user_id);
+        setUnreadCount(count >= 9 ? 9 : count);
+      } catch (error) {
         console.error('Error fetching unread count:', error);
-        return;
       }
-
-      const _count = count ?? data?.length ?? 0;
-      setUnreadCount(_count >= 9 ? 9 : _count);
     };
 
     fetchUnreadCount();
+    // Poll for new notifications (replaces the dropped Supabase realtime channel).
+    const interval = setInterval(fetchUnreadCount, 30_000);
+    return () => clearInterval(interval);
   }, [user_id]);
 
   useEffect(() => {
@@ -71,70 +68,8 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
     setOpen(false);
   }, [pathname]);
 
-  // -------------------------------
-  // 2) Realtime subscription
-  // -------------------------------
-  useEffect(() => {
-    // If we don't have a user or we already have 9+ unread, do NOT subscribe
-    if (!user_id || unreadCount >= 9) return;
-
-    const channel = supabase
-      .channel(`user-notifications-${user_id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${user_id}`,
-        },
-        (payload: any) => {
-          // =============== INSERT EVENT ===============
-          if (payload.eventType === 'INSERT') {
-            const newNotification = payload.new;
-            if (!newNotification.read) {
-              // Increase unread count if we're below 9
-              setUnreadCount((prev) => {
-                const newCount = prev + 1;
-                if (newCount >= 9) {
-                  supabase.removeChannel(channel);
-                  return 9;
-                }
-                return newCount;
-              });
-            }
-
-            // If the dropdown is open, prepend the new notification to the list
-            if (open) {
-              setNotifications((prev) => [newNotification, ...prev]);
-            }
-          }
-
-          // =============== UPDATE EVENT ===============
-          else if (payload.eventType === 'UPDATE') {
-            // If a notification was read
-            if (payload.old.read === false && payload.new.read === true) {
-              setUnreadCount((prev) => Math.max(prev - 1, 0));
-
-              // Also update that notification in local state if we have it
-              const updatedNotification = payload.new;
-              setNotifications((prev) =>
-                prev.map((notif) =>
-                  notif.notification_id === updatedNotification.notification_id
-                    ? updatedNotification
-                    : notif
-                )
-              );
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user_id, unreadCount, open]);
+  // (Supabase realtime subscription removed — the 30s poll above keeps the
+  // unread badge fresh; opening the dropdown does a full refetch.)
 
   // -------------------------------
   // 3) Load notifications (infinite scroll)
@@ -195,21 +130,12 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
         setLoading(false);
       }
 
-      // Mark all unread as read (optional)
+      // Mark all unread as read
       if (unreadCount > 0) {
         try {
-          const { error } = await supabase
-            .from('notifications')
-            .update({ read: true })
-            .eq('recipient_id', user_id)
-            .eq('read', false);
-
-          if (error) {
-            console.error('Error marking notifications as read:', error);
-          } else {
-            setUnreadCount(0);
-            setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
-          }
+          await markNotificationsRead(user_id);
+          setUnreadCount(0);
+          setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
         } catch (err) {
           console.error('Error marking notifications as read:', err);
         }

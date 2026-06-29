@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { nextCookies } from 'better-auth/next-js';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { prisma } from './prisma';
@@ -113,4 +114,7 @@ export const auth = betterAuth({
       },
     },
   },
+
+  // MUST be last: lets server actions (login/register/oauth) set session cookies.
+  plugins: [nextCookies()],
 });

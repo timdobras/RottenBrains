@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchInfiniteScrollHome } from '@/lib/server/fetchInfiniteScrollHome';
 import { getPopular } from '@/lib/tmdb';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/server/current-user';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,10 +36,7 @@ export async function GET(request: NextRequest) {
 
   // Derive identity from the session cookie. Never trust a client-supplied
   // user id — doing so let any caller read another user's personalized feed.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   try {
     if (user) {

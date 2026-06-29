@@ -2,7 +2,8 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { OAuthButton } from '@/components/features/auth/OAuthSignIn';
-import { createClient } from '@/lib/supabase/server';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { SubmitButton } from '@/components/features/auth/SubmitButton';
 
 type Params = Promise<{ message: string }>;
@@ -11,56 +12,40 @@ export default async function Register({ searchParams }: { searchParams: Params 
   const { message } = await searchParams;
   const signUp = async (formData: FormData) => {
     'use server';
-    const headersList = await headers();
-    const origin = headersList.get('origin');
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const username = formData.get('username') as string;
     const name = formData.get('name') as string;
-    const supabase = await createClient();
+    const initials = name
+      .split(' ')
+      .map((word) => word[0])
+      .join('');
+    const avatarUrl = `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff&size=128`;
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/callback`,
-      },
-    });
-
-    if (error) {
+    let userId: string | undefined;
+    try {
+      // Better Auth creates the user (the create hook + genre-stats trigger seed
+      // the profile); `image` maps to users.image_url, `name` to users.name.
+      const res = await auth.api.signUpEmail({
+        body: { email, password, name, image: avatarUrl },
+        headers: await headers(),
+      });
+      userId = res.user?.id;
+    } catch (error) {
       console.error(error);
       return redirect('/register?message=Could not authenticate user');
     }
 
-    // If sign-up is successful, insert the user's additional information into another table
-    if (data.user) {
-      const initials = name
-        .split(' ')
-        .map((word) => word[0])
-        .join('');
-      const avatarUrl = `https://ui-avatars.com/api/?name=${initials}&background=random&color=fff&size=128`;
-      // Make sure that the sign-up returned a valid user
-      const { error: insertError } = await supabase
-        .from('users') // Replace 'profiles' with your actual table name
-        .insert([
-          {
-            id: data.user.id, // Use the user's unique ID from the sign-up
-            email,
-            username,
-            name,
-            image_url: avatarUrl,
-            // Add any other fields you need to store
-          },
-        ]);
-
-      // Handle errors during the insertion process
-      if (insertError) {
-        console.error('Error inserting user profile:', insertError.message);
-        return redirect('/register?message=Could not create user profile');
+    // Apply the chosen username (the create hook otherwise defaults it to email).
+    if (userId) {
+      try {
+        await prisma.users.update({ where: { id: userId }, data: { username } });
+      } catch (error) {
+        console.error('Error setting username:', error);
       }
     }
 
-    return redirect('/login');
+    return redirect('/');
   };
 
   return (

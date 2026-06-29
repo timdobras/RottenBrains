@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
 import { updateGenreStats } from '@/lib/db/queries';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/server/current-user';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-
     // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

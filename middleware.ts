@@ -1,10 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { updateSession } from './lib/supabase/middleware';
-import {
-  PREMIUM_COOKIE_NAME,
-  signPremiumStatus,
-  verifyPremiumStatus,
-} from './lib/auth/premiumCookie';
+import { getSessionCookie, getCookieCache } from 'better-auth/cookies';
 
 // Routes that do not require authentication
 const PUBLIC_ROUTES = [
@@ -38,86 +33,38 @@ function isApiRoute(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-  const { response, user, supabase } = await updateSession(request);
+  const response = NextResponse.next();
 
   const pathname = decodeURIComponent(request.nextUrl.pathname || '');
   response.headers.set('x-pathname', pathname);
 
-  // Allow API routes through — they handle their own auth
-  if (isApiRoute(pathname)) {
-    return response;
-  }
+  // API routes (incl. Better Auth's /api/auth/*) handle their own auth.
+  if (isApiRoute(pathname)) return response;
+  if (isPublicRoute(pathname)) return response;
 
-  // Allow public routes through without any auth check
-  if (isPublicRoute(pathname)) {
-    return response;
-  }
-
-  // If user is not authenticated, redirect to login
-  if (!user) {
+  // Logged-in check — edge-safe, cookie only (no DB call). Optimistic: presence
+  // of the Better Auth session cookie means logged in; pages revalidate.
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('next', pathname);
-    const redirectResponse = NextResponse.redirect(loginUrl);
-    // Copy session cookies to the redirect response
-    response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    return NextResponse.redirect(loginUrl);
   }
 
-  // For routes that only need auth (not premium), allow through
-  if (isAuthOnlyRoute(pathname)) {
-    return response;
-  }
+  if (isAuthOnlyRoute(pathname)) return response;
 
-  // Check premium status from a SIGNED cookie first to avoid a DB query on
-  // every request. The cookie value is HMAC-signed and bound to this user id,
-  // so it cannot be forged or replayed (an unsigned `premium_status=true`
-  // previously let anyone bypass the paywall).
-  const premiumCookie = request.cookies.get(PREMIUM_COOKIE_NAME);
-  const cached = await verifyPremiumStatus(premiumCookie?.value, user.id);
-
-  let isPremium: boolean;
-
-  if (cached !== null) {
-    // Signature valid and not expired — trust the cached value.
-    isPremium = cached;
-  } else {
-    // Cookie missing, expired, tampered with, or no signing secret configured
-    // — fall back to the authoritative DB check.
-    const { data: userData } = await supabase
-      .from('users')
-      .select('premium')
-      .eq('id', user.id)
-      .single();
-
-    isPremium = userData?.premium === true;
-
-    // Cache the result in a signed cookie for 5 minutes. If no secret is
-    // configured signPremiumStatus returns null and we skip the cookie,
-    // falling back to a DB check every request (correct but slower).
-    const signed = await signPremiumStatus(user.id, isPremium);
-    if (signed) {
-      response.cookies.set(PREMIUM_COOKIE_NAME, signed, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 5 * 60, // 5 minutes
-        path: '/',
-      });
-    }
-  }
-
-  if (!isPremium) {
+  // Premium gate. `premium` is a Better Auth user field, so it's in the signed
+  // cookie-cached session — readable here with no DB round-trip (replaces the
+  // old HMAC premium cookie). When the cache is stale (older than its maxAge)
+  // we let the request through and let the page enforce, rather than risk a
+  // false logout/paywall.
+  const cached = await getCookieCache(request);
+  const premium = (cached?.user as { premium?: boolean } | undefined)?.premium;
+  if (cached?.user && premium !== true) {
     const premiumUrl = request.nextUrl.clone();
     premiumUrl.pathname = '/premium';
-    const redirectResponse = NextResponse.redirect(premiumUrl);
-    // Copy session cookies to the redirect response
-    response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    return NextResponse.redirect(premiumUrl);
   }
 
   return response;

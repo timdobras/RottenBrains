@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useUser } from '@/hooks/UserContext';
-import { signOut } from '@/lib/supabase/clientQueries';
+import { signOut } from '@/lib/auth-client';
 import { useToast } from '../../ui/use-toast';
 import { User, History, Settings, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from 'next-themes';

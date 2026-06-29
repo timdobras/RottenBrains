@@ -470,3 +470,20 @@ export async function getWatchTime(
 ) {
   return getWatchTimeServer(user_id, media_type, media_id, season_number, episode_number);
 }
+
+// Notification badge helpers (replace the dropped realtime channel with polling).
+export async function getUnreadNotificationCount(user_id: string): Promise<number> {
+  if (!user_id) return 0;
+  const count = await prisma.notifications.count({
+    where: { recipient_id: user_id, read: false },
+  });
+  return count;
+}
+
+export async function markNotificationsRead(user_id: string): Promise<void> {
+  if (!user_id) return;
+  await prisma.notifications.updateMany({
+    where: { recipient_id: user_id, read: false },
+    data: { read: true },
+  });
+}

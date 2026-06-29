@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateByName, getServerInfo } from '@/lib/jellyfin/client';
 import { linkJellyfinAccount } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/server/current-user';
 
 /**
  * POST /api/jellyfin/auth
@@ -15,15 +15,10 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-
     // Authenticate the RottenBrains user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

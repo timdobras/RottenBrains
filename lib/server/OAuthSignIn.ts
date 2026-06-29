@@ -1,43 +1,31 @@
 'use server';
 
-import { Provider } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { auth } from '@/lib/auth';
 
-export async function oAuthSignIn(provider: Provider) {
+type SocialProvider = 'google' | 'discord';
+
+export async function oAuthSignIn(provider: SocialProvider) {
   if (!provider) {
     return redirect('/login?message=No provider selected');
   }
 
-  const supabase = await createClient();
-
-  const headersList = await headers();
-  const host = headersList.get('x-forwarded-host') ?? headersList.get('host') ?? 'localhost:3000';
-
-  // Decide whether to use https or http
-  const forwardedProto = headersList.get('x-forwarded-proto');
-  const isLocalhost = host.includes('localhost');
-  const protocol = forwardedProto ?? (isLocalhost ? 'http' : 'https');
-
-  // Build the callback URL
-  const redirectUrl = `${protocol}://${host}/auth/callback`;
-
-  // For Google, force the account chooser with queryParams: { prompt: "select_account" }
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: {
-      redirectTo: redirectUrl,
-      queryParams: {
-        prompt: 'select_account',
-      },
-    },
-  });
-
-  if (error) {
+  let url: string | undefined | null;
+  try {
+    // Better Auth handles the OAuth callback at /api/auth/callback/<provider>,
+    // then redirects to callbackURL. Returns the provider URL to send the user to.
+    const res = await auth.api.signInSocial({
+      body: { provider, callbackURL: '/' },
+      headers: await headers(),
+    });
+    url = res.url;
+  } catch {
     return redirect('/login?message=Could not authenticate');
   }
 
-  // Redirect to the URL returned by Supabase
-  redirect(data.url);
+  if (!url) {
+    return redirect('/login?message=Could not authenticate');
+  }
+  redirect(url);
 }
