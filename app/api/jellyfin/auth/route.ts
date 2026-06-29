@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateByName, getServerInfo } from '@/lib/jellyfin/client';
+import { linkJellyfinAccount } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 
@@ -59,22 +60,18 @@ export async function POST(req: NextRequest) {
       // Non-critical — the connection works, we just couldn't get the name
     }
 
-    // Save the configuration
-    const { error: upsertError } = await supabase.from('user_jellyfin_config').upsert(
-      {
-        user_id: user.id,
-        server_url,
-        api_key: authResult.accessToken,
-        jellyfin_user_id: authResult.userId,
-        jellyfin_username: authResult.userName,
-        sync_enabled: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
-    );
-
-    if (upsertError) {
-      logger.error('Failed to save Jellyfin config:', upsertError);
+    // Connect the account — attaches/creates the family Jellyfin integration
+    // and the user's personal member link.
+    try {
+      await linkJellyfinAccount({
+        userId: user.id,
+        serverUrl: server_url,
+        apiKey: authResult.accessToken,
+        jellyfinUserId: authResult.userId,
+        jellyfinUsername: authResult.userName,
+      });
+    } catch (linkError) {
+      logger.error('Failed to save Jellyfin config:', linkError);
       return NextResponse.json(
         { success: false, error: 'Authentication succeeded but failed to save configuration' },
         { status: 500 }

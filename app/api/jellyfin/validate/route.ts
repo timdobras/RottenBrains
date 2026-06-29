@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateConnection } from '@/lib/jellyfin/client';
+import { linkJellyfinAccount } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 
@@ -53,20 +54,15 @@ export async function POST(req: NextRequest) {
 
     // Optionally save the configuration
     if (save) {
-      const { error: upsertError } = await supabase.from('user_jellyfin_config').upsert(
-        {
-          user_id: user.id,
-          server_url,
-          api_key,
-          jellyfin_user_id,
-          sync_enabled: true,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
-
-      if (upsertError) {
-        logger.error('Failed to save Jellyfin config:', upsertError);
+      try {
+        await linkJellyfinAccount({
+          userId: user.id,
+          serverUrl: server_url,
+          apiKey: api_key,
+          jellyfinUserId: jellyfin_user_id,
+        });
+      } catch (linkError) {
+        logger.error('Failed to save Jellyfin config:', linkError);
         return NextResponse.json(
           { success: false, error: 'Connection valid but failed to save configuration' },
           { status: 500 }

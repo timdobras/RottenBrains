@@ -11,6 +11,7 @@
  * - Additional in-memory timestamp-based dedup as a safety net
  */
 
+import { getOrCreatePrimaryFamily } from '@/lib/family/server';
 import { JELLYFIN_SYNC } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import { createServiceClient } from '@/lib/supabase/serviceClient';
@@ -27,6 +28,7 @@ import {
 import { extractTmdbId, jellyfinTypeToMediaType, resolveJellyfinItemId } from './mapping';
 import type {
   JellyfinConfig,
+  JellyfinIntegration,
   JellyfinItem,
   SyncToJellyfinParams,
   SyncFromJellyfinParams,
@@ -36,24 +38,74 @@ import type {
 
 // ============================================================
 // Config helpers
+//
+// A Jellyfin "config" is resolved by joining a family-owned integration
+// (family_integrations, type='jellyfin') with the user's own member link
+// (integration_member_links). The integration holds the shared server + webhook
+// secret; the member link holds that user's Jellyfin account + personal token.
 // ============================================================
 
+/** Columns selected when resolving a member link into a JellyfinConfig. */
+const MEMBER_LINK_SELECT =
+  'id, user_id, external_user_id, external_username, access_token, sync_enabled, created_at, updated_at, ' +
+  'family_integrations!inner(id, server_url, api_key, webhook_secret, type)';
+
+interface MemberLinkRow {
+  id: string;
+  user_id: string;
+  external_user_id: string | null;
+  external_username: string | null;
+  access_token: string | null;
+  sync_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+  family_integrations: {
+    id: string;
+    server_url: string | null;
+    api_key: string | null;
+    webhook_secret: string;
+    type: string;
+  };
+}
+
+/** Map a joined member-link row into the resolved JellyfinConfig shape. */
+function linkToConfig(link: MemberLinkRow): JellyfinConfig | null {
+  const integ = link.family_integrations;
+  if (!integ?.server_url || !link.external_user_id) return null;
+  return {
+    id: link.id,
+    user_id: link.user_id,
+    server_url: integ.server_url,
+    // Prefer the member's own token; fall back to the integration's shared key.
+    api_key: link.access_token ?? integ.api_key ?? '',
+    jellyfin_user_id: link.external_user_id,
+    jellyfin_username: link.external_username,
+    sync_enabled: link.sync_enabled,
+    webhook_secret: integ.webhook_secret,
+    created_at: link.created_at,
+    updated_at: link.updated_at,
+  };
+}
+
 /**
- * Fetch a user's Jellyfin config from the database.
- * Returns null if the user hasn't configured Jellyfin or sync is disabled.
+ * Fetch a user's resolved Jellyfin config.
+ * Returns null if the user hasn't connected Jellyfin or has sync disabled.
  */
 export async function getJellyfinConfig(userId: string): Promise<JellyfinConfig | null> {
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
-      .from('user_jellyfin_config')
-      .select('*')
+      .from('integration_member_links')
+      .select(MEMBER_LINK_SELECT)
       .eq('user_id', userId)
       .eq('sync_enabled', true)
-      .single();
+      .eq('family_integrations.type', 'jellyfin')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
     if (error || !data) return null;
-    return data as JellyfinConfig;
+    return linkToConfig(data as unknown as MemberLinkRow);
   } catch (error) {
     logger.warn('Failed to fetch Jellyfin config:', error);
     return null;
@@ -71,13 +123,16 @@ export async function getJellyfinConfigForPlayback(
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
-      .from('user_jellyfin_config')
-      .select('*')
+      .from('integration_member_links')
+      .select(MEMBER_LINK_SELECT)
       .eq('user_id', userId)
-      .single();
+      .eq('family_integrations.type', 'jellyfin')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
     if (error || !data) return null;
-    return data as JellyfinConfig;
+    return linkToConfig(data as unknown as MemberLinkRow);
   } catch (error) {
     logger.warn('Failed to fetch Jellyfin config for playback:', error);
     return null;
@@ -85,54 +140,138 @@ export async function getJellyfinConfigForPlayback(
 }
 
 /**
- * Look up a user by their Jellyfin webhook secret token.
- * Used by the webhook endpoint to authenticate the request source.
- * Does NOT require sync_enabled — the token just proves the webhook is legitimate.
+ * Look up the family Jellyfin integration by its webhook secret token.
+ * Used by the webhook endpoint to authenticate the request source — the secret
+ * identifies the *server/family*, and the payload's Jellyfin user id then
+ * routes the event to the right member (see getMemberConfigByJellyfinUser).
  */
-export async function getUserByWebhookSecret(
+export async function getJellyfinIntegrationByWebhookSecret(
   webhookSecret: string
-): Promise<JellyfinConfig | null> {
+): Promise<JellyfinIntegration | null> {
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
-      .from('user_jellyfin_config')
-      .select('*')
+      .from('family_integrations')
+      .select('id, family_id, server_url, api_key, webhook_secret')
       .eq('webhook_secret', webhookSecret)
-      .single();
+      .eq('type', 'jellyfin')
+      .maybeSingle();
 
     if (error || !data) return null;
-    return data as JellyfinConfig;
+    return data as JellyfinIntegration;
   } catch (error) {
-    logger.warn('Failed to look up user by webhook secret:', error);
+    logger.warn('Failed to look up Jellyfin integration by webhook secret:', error);
     return null;
   }
 }
 
 /**
- * Look up a RottenBrains user by their Jellyfin user ID on a specific server.
- * Used by the webhook to route events to the correct user — the admin adds
- * one webhook URL, and any connected user on that server gets synced.
+ * Resolve the member config for a given Jellyfin user id on a specific
+ * integration. One webhook URL (per family server) serves every connected
+ * member — the payload's Jellyfin user id selects whose history to sync.
  */
-export async function getUserByJellyfinUserOnServer(
-  jellyfinUserId: string,
-  serverUrl: string
+export async function getMemberConfigByJellyfinUser(
+  integrationId: string,
+  jellyfinUserId: string
 ): Promise<JellyfinConfig | null> {
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
-      .from('user_jellyfin_config')
-      .select('*')
-      .eq('jellyfin_user_id', jellyfinUserId)
-      .eq('server_url', serverUrl)
+      .from('integration_member_links')
+      .select(MEMBER_LINK_SELECT)
+      .eq('integration_id', integrationId)
+      .eq('external_user_id', jellyfinUserId)
       .eq('sync_enabled', true)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (error || !data) return null;
-    return data as JellyfinConfig;
+    return linkToConfig(data as unknown as MemberLinkRow);
   } catch (error) {
-    logger.warn('Failed to look up user by Jellyfin user ID on server:', error);
+    logger.warn('Failed to resolve member by Jellyfin user id:', error);
     return null;
   }
+}
+
+/**
+ * Connect (or re-connect) a user's Jellyfin account.
+ *
+ * Attaches a family-owned Jellyfin integration for the user's primary family
+ * (creating the family and/or the integration if needed) and upserts the user's
+ * personal member link. Multiple members pointing at the same server within a
+ * family share one integration — and therefore one webhook URL.
+ */
+export async function linkJellyfinAccount(params: {
+  userId: string;
+  serverUrl: string;
+  apiKey: string;
+  jellyfinUserId: string;
+  jellyfinUsername?: string | null;
+}): Promise<{ integrationId: string; webhookSecret: string }> {
+  const supabase = createServiceClient();
+  const serverUrl = params.serverUrl.replace(/\/+$/, '');
+
+  // Prefer an EXISTING Jellyfin integration for this server in ANY family the
+  // user belongs to — that's how an invited member links onto the family's
+  // shared server rather than spinning up their own. Only create a new
+  // integration (in their primary family) if none exists yet.
+  let integration: { id: string; webhook_secret: string } | null = null;
+
+  const { data: memberships } = await supabase
+    .from('family_members')
+    .select('family_id')
+    .eq('user_id', params.userId);
+  const familyIds = (memberships ?? []).map((m) => m.family_id);
+
+  if (familyIds.length > 0) {
+    const { data: existing } = await supabase
+      .from('family_integrations')
+      .select('id, webhook_secret')
+      .in('family_id', familyIds)
+      .eq('type', 'jellyfin')
+      .eq('server_url', serverUrl)
+      .limit(1)
+      .maybeSingle();
+    integration = existing ?? null;
+  }
+
+  if (!integration) {
+    const familyId = await getOrCreatePrimaryFamily(params.userId);
+    const { data: created, error } = await supabase
+      .from('family_integrations')
+      .insert({
+        family_id: familyId,
+        type: 'jellyfin',
+        server_url: serverUrl,
+        api_key: params.apiKey,
+        created_by: params.userId,
+      })
+      .select('id, webhook_secret')
+      .single();
+    if (error || !created) {
+      throw new Error(`Failed to create Jellyfin integration: ${error?.message ?? 'unknown error'}`);
+    }
+    integration = created;
+  }
+
+  const { error: linkError } = await supabase.from('integration_member_links').upsert(
+    {
+      integration_id: integration.id,
+      user_id: params.userId,
+      external_user_id: params.jellyfinUserId,
+      external_username: params.jellyfinUsername ?? null,
+      access_token: params.apiKey,
+      sync_enabled: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'integration_id,user_id' }
+  );
+
+  if (linkError) {
+    throw new Error(`Failed to link Jellyfin account: ${linkError.message}`);
+  }
+
+  return { integrationId: integration.id, webhookSecret: integration.webhook_secret };
 }
 
 // ============================================================

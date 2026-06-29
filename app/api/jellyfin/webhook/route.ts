@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ticksToPercentage, ticksToSeconds } from '@/lib/jellyfin/client';
 import {
-  getUserByJellyfinUserOnServer,
-  getUserByWebhookSecret,
+  getJellyfinIntegrationByWebhookSecret,
+  getMemberConfigByJellyfinUser,
   syncFromJellyfin,
 } from '@/lib/jellyfin/sync';
 import type { JellyfinConfig } from '@/lib/jellyfin/types';
@@ -219,8 +219,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing token' }, { status: 401 });
     }
 
-    const tokenOwner = await getUserByWebhookSecret(token);
-    if (!tokenOwner) {
+    const integration = await getJellyfinIntegrationByWebhookSecret(token);
+    if (!integration) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -255,33 +255,31 @@ export async function POST(req: NextRequest) {
     const fields = extractPayloadFields(payload);
 
     // 4. Route to the correct RottenBrains user based on the Jellyfin user ID in the payload.
-    // The token authenticates the request, but the payload's User.Id determines WHO gets the sync.
-    // This allows a single webhook URL (added by the admin) to serve all users on the server.
-    let config: JellyfinConfig;
+    // The token authenticates the request (identifies the family's Jellyfin integration),
+    // and the payload's User.Id determines WHICH family member gets the sync. This lets a
+    // single webhook URL (added once by the admin) serve every connected family member.
     if (!fields.jellyfinUserId) {
-      // Payload missing user ID — fall back to the token owner
-      logger.warn('[Jellyfin webhook] Payload missing user ID — falling back to token owner', {
+      logger.warn('[Jellyfin webhook] Payload missing Jellyfin user ID — cannot route event', {
         event: fields.eventType,
         item: fields.itemName,
       });
-      config = tokenOwner;
-    } else if (fields.jellyfinUserId === tokenOwner.jellyfin_user_id) {
-      // Event is for the token owner — use their config directly
-      config = tokenOwner;
-    } else {
-      // Event is for a different Jellyfin user on the same server — look them up
-      const targetUser = await getUserByJellyfinUserOnServer(
-        fields.jellyfinUserId,
-        tokenOwner.server_url
-      );
-      if (!targetUser) {
-        return NextResponse.json({
-          success: true,
-          action: 'ignored',
-          reason: 'No RottenBrains account linked for this Jellyfin user',
-        });
-      }
-      config = targetUser;
+      return NextResponse.json({
+        success: true,
+        action: 'ignored',
+        reason: 'Payload missing Jellyfin user ID',
+      });
+    }
+
+    const config: JellyfinConfig | null = await getMemberConfigByJellyfinUser(
+      integration.id,
+      fields.jellyfinUserId
+    );
+    if (!config) {
+      return NextResponse.json({
+        success: true,
+        action: 'ignored',
+        reason: 'No RottenBrains account linked for this Jellyfin user',
+      });
     }
 
     // 5. Only process playback and mark-played events

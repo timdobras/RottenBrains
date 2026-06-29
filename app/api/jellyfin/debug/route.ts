@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateConnection } from '@/lib/jellyfin/client';
+import { getJellyfinConfigForPlayback } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/serviceClient';
@@ -21,13 +22,9 @@ export async function GET(req: NextRequest) {
 
     const serviceClient = createServiceClient();
 
-    const { data: config, error: configError } = await serviceClient
-      .from('user_jellyfin_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    const config = await getJellyfinConfigForPlayback(user.id);
 
-    if (configError || !config) {
+    if (!config) {
       return NextResponse.json({
         configured: false,
         message: 'No Jellyfin configuration found',

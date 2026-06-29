@@ -6,6 +6,7 @@ const tabs = [
   { name: 'General', link: '/protected/settings' },
   { name: 'Profile', link: '/protected/settings/profile' },
   { name: 'Integrations', link: '/protected/settings/integrations' },
+  { name: 'Family', link: '/protected/settings/family' },
   { name: 'Security', link: '/protected/settings/security' },
 ];
 

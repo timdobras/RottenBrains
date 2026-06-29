@@ -598,6 +598,194 @@ export type Database = {
           },
         ]
       }
+      families: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          created_at: string
+          family_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_invites: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          family_id: string
+          id: string
+          max_uses: number | null
+          uses: number
+        }
+        Insert: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          family_id: string
+          id?: string
+          max_uses?: number | null
+          uses?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          family_id?: string
+          id?: string
+          max_uses?: number | null
+          uses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_invites_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_integrations: {
+        Row: {
+          api_key: string | null
+          config: Json
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          server_url: string | null
+          type: string
+          updated_at: string
+          webhook_secret: string
+        }
+        Insert: {
+          api_key?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          server_url?: string | null
+          type: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Update: {
+          api_key?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          server_url?: string | null
+          type?: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_integrations_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_member_links: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          external_user_id: string | null
+          external_username: string | null
+          id: string
+          integration_id: string
+          sync_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          external_user_id?: string | null
+          external_username?: string | null
+          id?: string
+          integration_id: string
+          sync_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          external_user_id?: string | null
+          external_username?: string | null
+          id?: string
+          integration_id?: string
+          sync_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_member_links_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "family_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_jellyfin_config: {
         Row: {
           api_key: string

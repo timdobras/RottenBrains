@@ -58,10 +58,12 @@ export function useJellyfinPlayback(
       }
 
       const { data: config } = await supabase
-        .from('user_jellyfin_config')
-        .select('id')
+        .from('integration_member_links')
+        .select('id, family_integrations!inner(type)')
         .eq('user_id', user.id)
-        .single();
+        .eq('family_integrations.type', 'jellyfin')
+        .limit(1)
+        .maybeSingle();
 
       if (cancelled) return;
 

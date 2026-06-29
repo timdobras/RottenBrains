@@ -7,11 +7,21 @@
 // Database types
 // ============================================================
 
+/**
+ * A user's resolved Jellyfin connection.
+ *
+ * This is no longer a single DB row — it is composed from a family-owned
+ * `family_integrations` row (server_url / shared api_key / webhook_secret) joined
+ * with the user's own `integration_member_links` row (their Jellyfin account +
+ * personal access token). The shape is kept identical to the old single-table
+ * config so all downstream consumers (client.ts, webhook, resolve) are unchanged.
+ */
 export interface JellyfinConfig {
+  /** integration_member_links.id */
   id: string;
   user_id: string;
   server_url: string;
-  /** Stores either an admin API key or a per-user access token from AuthenticateByName — both use X-Emby-Token */
+  /** The member's per-user access token (preferred) or the integration's shared key — both use X-Emby-Token */
   api_key: string;
   jellyfin_user_id: string;
   jellyfin_username: string | null;
@@ -19,6 +29,15 @@ export interface JellyfinConfig {
   webhook_secret: string;
   created_at: string;
   updated_at: string;
+}
+
+/** A family-owned Jellyfin integration (the shared server connection). */
+export interface JellyfinIntegration {
+  id: string;
+  family_id: string;
+  server_url: string | null;
+  api_key: string | null;
+  webhook_secret: string;
 }
 
 export type SyncSource = 'app' | 'jellyfin';
