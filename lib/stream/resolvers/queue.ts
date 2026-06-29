@@ -1,5 +1,4 @@
 import { Queue, QueueEvents } from 'bullmq';
-import IORedis from 'ioredis';
 
 import { logger } from '@/lib/logger';
 
@@ -27,16 +26,25 @@ interface ExtractResult {
 let queue: Queue | null = null;
 let events: QueueEvents | null = null;
 
+// Parse REDIS_URL into connection options so BullMQ uses its OWN bundled
+// ioredis (passing our ioredis instance causes a dual-version type clash).
+function redisConnection() {
+  const u = new URL(process.env.REDIS_URL as string);
+  return {
+    host: u.hostname,
+    port: Number(u.port || 6379),
+    username: u.username || undefined,
+    password: u.password || undefined,
+    db: u.pathname.length > 1 ? Number(u.pathname.slice(1)) : 0,
+    maxRetriesPerRequest: null,
+  };
+}
+
 function ensure(): { queue: Queue; events: QueueEvents } | null {
-  const url = process.env.REDIS_URL;
-  if (!url) return null;
+  if (!process.env.REDIS_URL) return null;
   if (!queue || !events) {
-    queue = new Queue(QUEUE_NAME, {
-      connection: new IORedis(url, { maxRetriesPerRequest: null }),
-    });
-    events = new QueueEvents(QUEUE_NAME, {
-      connection: new IORedis(url, { maxRetriesPerRequest: null }),
-    });
+    queue = new Queue(QUEUE_NAME, { connection: redisConnection() });
+    events = new QueueEvents(QUEUE_NAME, { connection: redisConnection() });
   }
   return { queue, events };
 }
