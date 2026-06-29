@@ -66,19 +66,25 @@ const DRIVERS = {
   },
 };
 
+// Run a promise but never let it block longer than ms (ad iframes can hang evaluate).
+function withTimeout(p, ms) {
+  return Promise.race([p, new Promise((resolve) => setTimeout(resolve, ms))]);
+}
+
 // Click center + try to start <video> / play buttons across all frames, a few rounds.
 async function poke(page, rounds) {
   for (let i = 0; i < rounds; i++) {
     await page.waitForTimeout(3000);
-    try { await page.mouse.click(640, 360); } catch {}
+    await withTimeout(page.mouse.click(640, 360).catch(() => {}), 2500);
     for (const f of page.frames()) {
-      try {
-        await f.evaluate(() => {
+      await withTimeout(
+        f.evaluate(() => {
           document.querySelectorAll('video').forEach((v) => v.play?.().catch(() => {}));
           for (const s of ['.jw-icon-display', '.vjs-big-play-button', '[class*=play i]', '.server', 'li.server', '[data-server]', 'button'])
             document.querySelector(s)?.click?.();
-        });
-      } catch {}
+        }).catch(() => {}),
+        2500,
+      );
     }
   }
 }
@@ -106,10 +112,12 @@ export async function extractStream(providerName, params, { timeoutMs = 90000 } 
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, ignoreHTTPSErrors: true });
 
   const hits = new Map(); // m3u8 url -> referer
+  const subs = new Map(); // subtitle url -> referer (captured from the provider; in-sync, no third-party)
   const wire = (pg) =>
     pg.on('request', (r) => {
       const u = r.url();
       if (/\.m3u8(\?|$)/i.test(u) && !hits.has(u)) hits.set(u, r.headers()['referer'] || '');
+      if (/\.(vtt|srt)(\?|$)/i.test(u) && !subs.has(u)) subs.set(u, r.headers()['referer'] || '');
     });
   const page = await ctx.newPage();
   wire(page);
@@ -117,22 +125,34 @@ export async function extractStream(providerName, params, { timeoutMs = 90000 } 
 
   const result = { provider: providerName, params, stream: null };
   try {
-    await Promise.race([
-      driver(page, ctx, params),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeoutMs)),
-    ]).catch((e) => { result.error = e.message; });
-
-    // settle a moment in case the m3u8 fires late
-    for (let i = 0; i < 4 && hits.size === 0; i++) await page.waitForTimeout(1500);
+    // Run the driver, but resolve as soon as the m3u8 is captured — don't wait
+    // for all poke rounds (ad iframes make that slow/hang). Cap at timeoutMs.
+    let driverDone = false;
+    driver(page, ctx, params)
+      .catch((e) => { result.error = e.message; })
+      .finally(() => { driverDone = true; });
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (hits.size > 0) { await new Promise((r) => setTimeout(r, 1500)); break; } // got it; brief settle for master + subs
+      if (driverDone) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
 
     if (hits.size) {
       // master playlists usually come first; prefer one whose URL has .m3u8
       const [url, referer] = [...hits.entries()][0];
       const refHost = referer ? new URL(referer).origin + '/' : '';
+      // Subtitle tracks captured from the provider (in-sync, no third-party).
+      const subtitles = [...subs.keys()].map((su, i) => ({
+        label: i === 0 ? 'English' : `Track ${i + 1}`,
+        lang: i === 0 ? 'en' : undefined,
+        url: su,
+        default: i === 0,
+      }));
       result.stream = {
         url,
         headers: refHost ? { Referer: refHost, Origin: refHost.replace(/\/$/, '') } : {},
-        subtitles: [],
+        subtitles,
         type: 'hls',
         resolver: providerName,
       };
