@@ -39,11 +39,13 @@ const DRIVERS = {
     await poke(page, 3);
   },
   SuperEmbed: async (page, _ctx, params) => {
+    // getsuperembed.link → streamingnow.mov (Cloudflare Turnstile + ad-walls).
+    // Needs patchright headed + ~40s for the Turnstile to clear.
     await page.goto(superembedApi(params), { waitUntil: 'domcontentloaded', timeout: 30000 });
     const target = (await page.content()).match(/https?:\/\/[^\s"<]+/)?.[0];
     if (!target) throw new Error('superembed: no target url');
     await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 5);
+    await poke(page, 16);
   },
   '2Embed': async (page, _ctx, params) => {
     const tail = params.type === 'tv' ? `/${params.id}&s=${params.season || 1}&e=${params.episode || 1}` : `/${params.id}`;
