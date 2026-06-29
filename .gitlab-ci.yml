@@ -108,10 +108,20 @@ deploy-extractor:
   stage: deploy
   tags:
     - shell
+  variables:
+    EXTRACTOR_APP: ajsh261us0je6vflr4ygftcn
+    COOLIFY_API: http://10.10.20.22:8000
   script:
+    # Pin the Coolify app to THIS commit's immutable image tag before deploying,
+    # so Coolify can't serve a stale :latest. (build-extractor pushed this tag.)
+    - echo "Pinning rb-extractor image tag to $CI_COMMIT_SHORT_SHA ..."
+    - |
+      curl -sf -X PATCH "$COOLIFY_API/api/v1/applications/$EXTRACTOR_APP" \
+        -H "Authorization: Bearer $COOLIFY_TOKEN" -H "Content-Type: application/json" \
+        -d "{\"docker_registry_image_tag\":\"$CI_COMMIT_SHORT_SHA\"}"
     - echo "Triggering Coolify deployment (rb-extractor)..."
     - |
-      curl -X GET "http://10.10.20.22:8000/api/v1/deploy?uuid=ajsh261us0je6vflr4ygftcn&force=true" \
+      curl -X GET "$COOLIFY_API/api/v1/deploy?uuid=$EXTRACTOR_APP&force=true" \
         -H "Authorization: Bearer $COOLIFY_TOKEN" \
         -H "Accept: application/json" || true
   rules:
