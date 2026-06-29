@@ -95,6 +95,24 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // SRT subtitles: browsers' <track> only accepts WebVTT, so convert on the fly.
+  const isSrt =
+    upstreamUrl.pathname.toLowerCase().endsWith('.srt') ||
+    (contentType?.toLowerCase().includes('subrip') ?? false);
+  if (isSrt) {
+    const srt = await upstream.text();
+    const vtt =
+      'WEBVTT\n\n' +
+      srt
+        .replace(/\r+/g, '')
+        // SRT uses comma decimals in timestamps; VTT uses dots.
+        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+    return new NextResponse(vtt, {
+      status: 200,
+      headers: { ...CORS, 'Content-Type': 'text/vtt; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+    });
+  }
+
   // Segments / keys / subtitles: stream straight through.
   const passthrough = new Headers(CORS);
   for (const h of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {

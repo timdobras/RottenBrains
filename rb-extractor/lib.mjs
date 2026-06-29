@@ -30,7 +30,7 @@ function superembedApi({ type, id, season, episode }) {
 
 // Providers gated by Cloudflare Turnstile (or HeadlessChrome detection) that
 // require a headed browser under an X display to pass.
-const HEADED_PROVIDERS = new Set(['VidSrc.fyi', 'SuperEmbed']);
+const HEADED_PROVIDERS = new Set(['VidSrc.fyi', 'SuperEmbed', 'vidlink.pro']);
 
 // --- per-provider drivers: navigate + interact; sniffing is generic ---
 const DRIVERS = {
@@ -63,6 +63,13 @@ const DRIVERS = {
     const tail = params.type === 'tv' ? `/${params.id}/${params.season || 1}/${params.episode || 1}` : `/${params.id}`;
     await page.goto(`https://vidsrc.fyi/embed/${params.type}${tail}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await poke(page, 16);
+  },
+  'vidlink.pro': async (page, _ctx, params) => {
+    // MP4 source (not HLS) + SRT subtitles, served via api/b after some bot
+    // checks — needs patchright headed. We sniff the played MP4 + .srt.
+    const tail = params.type === 'tv' ? `/${params.id}/${params.season || 1}/${params.episode || 1}` : `/${params.id}`;
+    await page.goto(`https://vidlink.pro/${params.type}${tail}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await poke(page, 14);
   },
 };
 
@@ -111,12 +118,16 @@ export async function extractStream(providerName, params, { timeoutMs = 90000 } 
   });
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, ignoreHTTPSErrors: true });
 
-  const hits = new Map(); // m3u8 url -> referer
+  const hits = new Map(); // m3u8 url -> referer (HLS)
+  const mp4s = new Map(); // mp4 url -> referer (progressive, e.g. vidlink)
   const subs = new Map(); // subtitle url -> referer (captured from the provider; in-sync, no third-party)
   const wire = (pg) =>
     pg.on('request', (r) => {
       const u = r.url();
       if (/\.m3u8(\?|$)/i.test(u) && !hits.has(u)) hits.set(u, r.headers()['referer'] || '');
+      // Treat a played <video> source OR a signed-CDN mp4 as the stream (avoids
+      // grabbing unsigned ad/preview mp4s).
+      if (/\.mp4(\?|$)/i.test(u) && (r.resourceType() === 'media' || /[?&](sign|token|expires|e)=/i.test(u)) && !mp4s.has(u)) mp4s.set(u, r.headers()['referer'] || '');
       if (/\.(vtt|srt)(\?|$)/i.test(u) && !subs.has(u)) subs.set(u, r.headers()['referer'] || '');
     });
   const page = await ctx.newPage();
@@ -133,27 +144,31 @@ export async function extractStream(providerName, params, { timeoutMs = 90000 } 
       .finally(() => { driverDone = true; });
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
-      if (hits.size > 0) { await new Promise((r) => setTimeout(r, 1500)); break; } // got it; brief settle for master + subs
+      if (hits.size > 0 || mp4s.size > 0) { await new Promise((r) => setTimeout(r, 1500)); break; } // got a stream; brief settle for subs/master
       if (driverDone) break;
       await new Promise((r) => setTimeout(r, 500));
     }
 
-    if (hits.size) {
-      // master playlists usually come first; prefer one whose URL has .m3u8
-      const [url, referer] = [...hits.entries()][0];
+    // Prefer HLS (adaptive); fall back to a progressive MP4 (e.g. vidlink).
+    const picked = hits.size ? [...hits.entries()][0] : mp4s.size ? [...mp4s.entries()][0] : null;
+    if (picked) {
+      const [url, referer] = picked;
+      const isMp4 = !hits.size;
       const refHost = referer ? new URL(referer).origin + '/' : '';
       // Subtitle tracks captured from the provider (in-sync, no third-party).
+      // format tells the proxy whether to convert (browsers need WebVTT, not SRT).
       const subtitles = [...subs.keys()].map((su, i) => ({
         label: i === 0 ? 'English' : `Track ${i + 1}`,
         lang: i === 0 ? 'en' : undefined,
         url: su,
         default: i === 0,
+        format: /\.srt(\?|$)/i.test(su) ? 'srt' : 'vtt',
       }));
       result.stream = {
         url,
         headers: refHost ? { Referer: refHost, Origin: refHost.replace(/\/$/, '') } : {},
         subtitles,
-        type: 'hls',
+        type: isMp4 ? 'mp4' : 'hls',
         resolver: providerName,
       };
     }

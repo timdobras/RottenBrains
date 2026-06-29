@@ -28,8 +28,8 @@ export interface ExtractedStream {
   subtitles?: SubtitleTrack[];
   /** Which resolver produced this, for debugging/telemetry. */
   resolver: string;
-  /** "hls" today; leaves room for "mp4" / "dash" later. */
-  type: 'hls';
+  /** "hls" (adaptive m3u8) or "mp4" (progressive, e.g. vidlink). */
+  type: 'hls' | 'mp4';
 }
 
 export interface ResolveParams {

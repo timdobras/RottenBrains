@@ -39,7 +39,7 @@ async function resolve(data) {
           url: r.stream.url,
           headers: r.stream.headers,
           subtitles: r.stream.subtitles,
-          type: 'hls',
+          type: r.stream.type || 'hls',
           resolver: provider,
         };
         cache.set(k, { at: Date.now(), value });

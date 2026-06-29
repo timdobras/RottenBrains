@@ -21,6 +21,7 @@ function proxyWrap(url: string): string {
 export default function NativePlayerDevPage() {
   const [rawUrl, setRawUrl] = useState(APPLE_TEST);
   const [playSrc, setPlaySrc] = useState<string | null>(null);
+  const [playType, setPlayType] = useState<'hls' | 'mp4'>('hls');
   const [subs, setSubs] = useState<NativeSubtitle[]>([]);
   const [status, setStatus] = useState('');
 
@@ -35,6 +36,7 @@ export default function NativePlayerDevPage() {
 
   const playProxied = () => {
     setSubs([]);
+    setPlayType('hls');
     setStatus(`Playing through proxy: ${rawUrl}`);
     setPlaySrc(proxyWrap(rawUrl));
   };
@@ -55,8 +57,9 @@ export default function NativePlayerDevPage() {
         setStatus(`Extract failed (${res.status}): ${data.error ?? 'unknown'}`);
         return;
       }
-      setStatus(`Resolved by "${data.resolver}". Playing.`);
+      setStatus(`Resolved by "${data.resolver}" (${data.type}). Playing.`);
       setSubs(data.subtitles ?? []);
+      setPlayType(data.type === 'mp4' ? 'mp4' : 'hls');
       setPlaySrc(data.src);
     } catch (err) {
       setStatus(`Extract error: ${String(err)}`);
@@ -139,6 +142,7 @@ export default function NativePlayerDevPage() {
         <div style={{ aspectRatio: '16 / 9', width: '100%', background: '#000' }}>
           <NativePlayer
             src={playSrc}
+            streamType={playType}
             subtitles={subs}
             onProgress={(c, d) => setStatus(`t=${c.toFixed(0)}s / ${d.toFixed(0)}s`)}
           />

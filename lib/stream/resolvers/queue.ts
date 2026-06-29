@@ -19,6 +19,7 @@ interface ExtractResult {
   headers?: Record<string, string>;
   subtitles?: ExtractedStream['subtitles'];
   resolver?: string;
+  type?: 'hls' | 'mp4';
 }
 
 // Long-lived singletons (the Next server is a persistent process). QueueEvents
@@ -74,7 +75,7 @@ export function queueResolver(): StreamResolver | null {
           headers: result.headers ?? {},
           subtitles: result.subtitles ?? [],
           resolver: result.resolver ?? 'queue',
-          type: 'hls',
+          type: result.type === 'mp4' ? 'mp4' : 'hls',
         };
       } catch (err) {
         // Worker throws "no_source" when nothing resolves — expected, fall through.

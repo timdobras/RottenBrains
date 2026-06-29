@@ -12,8 +12,10 @@ export interface NativeSubtitle {
 }
 
 interface NativePlayerProps {
-  /** Proxy-wrapped .m3u8 URL (from /api/stream/extract). */
+  /** Proxy-wrapped stream URL (from /api/stream/extract). */
   src: string;
+  /** "hls" (m3u8 via hls.js) or "mp4" (progressive, native <video>). */
+  streamType?: 'hls' | 'mp4';
   subtitles?: NativeSubtitle[];
   /** Seconds to resume from. */
   startTime?: number;
@@ -29,6 +31,7 @@ interface NativePlayerProps {
  */
 export default function NativePlayer({
   src,
+  streamType = 'hls',
   subtitles = [],
   startTime = 0,
   onProgress,
@@ -54,7 +57,11 @@ export default function NativePlayer({
       }
     };
 
-    if (Hls.isSupported()) {
+    if (streamType === 'mp4') {
+      // Progressive MP4 (e.g. vidlink) — native <video>, no hls.js.
+      video.src = src;
+      video.addEventListener('loadedmetadata', seekToStart, { once: true });
+    } else if (Hls.isSupported()) {
       hls = new Hls({
         // Our proxy already attaches upstream headers, so default loaders are fine.
         enableWorker: true,
@@ -81,7 +88,7 @@ export default function NativePlayer({
     return () => {
       if (hls) hls.destroy();
     };
-  }, [src, startTime]);
+  }, [src, streamType, startTime]);
 
   // Progress reporting (throttled to ~5s).
   useEffect(() => {
