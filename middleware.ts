@@ -19,6 +19,7 @@ const PUBLIC_ROUTES = [
   '/premium',
   '/offline',
   '/design',
+  '/dev', // dev-only POC pages (gated to development in the page itself)
 ];
 
 // Routes that require authentication but NOT premium
