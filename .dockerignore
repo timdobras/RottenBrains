@@ -35,3 +35,6 @@ CLAUDE.md
 LICENSE
 *.log
 npm-debug.log*
+
+# Monorepo: extractor is a separate Coolify service, not part of the app image
+rb-extractor

@@ -1,0 +1,9 @@
+{
+  "name": "rb-extractor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless-browser HLS extractor microservice for RottenBrains native player",
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "playwright": "^1.61.1" }
+}
