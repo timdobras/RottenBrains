@@ -1,0 +1,497 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model comment_likes {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  comment_id String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  comments   comments  @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, comment_id])
+  @@index([comment_id])
+  @@index([user_id])
+}
+
+model comments {
+  id             String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id        String?         @db.Uuid
+  post_id        String?         @db.Uuid
+  content        String
+  created_at     DateTime?       @default(now()) @db.Timestamptz(6)
+  parent_id      String?         @db.Uuid
+  total_likes    BigInt          @default(0)
+  comment_likes  comment_likes[]
+  comments       comments?       @relation("commentsTocomments", fields: [parent_id], references: [id], onDelete: Cascade)
+  other_comments comments[]      @relation("commentsTocomments")
+  posts          posts?          @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  notifications  notifications[]
+
+  @@index([parent_id])
+  @@index([post_id])
+  @@index([user_id])
+  @@index([post_id], map: "idx_comments_post_id")
+}
+
+model dev_blog {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title      String
+  slug       String    @unique
+  content    String
+  images     String[]
+  features   String[]
+  tags       String[]
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  author_id  String?   @db.Uuid
+  thumbnail  String?
+  users      users?    @relation(fields: [author_id], references: [id], onUpdate: NoAction)
+}
+
+model follows {
+  id                                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                           String?   @db.Uuid
+  following_id                      String?   @db.Uuid
+  created_at                        DateTime? @default(now()) @db.Timestamptz(6)
+  users_follows_following_idTousers users?    @relation("follows_following_idTousers", fields: [following_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_follows_user_idTousers      users?    @relation("follows_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([following_id])
+  @@index([user_id])
+  @@index([following_id], map: "idx_follows_following_id")
+  @@index([user_id], map: "idx_follows_user_id")
+}
+
+model likes {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  post_id    String?   @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, post_id], map: "likes_user_post_unique")
+  @@index([post_id])
+  @@index([user_id])
+}
+
+model movie_genre_stats {
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 28 BigInt @default(0) @map("28")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  user_id String @unique(map: "movie_genre_stats_user_id_unique") @db.Uuid
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 12 BigInt @default(0) @map("12")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 16 BigInt @default(0) @map("16")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 35 BigInt @default(0) @map("35")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 80 BigInt @default(0) @map("80")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 99 BigInt @default(0) @map("99")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 18 BigInt @default(0) @map("18")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10751 BigInt @default(0) @map("10751")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 14 BigInt @default(0) @map("14")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 36 BigInt @default(0) @map("36")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 27 BigInt @default(0) @map("27")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10402 BigInt @default(0) @map("10402")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 9648 BigInt @default(0) @map("9648")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10749 BigInt @default(0) @map("10749")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 878 BigInt @default(0) @map("878")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10770 BigInt @default(0) @map("10770")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 53 BigInt @default(0) @map("53")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10752 BigInt @default(0) @map("10752")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 37 BigInt @default(0) @map("37")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  id      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  users   users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model new_episodes {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String    @db.Uuid
+  tv_id          BigInt?
+  last_air_date  DateTime? @db.Date
+  season_number  Int?
+  episode_number Int?
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @db.Timestamptz(6)
+  users          users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, tv_id], map: "new_episodes_user_tv_unique")
+  @@index([user_id, last_air_date(sort: Desc)], map: "idx_new_episodes_user_airdate")
+}
+
+model notifications {
+  id                                      String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  recipient_id                            String    @db.Uuid
+  triggered_by                            String?   @db.Uuid
+  type                                    String
+  post_id                                 String?   @db.Uuid
+  comment_id                              String?   @db.Uuid
+  created_at                              DateTime? @default(now()) @db.Timestamptz(6)
+  read                                    Boolean   @default(false)
+  media_id                                Int?
+  media_type                              String?
+  season_number                           Int?
+  episode_number                          Int?
+  comments                                comments? @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+  posts                                   posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  users_notifications_recipient_idTousers users     @relation("notifications_recipient_idTousers", fields: [recipient_id], references: [id], onDelete: Cascade)
+  users_notifications_triggered_byTousers users?    @relation("notifications_triggered_byTousers", fields: [triggered_by], references: [id], onDelete: Cascade)
+}
+
+model posts {
+  id             String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  creatorid      String?         @db.Uuid
+  review_user    String?
+  vote_user      Float?          @db.Real
+  created_at     DateTime?       @default(now()) @db.Timestamptz(6)
+  media_id       Int?
+  media_type     String?
+  total_likes    BigInt?         @default(0)
+  total_comments BigInt          @default(0)
+  season_number  Int?
+  image_path     String?
+  comments       comments[]
+  likes          likes[]
+  notifications  notifications[]
+  users          users?          @relation(fields: [creatorid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  saves          saves[]
+
+  @@index([creatorid], map: "idx_posts_creatorid")
+  @@index([media_type, media_id], map: "idx_posts_media_lookup")
+  @@index([creatorid])
+  @@index([creatorid, media_type])
+  @@index([id])
+  @@index([total_comments])
+  @@index([total_likes])
+}
+
+model saves {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  post_id    String?   @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  posts      posts?    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, post_id], map: "saves_user_post_unique")
+  @@index([post_id])
+  @@index([user_id])
+}
+
+model tv_genre_stats {
+  id      String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id String? @unique(map: "tv_genre_stats_user_id_unique") @db.Uuid
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10759 BigInt @default(0) @map("10759")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 16 BigInt @default(0) @map("16")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 35 BigInt @default(0) @map("35")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 80 BigInt @default(0) @map("80")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 99 BigInt @default(0) @map("99")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 18 BigInt @default(0) @map("18")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10751 BigInt @default(0) @map("10751")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10762 BigInt @default(0) @map("10762")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 9648 BigInt @default(0) @map("9648")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10763 BigInt @default(0) @map("10763")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10764 BigInt @default(0) @map("10764")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10765 BigInt @default(0) @map("10765")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10766 BigInt @default(0) @map("10766")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10767 BigInt @default(0) @map("10767")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 10768 BigInt @default(0) @map("10768")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  // 37 BigInt @default(0) @map("37")
+  users   users?  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model user_ip_addresses {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  ip_address String    @db.Inet
+  label      String?
+  is_trusted Boolean?  @default(true)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_ip_addresses_user")
+
+  @@index([ip_address], map: "idx_user_ip_addresses_ip")
+  @@index([user_id], map: "idx_user_ip_addresses_user_id")
+}
+
+model user_jellyfin_config {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String   @unique @db.Uuid
+  server_url        String
+  api_key           String
+  jellyfin_user_id  String
+  sync_enabled      Boolean  @default(true)
+  webhook_secret    String   @default(dbgenerated("(gen_random_uuid())::text"))
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime @default(now()) @db.Timestamptz(6)
+  jellyfin_username String?
+  users             users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                                              String                     @id @db.Uuid
+  created_at                                      DateTime                   @default(now()) @db.Timestamptz(6)
+  username                                        String?
+  name                                            String?
+  email                                           String?
+  image_url                                       String?
+  tmdb_id                                         String?
+  bio                                             String?                    @default("Go to settings to change your Bio")
+  backdrop_url                                    String?                    @default("https://w0.peakpx.com/wallpaper/939/963/HD-wallpaper-technology-error-404-not-found-black-white-minimalist.jpg")
+  feed_genres                                     Json[]
+  premium                                         Boolean                    @default(false)
+  email_verified                                  Boolean                    @default(true)
+  updated_at                                      DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
+  accounts                                        account[]
+  comment_likes                                   comment_likes[]
+  comments                                        comments[]
+  dev_blog                                        dev_blog[]
+  families                                        families[]
+  family_integrations                             family_integrations[]
+  family_invites                                  family_invites[]
+  family_members                                  family_members[]
+  follows_follows_following_idTousers             follows[]                  @relation("follows_following_idTousers")
+  follows_follows_user_idTousers                  follows[]                  @relation("follows_user_idTousers")
+  integration_member_links                        integration_member_links[]
+  likes                                           likes[]
+  movie_genre_stats                               movie_genre_stats?
+  new_episodes                                    new_episodes[]
+  notifications_notifications_recipient_idTousers notifications[]            @relation("notifications_recipient_idTousers")
+  notifications_notifications_triggered_byTousers notifications[]            @relation("notifications_triggered_byTousers")
+  posts                                           posts[]
+  saves                                           saves[]
+  sessions                                        session[]
+  tv_genre_stats                                  tv_genre_stats?
+  user_ip_addresses                               user_ip_addresses[]
+  user_jellyfin_config                            user_jellyfin_config?
+  watch_history                                   watch_history[]
+  watch_list                                      watch_list[]
+
+  @@index([id])
+}
+
+model account {
+  id                    String    @id @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id") @db.Uuid
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(6)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([providerId, accountId], map: "account_provider_account_uidx")
+  @@index([userId])
+  @@map("account")
+}
+
+model session {
+  id        String   @id @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model verification {
+  id         String   @id @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model watch_history {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id            String    @db.Uuid
+  media_type         String
+  media_id           Int
+  season_number      Int?
+  episode_number     Int?
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  time_spent         Int?
+  percentage_watched String?
+  hidden_until       DateTime? @db.Timestamptz(6)
+  sync_source        String    @default("app")
+  playback_position  Int?
+  users              users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, media_type, media_id, season_number, episode_number], map: "watch_history_unique")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_watch_history_user_created_desc")
+  @@index([user_id, media_type, media_id, season_number, episode_number], map: "idx_watch_history_user_media_lookup")
+  @@index([user_id])
+  @@index([user_id, media_type, media_id, season_number, episode_number])
+}
+
+model watch_list {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  user_id         String?  @db.Uuid
+  media_type      String?
+  media_id        BigInt?
+  watch_list_type String?
+  users           users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, media_type, media_id, watch_list_type])
+}
+
+model families {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String
+  owner_id            String                @db.Uuid
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  users               users                 @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  family_integrations family_integrations[]
+  family_invites      family_invites[]
+  family_members      family_members[]
+}
+
+model family_integrations {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  family_id                String                     @db.Uuid
+  type                     String
+  server_url               String?
+  api_key                  String?
+  webhook_secret           String                     @default(dbgenerated("(gen_random_uuid())::text"))
+  config                   Json                       @default("{}")
+  created_by               String?                    @db.Uuid
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  users                    users?                     @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  families                 families                   @relation(fields: [family_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  integration_member_links integration_member_links[]
+
+  @@unique([family_id, type, server_url])
+  @@index([family_id, type], map: "idx_family_integrations_family_type")
+  @@index([webhook_secret], map: "idx_family_integrations_webhook")
+}
+
+model family_invites {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  family_id  String    @db.Uuid
+  code       String    @unique @default(dbgenerated("encode(gen_random_bytes(9), 'hex'::text)"))
+  created_by String?   @db.Uuid
+  expires_at DateTime? @db.Timestamptz(6)
+  max_uses   Int?
+  uses       Int       @default(0)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  users      users?    @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  families   families  @relation(fields: [family_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([code], map: "idx_family_invites_code")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model family_members {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  family_id  String   @db.Uuid
+  user_id    String   @db.Uuid
+  role       String   @default("member")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  families   families @relation(fields: [family_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([family_id, user_id])
+  @@index([family_id], map: "idx_family_members_family")
+  @@index([user_id], map: "idx_family_members_user")
+}
+
+model integration_member_links {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  integration_id      String              @db.Uuid
+  user_id             String              @db.Uuid
+  external_user_id    String?
+  external_username   String?
+  access_token        String?
+  sync_enabled        Boolean             @default(true)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime            @default(now()) @db.Timestamptz(6)
+  family_integrations family_integrations @relation(fields: [integration_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([integration_id, user_id])
+  @@index([integration_id, external_user_id], map: "idx_integration_member_links_external")
+  @@index([integration_id], map: "idx_integration_member_links_integration")
+  @@index([user_id], map: "idx_integration_member_links_user")
+}

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 import FollowButton from '@/components/features/profile/FollowButton';
 import FollowInfo from '@/components/features/profile/FollowInfo';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 import NewTabs from '@/components/features/profile/NewTabs';
 import ProfilePicture from '@/components/features/profile/ProfilePictureChange';
 import { IUser } from '@/types';

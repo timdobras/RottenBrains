@@ -1,10 +1,24 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { updateSession } from './lib/supabase/middleware';
-import {
-  PREMIUM_COOKIE_NAME,
-  signPremiumStatus,
-  verifyPremiumStatus,
-} from './lib/auth/premiumCookie';
+
+type SessionUser = { id: string; premium?: boolean };
+type Session = { user?: SessionUser } | null;
+
+// Resolve the current session via the Better Auth endpoint — edge-safe (plain
+// fetch, no Prisma) and DB-backed, so `premium` is always authoritative. This
+// is Better Auth's recommended middleware pattern; cost is one local HTTP hop
+// per protected request (same as the old Supabase getUser()).
+async function getSession(request: NextRequest): Promise<Session> {
+  try {
+    const res = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
+      headers: { cookie: request.headers.get('cookie') || '' },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Session;
+  } catch {
+    return null;
+  }
+}
 
 // Routes that do not require authentication
 const PUBLIC_ROUTES = [
@@ -38,86 +52,34 @@ function isApiRoute(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-  const { response, user, supabase } = await updateSession(request);
+  const response = NextResponse.next();
 
   const pathname = decodeURIComponent(request.nextUrl.pathname || '');
   response.headers.set('x-pathname', pathname);
 
-  // Allow API routes through — they handle their own auth
-  if (isApiRoute(pathname)) {
-    return response;
-  }
+  // API routes (incl. Better Auth's /api/auth/*) handle their own auth.
+  if (isApiRoute(pathname)) return response;
+  if (isPublicRoute(pathname)) return response;
 
-  // Allow public routes through without any auth check
-  if (isPublicRoute(pathname)) {
-    return response;
-  }
+  const session = await getSession(request);
+  const user = session?.user ?? null;
 
-  // If user is not authenticated, redirect to login
+  // Not authenticated → login.
   if (!user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('next', pathname);
-    const redirectResponse = NextResponse.redirect(loginUrl);
-    // Copy session cookies to the redirect response
-    response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    return NextResponse.redirect(loginUrl);
   }
 
-  // For routes that only need auth (not premium), allow through
-  if (isAuthOnlyRoute(pathname)) {
-    return response;
-  }
+  // Authenticated but premium not required here.
+  if (isAuthOnlyRoute(pathname)) return response;
 
-  // Check premium status from a SIGNED cookie first to avoid a DB query on
-  // every request. The cookie value is HMAC-signed and bound to this user id,
-  // so it cannot be forged or replayed (an unsigned `premium_status=true`
-  // previously let anyone bypass the paywall).
-  const premiumCookie = request.cookies.get(PREMIUM_COOKIE_NAME);
-  const cached = await verifyPremiumStatus(premiumCookie?.value, user.id);
-
-  let isPremium: boolean;
-
-  if (cached !== null) {
-    // Signature valid and not expired — trust the cached value.
-    isPremium = cached;
-  } else {
-    // Cookie missing, expired, tampered with, or no signing secret configured
-    // — fall back to the authoritative DB check.
-    const { data: userData } = await supabase
-      .from('users')
-      .select('premium')
-      .eq('id', user.id)
-      .single();
-
-    isPremium = userData?.premium === true;
-
-    // Cache the result in a signed cookie for 5 minutes. If no secret is
-    // configured signPremiumStatus returns null and we skip the cookie,
-    // falling back to a DB check every request (correct but slower).
-    const signed = await signPremiumStatus(user.id, isPremium);
-    if (signed) {
-      response.cookies.set(PREMIUM_COOKIE_NAME, signed, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 5 * 60, // 5 minutes
-        path: '/',
-      });
-    }
-  }
-
-  if (!isPremium) {
+  // Premium gate (authoritative — `premium` comes from the DB-backed session).
+  if (user.premium !== true) {
     const premiumUrl = request.nextUrl.clone();
     premiumUrl.pathname = '/premium';
-    const redirectResponse = NextResponse.redirect(premiumUrl);
-    // Copy session cookies to the redirect response
-    response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    return NextResponse.redirect(premiumUrl);
   }
 
   return response;

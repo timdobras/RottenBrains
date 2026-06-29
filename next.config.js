@@ -8,7 +8,9 @@ const withSerwist = require('@serwist/next').default({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['sharp'],
+  // Keep Prisma external so its dynamically-loaded query engine is traced into
+  // the standalone bundle (it's also copied explicitly in the Dockerfile).
+  serverExternalPackages: ['sharp', '@prisma/client'],
   eslint: {
     // Lint errors fail the build. Warnings (any, <img>, import order, etc.)
     // still pass — those are tracked separately for incremental cleanup.

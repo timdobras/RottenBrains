@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/server/current-user';
 import { logger } from '@/lib/logger';
 import { getFreshPublicIP } from '@/lib/ipDetection';
 
@@ -9,15 +10,10 @@ export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
     // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -124,26 +120,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if this IP is in the user's saved non-VPN IPs
-    const { data: savedIPs, error: dbError } = await supabase
-      .from('user_ip_addresses')
-      .select('ip_address, label, is_trusted, created_at')
-      .eq('user_id', user.id)
-      .eq('ip_address', clientIP)
-      .eq('is_trusted', true)
-      .single();
+    const savedIPs = await prisma.user_ip_addresses.findFirst({
+      where: {
+        user_id: user.id,
+        ip_address: clientIP,
+        is_trusted: true,
+      },
+      select: { ip_address: true, label: true, is_trusted: true, created_at: true },
+    });
 
     logger.debug('Database check result:', {
       userId: user.id,
       clientIP,
       foundIP: !!savedIPs,
-      dbError: dbError?.code,
     });
-
-    if (dbError && dbError.code !== 'PGRST116') {
-      // PGRST116 means no rows found, which is fine
-      logger.error('Error checking IP addresses:', dbError);
-      throw dbError;
-    }
 
     // If IP is found in saved IPs, user is NOT using VPN
     // If IP is not found, we assume they might be using VPN (or just a new location)
@@ -183,15 +173,10 @@ export async function GET(request: NextRequest) {
 // Also create a POST endpoint to save current IP
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
     // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -230,19 +215,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the IP address
-    const { data, error } = await supabase
-      .from('user_ip_addresses')
-      .insert({
-        user_id: user.id,
-        ip_address: clientIP,
-        label: label || null,
-        is_trusted: true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === '23505') {
+    let data;
+    try {
+      data = await prisma.user_ip_addresses.create({
+        data: {
+          user_id: user.id,
+          ip_address: clientIP,
+          label: label || null,
+          is_trusted: true,
+        },
+      });
+    } catch (error) {
+      // P2002 = unique constraint violation (IP already saved for this user)
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code?: string }).code === 'P2002'
+      ) {
         return NextResponse.json(
           {
             error: 'This IP address is already saved',

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import React from 'react';
 import WatchListInfiniteScroll from '@/components/features/library/InfiniteScroll';
-import { getCurrentUser, getWatchListSpecific } from '@/lib/supabase/serverQueries';
+import { getCurrentUser, getWatchListSpecific } from '@/lib/db/queries';
 type Params = Promise<{ watch_list_type: string }>;
 const page = async ({ params }: { params: Params }) => {
   const { watch_list_type } = await params;

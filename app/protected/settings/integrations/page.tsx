@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 import JellyfinSettings from '@/components/features/settings/JellyfinSettings';
 import SettingsSection from '@/components/features/settings/SettingsSection';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 
 const IntegrationsSettingsPage = async () => {
   const user = await getCurrentUser();

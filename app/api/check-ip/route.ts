@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/server/current-user';
 import { logger } from '@/lib/logger';
 
 // This endpoint checks if a given IP is in the user's saved list
 // The IP is provided by the client to avoid server-side caching issues
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
     // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -50,19 +46,13 @@ export async function POST(request: NextRequest) {
     logger.debug(`[Check-IP] Checking if ${ip} is in saved list for user ${user.id}`);
 
     // Check if this IP is in the user's saved non-VPN IPs
-    const { data: savedIPs, error: dbError } = await supabase
-      .from('user_ip_addresses')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('ip_address', ip)
-      .eq('is_trusted', true)
-      .single();
-
-    if (dbError && dbError.code !== 'PGRST116') {
-      // PGRST116 means no rows found, which is fine
-      logger.error('Error checking IP addresses:', dbError);
-      throw dbError;
-    }
+    const savedIPs = await prisma.user_ip_addresses.findFirst({
+      where: {
+        user_id: user.id,
+        ip_address: ip,
+        is_trusted: true,
+      },
+    });
 
     const isKnownIP = !!savedIPs;
 

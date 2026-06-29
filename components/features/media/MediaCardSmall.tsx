@@ -1,5 +1,5 @@
 import MoreOptions from '@/components/features/media/MoreOptions';
-import { getWatchTime } from '@/lib/supabase/serverQueries';
+import { getWatchTime } from '@/lib/db/queries';
 import { getEpisodeDetails, getMediaDetails } from '@/lib/tmdb';
 import { formatEpisodeCode, getImageUrl, getRelativeTime, transformRuntime } from '@/lib/utils';
 import ImageWithFallback from './ImageWithFallback';

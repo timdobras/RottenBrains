@@ -5,7 +5,7 @@ import { useState, ChangeEvent, FormEvent } from 'react';
 import BackdropChange from '@/components/features/profile/BackdropChange';
 import ProfilePicture from '@/components/features/profile/ProfilePictureChange';
 import { useToast } from '@/components/ui/use-toast';
-import { createClient } from '@/lib/supabase/client';
+import { updateUserSettings } from '@/lib/db/mutations';
 
 interface FormData {
   name: string;
@@ -33,18 +33,12 @@ const UserSettingsForm = (user: any) => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     try {
-      const { data: updateData, error: updateError } = await supabase
-        .from('users')
-        .update([
-          {
-            name: formData.name,
-            username: formData.username,
-            bio: formData.bio,
-          },
-        ])
-        .eq('id', user.id);
+      await updateUserSettings({
+        name: formData.name,
+        username: formData.username,
+        bio: formData.bio,
+      });
       setSubmitted(true);
       router.push('/protected/profile');
       toast({

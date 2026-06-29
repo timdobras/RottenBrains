@@ -1,18 +1,19 @@
 // app/components/OAuthButton.tsx
 'use client';
 
-import { Provider } from '@supabase/supabase-js';
 import { useState } from 'react';
 import { oAuthSignIn } from '@/lib/server/OAuthSignIn';
 
+type SocialProvider = 'google' | 'discord';
+
 type OAuthProvider = {
-  name: Provider;
+  name: SocialProvider;
   displayName: string;
   icon: string;
 };
 
 export function OAuthButton() {
-  const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null);
+  const [loadingProvider, setLoadingProvider] = useState<SocialProvider | null>(null);
 
   const oAuthProviders: OAuthProvider[] = [
     { name: 'google', displayName: 'Google', icon: '/assets/icons/google.svg' },
@@ -23,7 +24,7 @@ export function OAuthButton() {
     },
   ];
 
-  const handleSignIn = async (provider: Provider) => {
+  const handleSignIn = async (provider: SocialProvider) => {
     setLoadingProvider(provider);
     try {
       // This server action will trigger a redirect.

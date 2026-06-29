@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import ImageWithFallback from '@/components/features/media/ImageWithFallback';
-import { getWatchTime } from '@/lib/supabase/serverQueries';
+import { getWatchTime } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
 import { getHrefFromMedia, getImageUrl, getRelativeTime, transformRuntime } from '@/lib/utils';
 

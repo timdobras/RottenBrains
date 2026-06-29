@@ -1,22 +1,16 @@
-'use client';
-
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/server/current-user';
 
 export default async function AuthButton() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const signOut = async () => {
     'use server';
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    return redirect('/login');
+    await auth.api.signOut({ headers: await headers() });
+    redirect('/login');
   };
 
   return user ? (

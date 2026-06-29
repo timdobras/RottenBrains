@@ -4,7 +4,7 @@ import { format, isToday, isYesterday } from 'date-fns';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useUser } from '@/hooks/UserContext';
-import { getWatchHistoryForUser } from '@/lib/supabase/clientQueries';
+import { getWatchHistoryForUser } from '@/lib/db/client-actions';
 import MediaCardClient from '../media/MediaCardClient';
 
 const WatchHistoryWithInfiniteScroll = () => {

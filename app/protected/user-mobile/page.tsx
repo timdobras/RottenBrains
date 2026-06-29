@@ -6,8 +6,8 @@ import MediaCardClient from '@/components/features/media/MediaCardClient';
 import MediaCardServer from '@/components/features/media/MediaCardServer';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
 import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
-import { getWatchHistoryForUser, getWatchListSpecific } from '@/lib/supabase/clientQueries';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getWatchHistoryForUser } from '@/lib/db/client-actions';
+import { getWatchListSpecific, getCurrentUser } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
 import Profile from './Profile';
 
@@ -31,9 +31,10 @@ const page = async () => {
     getWatchListSpecific(user.id, limit, offset, 'watched'),
   ]);
 
-  const fwatched = watched[0];
-  const fwatching = watching[0];
-  const fplanned = planned[0];
+  // getWatchListSpecific now returns unknown[] (was supabase any) — cast at the boundary.
+  const fwatched = watched[0] as any;
+  const fwatching = watching[0] as any;
+  const fplanned = planned[0] as any;
 
   // Fetch all media details in parallel
   const [watchedMedia, watchingMedia, plannedMedia] = await Promise.all([

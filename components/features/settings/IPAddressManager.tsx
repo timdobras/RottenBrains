@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Trash2, Plus, Wifi, WifiOff, Shield } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { createClient } from '@/lib/supabase/client';
+import { addIpAddress, deleteIpAddress, getIpAddresses, setIpTrusted } from '@/lib/db/mutations';
 import { logger } from '@/lib/logger';
 
 interface IPAddress {
@@ -26,25 +26,18 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
   const [loading, setLoading] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const { toast } = useToast();
-  const supabase = createClient();
 
   // Fetch user's saved IP addresses
   const fetchIPAddresses = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_ip_addresses')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await getIpAddresses(userId);
       setIpAddresses(
-        (data || []).map((row) => ({
+        data.map((row) => ({
           id: row.id,
-          ip_address: String(row.ip_address),
+          ip_address: row.ip_address,
           label: row.label ?? undefined,
-          is_trusted: row.is_trusted ?? false,
-          created_at: row.created_at ?? '',
+          is_trusted: row.is_trusted,
+          created_at: row.created_at,
         }))
       );
     } catch (error) {
@@ -111,11 +104,10 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('user_ip_addresses').insert({
-        user_id: userId,
-        ip_address: newIP,
+      const { error } = await addIpAddress({
+        userId,
+        ipAddress: newIP,
         label: newLabel || null,
-        is_trusted: true,
       });
 
       if (error) throw error;
@@ -151,9 +143,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
   // Delete IP address
   const deleteIPAddress = async (id: string) => {
     try {
-      const { error } = await supabase.from('user_ip_addresses').delete().eq('id', id);
-
-      if (error) throw error;
+      await deleteIpAddress(id, userId);
 
       toast({
         title: 'Success',
@@ -174,12 +164,7 @@ const IPAddressManager = ({ userId }: IPAddressManagerProps) => {
   // Toggle trusted status
   const toggleTrusted = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('user_ip_addresses')
-        .update({ is_trusted: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
+      await setIpTrusted(id, userId, !currentStatus);
 
       fetchIPAddresses();
       toast({

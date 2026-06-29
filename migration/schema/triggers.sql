@@ -1,0 +1,11 @@
+CREATE TRIGGER trigger_comment_or_reply_notification AFTER INSERT ON public.comments FOR EACH ROW EXECUTE FUNCTION handle_comment_or_reply_notification();
+CREATE TRIGGER trigger_follow_notification AFTER INSERT ON public.follows FOR EACH ROW EXECUTE FUNCTION handle_follow_notification();
+CREATE TRIGGER trigger_like_notification AFTER INSERT ON public.likes FOR EACH ROW EXECUTE FUNCTION handle_like_notification();
+CREATE TRIGGER trg_likes_count AFTER INSERT OR DELETE ON public.likes FOR EACH ROW EXECUTE FUNCTION posts_likes_count();
+CREATE TRIGGER trigger_new_episode AFTER INSERT ON public.new_episodes FOR EACH ROW EXECUTE FUNCTION handle_notifications_from_new_episodes();
+CREATE TRIGGER after_post_insert AFTER INSERT ON public.posts FOR EACH ROW EXECUTE FUNCTION insert_watch_history();
+CREATE TRIGGER trigger_new_post_notification AFTER INSERT ON public.posts FOR EACH ROW EXECUTE FUNCTION handle_new_post_notification();
+CREATE TRIGGER update_user_ip_addresses_updated_at BEFORE UPDATE ON public.user_ip_addresses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER add_genre_stats_after_user_creation AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION insert_genre_stats_for_new_user();
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+CREATE TRIGGER watch_history_null_normalizer BEFORE INSERT OR UPDATE ON public.watch_history FOR EACH ROW EXECUTE FUNCTION normalize_null_values();

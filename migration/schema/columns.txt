@@ -1,0 +1,150 @@
+comment_likes | id | uuid | nullable=NO | default=gen_random_uuid()
+comment_likes | user_id | uuid | nullable=NO | default=-
+comment_likes | comment_id | uuid | nullable=NO | default=-
+comment_likes | created_at | timestamp with time zone | nullable=YES | default=now()
+comments | id | uuid | nullable=NO | default=uuid_generate_v4()
+comments | user_id | uuid | nullable=YES | default=-
+comments | post_id | uuid | nullable=YES | default=-
+comments | content | text | nullable=NO | default=-
+comments | created_at | timestamp with time zone | nullable=YES | default=now()
+comments | parent_id | uuid | nullable=YES | default=-
+comments | total_likes | bigint | nullable=NO | default='0'::bigint
+dev_blog | id | uuid | nullable=NO | default=gen_random_uuid()
+dev_blog | title | text | nullable=NO | default=-
+dev_blog | slug | text | nullable=NO | default=-
+dev_blog | content | text | nullable=NO | default=-
+dev_blog | images | ARRAY | nullable=YES | default=-
+dev_blog | features | ARRAY | nullable=YES | default=-
+dev_blog | tags | ARRAY | nullable=YES | default=-
+dev_blog | created_at | timestamp with time zone | nullable=YES | default=now()
+dev_blog | updated_at | timestamp with time zone | nullable=YES | default=now()
+dev_blog | author_id | uuid | nullable=YES | default=-
+dev_blog | thumbnail | text | nullable=YES | default=-
+follows | id | uuid | nullable=NO | default=uuid_generate_v4()
+follows | user_id | uuid | nullable=YES | default=-
+follows | following_id | uuid | nullable=YES | default=-
+follows | created_at | timestamp with time zone | nullable=YES | default=now()
+likes | id | uuid | nullable=NO | default=uuid_generate_v4()
+likes | user_id | uuid | nullable=YES | default=-
+likes | post_id | uuid | nullable=YES | default=-
+likes | created_at | timestamp with time zone | nullable=YES | default=now()
+movie_genre_stats | 28 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | user_id | uuid | nullable=NO | default=-
+movie_genre_stats | 12 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 16 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 35 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 80 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 99 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 18 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 10751 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 14 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 36 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 27 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 10402 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 9648 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 10749 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 878 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 10770 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 53 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 10752 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | 37 | bigint | nullable=NO | default='0'::bigint
+movie_genre_stats | id | uuid | nullable=NO | default=gen_random_uuid()
+new_episodes | id | uuid | nullable=NO | default=gen_random_uuid()
+new_episodes | user_id | uuid | nullable=NO | default=-
+new_episodes | tv_id | bigint | nullable=YES | default=-
+new_episodes | last_air_date | date | nullable=YES | default=-
+new_episodes | season_number | integer | nullable=YES | default=-
+new_episodes | episode_number | integer | nullable=YES | default=-
+new_episodes | created_at | timestamp with time zone | nullable=NO | default=now()
+new_episodes | updated_at | timestamp with time zone | nullable=NO | default=now()
+notifications | id | uuid | nullable=NO | default=uuid_generate_v4()
+notifications | recipient_id | uuid | nullable=NO | default=-
+notifications | triggered_by | uuid | nullable=YES | default=-
+notifications | type | text | nullable=NO | default=-
+notifications | post_id | uuid | nullable=YES | default=-
+notifications | comment_id | uuid | nullable=YES | default=-
+notifications | created_at | timestamp with time zone | nullable=YES | default=now()
+notifications | read | boolean | nullable=NO | default=false
+notifications | media_id | integer | nullable=YES | default=-
+notifications | media_type | text | nullable=YES | default=-
+notifications | season_number | integer | nullable=YES | default=-
+notifications | episode_number | integer | nullable=YES | default=-
+posts | id | uuid | nullable=NO | default=uuid_generate_v4()
+posts | creatorid | uuid | nullable=YES | default=-
+posts | review_user | text | nullable=YES | default=-
+posts | vote_user | real | nullable=YES | default=-
+posts | created_at | timestamp with time zone | nullable=YES | default=now()
+posts | media_id | integer | nullable=YES | default=-
+posts | media_type | text | nullable=YES | default=-
+posts | total_likes | bigint | nullable=YES | default='0'::bigint
+posts | total_comments | bigint | nullable=NO | default='0'::bigint
+posts | season_number | integer | nullable=YES | default=-
+posts | image_path | text | nullable=YES | default=-
+saves | id | uuid | nullable=NO | default=uuid_generate_v4()
+saves | user_id | uuid | nullable=YES | default=-
+saves | post_id | uuid | nullable=YES | default=-
+saves | created_at | timestamp with time zone | nullable=YES | default=now()
+tv_genre_stats | id | uuid | nullable=NO | default=gen_random_uuid()
+tv_genre_stats | user_id | uuid | nullable=YES | default=-
+tv_genre_stats | 10759 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 16 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 35 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 80 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 99 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 18 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10751 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10762 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 9648 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10763 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10764 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10765 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10766 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10767 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 10768 | bigint | nullable=NO | default='0'::bigint
+tv_genre_stats | 37 | bigint | nullable=NO | default='0'::bigint
+user_ip_addresses | id | uuid | nullable=NO | default=gen_random_uuid()
+user_ip_addresses | user_id | uuid | nullable=NO | default=-
+user_ip_addresses | ip_address | inet | nullable=NO | default=-
+user_ip_addresses | label | text | nullable=YES | default=-
+user_ip_addresses | is_trusted | boolean | nullable=YES | default=true
+user_ip_addresses | created_at | timestamp with time zone | nullable=YES | default=now()
+user_ip_addresses | updated_at | timestamp with time zone | nullable=YES | default=now()
+user_jellyfin_config | id | uuid | nullable=NO | default=gen_random_uuid()
+user_jellyfin_config | user_id | uuid | nullable=NO | default=-
+user_jellyfin_config | server_url | text | nullable=NO | default=-
+user_jellyfin_config | api_key | text | nullable=NO | default=-
+user_jellyfin_config | jellyfin_user_id | text | nullable=NO | default=-
+user_jellyfin_config | sync_enabled | boolean | nullable=NO | default=true
+user_jellyfin_config | webhook_secret | text | nullable=NO | default=(gen_random_uuid())::text
+user_jellyfin_config | created_at | timestamp with time zone | nullable=NO | default=now()
+user_jellyfin_config | updated_at | timestamp with time zone | nullable=NO | default=now()
+user_jellyfin_config | jellyfin_username | text | nullable=YES | default=-
+users | id | uuid | nullable=NO | default=-
+users | created_at | timestamp with time zone | nullable=NO | default=now()
+users | username | text | nullable=YES | default=-
+users | name | text | nullable=YES | default=-
+users | email | text | nullable=YES | default=-
+users | image_url | text | nullable=YES | default=-
+users | tmdb_id | text | nullable=YES | default=-
+users | bio | text | nullable=YES | default='Go to settings to change your Bio'::text
+users | backdrop_url | text | nullable=YES | default='https://w0.peakpx.com/wallpaper/939/963/HD-wallpaper-technology-error-404-not-found-black-white-minimalist.jpg'::text
+users | feed_genres | ARRAY | nullable=YES | default=-
+users | premium | boolean | nullable=NO | default=false
+watch_history | id | uuid | nullable=NO | default=uuid_generate_v4()
+watch_history | user_id | uuid | nullable=NO | default=-
+watch_history | media_type | text | nullable=NO | default=-
+watch_history | media_id | integer | nullable=NO | default=-
+watch_history | season_number | integer | nullable=YES | default=-
+watch_history | episode_number | integer | nullable=YES | default=-
+watch_history | created_at | timestamp with time zone | nullable=YES | default=now()
+watch_history | time_spent | integer | nullable=YES | default=-
+watch_history | percentage_watched | text | nullable=YES | default=-
+watch_history | hidden_until | timestamp with time zone | nullable=YES | default=-
+watch_history | sync_source | text | nullable=NO | default='app'::text
+watch_history | playback_position | integer | nullable=YES | default=-
+watch_list | id | uuid | nullable=NO | default=gen_random_uuid()
+watch_list | created_at | timestamp with time zone | nullable=NO | default=now()
+watch_list | user_id | uuid | nullable=YES | default=-
+watch_list | media_type | text | nullable=YES | default=-
+watch_list | media_id | bigint | nullable=YES | default=-
+watch_list | watch_list_type | text | nullable=YES | default=-

@@ -2,25 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateConnection } from '@/lib/jellyfin/client';
 import { getJellyfinConfigForPlayback } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
-import { createServiceClient } from '@/lib/supabase/serviceClient';
+import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/server/current-user';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
+    const user = await getCurrentUser();
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const serviceClient = createServiceClient();
 
     const config = await getJellyfinConfigForPlayback(user.id);
 
@@ -39,13 +32,21 @@ export async function GET(req: NextRequest) {
       config.jellyfin_user_id
     );
 
-    const { data: watchHistoryStats } = await serviceClient
-      .from('watch_history')
-      .select('media_type, media_id, percentage_watched, sync_source, created_at')
-      .eq('user_id', user.id)
-      .eq('sync_source', 'jellyfin')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const watchHistoryStats = await prisma.watch_history.findMany({
+      where: {
+        user_id: user.id,
+        sync_source: 'jellyfin',
+      },
+      select: {
+        media_type: true,
+        media_id: true,
+        percentage_watched: true,
+        sync_source: true,
+        created_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    });
 
     return NextResponse.json({
       configured: true,

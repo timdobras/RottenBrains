@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useUser } from '@/hooks/UserContext';
-import { getWatchHistoryForUser } from '@/lib/supabase/clientQueries';
+import { getWatchHistoryForUser } from '@/lib/db/client-actions';
 import MediaCardClient from '../media/MediaCardClient';
 
 interface UserWatchHistoryProps {

@@ -1,12 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { addComment } from '@/lib/db/mutations';
 
 const AddComment: React.FC<any> = ({ post, user_id, fetchComments, parent_id }) => {
   const [content, setContent] = useState('');
   const postId = post.id;
-
-  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,21 +14,12 @@ const AddComment: React.FC<any> = ({ post, user_id, fetchComments, parent_id }) 
       return;
     }
 
-    const { data, error } = await supabase
-      .from('comments')
-      .insert([{ post_id: postId, user_id: user_id, content, parent_id }])
-      .select();
-
-    const { error: incrementError } = await supabase.rpc('increment_comments', {
-      post_id: postId,
-    });
-    if (incrementError) throw incrementError;
-
-    if (error) {
-      console.error(error);
-    } else {
+    try {
+      await addComment({ postId, content, parentId: parent_id });
       setContent('');
       await fetchComments(); // Fetch comments after adding a new comment
+    } catch (error) {
+      console.error(error);
     }
   };
 

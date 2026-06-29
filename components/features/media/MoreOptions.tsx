@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
-import { addToWatchList, updateGenreStats } from '@/lib/supabase/clientQueries';
+import { addToWatchList, updateGenreStats } from '@/lib/db/client-actions';
 
 type MoreOptionsProps = {
   user_id: string;

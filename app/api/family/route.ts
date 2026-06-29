@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createFamily, listUserFamilies } from '@/lib/family/server';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/server/current-user';
 
 export const dynamic = 'force-dynamic';
 
 /** GET /api/family — list the families the current user belongs to. */
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
@@ -26,10 +23,7 @@ export async function GET() {
 
 /** POST /api/family — create a new family owned by the current user. Body: { name } */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));

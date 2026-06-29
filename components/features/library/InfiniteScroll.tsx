@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useToast } from '@/components/ui/use-toast';
-import { getWatchListSpecific, removeFromWatchList } from '@/lib/supabase/clientQueries';
+import { removeFromWatchList, getWatchListSpecific } from '@/lib/db/client-actions';
 import MediaCardClient from '../media/MediaCardClient';
 
 interface WatchListInfiniteScrollProps {

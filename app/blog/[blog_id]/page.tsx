@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { fetchBlogPostById } from '@/lib/supabase/serverQueries';
+import { fetchBlogPostById } from '@/lib/db/queries';
 
 // Revalidate individual blog posts every hour instead of force-dynamic
 export const revalidate = 3600;

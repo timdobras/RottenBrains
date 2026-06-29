@@ -2,7 +2,7 @@
 import React from 'react';
 import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
-import { getWatchTime } from '@/lib/supabase/serverQueries';
+import { getWatchTime } from '@/lib/db/queries';
 import { getMediaDetails, getEpisodeDetails } from '@/lib/tmdb';
 
 interface MediaCardServerProps {

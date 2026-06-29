@@ -4,7 +4,7 @@ import WatchDuration from '@/components/features/watch/WatchDuration';
 import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
 import WatchPageWrapper from '@/components/features/watch/WatchPageWrapper';
 import VideoContextSetter from '@/hooks/VideoContextSetter';
-import { getCurrentUser, getPlaybackPosition } from '@/lib/supabase/serverQueries';
+import { getCurrentUser, getPlaybackPosition } from '@/lib/db/queries';
 import { getCachedMediaDetails } from '@/lib/tmdb/cachedFetchers';
 import { logger } from '@/lib/logger';
 

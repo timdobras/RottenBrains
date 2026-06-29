@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 import WatchListCard from '@/components/features/library/CategoryCard';
 import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
-import { getCurrentUser, getWatchListSpecific } from '@/lib/supabase/serverQueries';
+import { getCurrentUser, getWatchListSpecific } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
 
 export const dynamic = 'force-dynamic';
@@ -24,9 +24,11 @@ const page = async () => {
     getWatchListSpecific(user.id, limit, offset, 'watched'),
   ]);
 
-  const fwatched = watched[0];
-  const fwatching = watching[0];
-  const fplanned = planned[0];
+  // getWatchListSpecific now returns serialized rows typed as unknown[];
+  // the old supabase path returned `any`. Cast to keep the existing access shape.
+  const fwatched = watched[0] as any;
+  const fwatching = watching[0] as any;
+  const fplanned = planned[0] as any;
 
   // Fetch all media details in parallel
   const [watchedMedia, watchingMedia, plannedMedia] = await Promise.all([

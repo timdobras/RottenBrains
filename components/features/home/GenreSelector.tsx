@@ -7,10 +7,10 @@ import movie_genres_json from '@/lib/constants/movie_genres.json';
 import tv_genres_json from '@/lib/constants/tv_genres.json';
 import { logger } from '@/lib/logger';
 import {
+  updateUserFeedGenres,
   getTopMovieGenresForUser,
   getTopTvGenresForUser,
-  updateUserFeedGenres,
-} from '@/lib/supabase/clientQueries';
+} from '@/lib/db/client-actions';
 
 export interface Genre {
   id: number;

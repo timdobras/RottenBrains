@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncToJellyfin } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/server';
-import { upsertWatchHistory } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/server/current-user';
+import { upsertWatchHistory } from '@/lib/db/queries';
 
 interface WatchTimeData {
   time_spent: number;
@@ -16,15 +16,10 @@ interface WatchTimeData {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-
     // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -123,8 +118,9 @@ export async function POST(req: NextRequest) {
     // Fire-and-forget: sync to Jellyfin if the user has it configured.
     // This runs asynchronously and does not block the API response.
     // Only sync updates originating from the app (not from Jellyfin webhooks).
-    const totalPercentage = result.data?.percentage_watched
-      ? parseFloat(result.data.percentage_watched)
+    const resultData = result.data as { percentage_watched?: string } | null | undefined;
+    const totalPercentage = resultData?.percentage_watched
+      ? parseFloat(resultData.percentage_watched)
       : parseFloat(data.percentage_watched);
 
     syncToJellyfin({

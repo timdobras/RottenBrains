@@ -1,5 +1,5 @@
 import React from 'react';
-import { fetchBlogPosts } from '@/lib/supabase/serverQueries';
+import { fetchBlogPosts } from '@/lib/db/queries';
 import PostCardMain from './PostCardMain';
 
 // Revalidate blog listing every hour instead of force-dynamic

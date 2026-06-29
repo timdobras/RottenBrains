@@ -1,0 +1,38 @@
+[comment_likes] users like as themselves | cmd=a | USING None | CHECK (auth.uid() = user_id)
+[comment_likes] users unlike their own | cmd=d | USING (auth.uid() = user_id) | CHECK None
+[comment_likes] comment_likes are readable | cmd=r | USING true | CHECK None
+[comments] Enable insert for authenticated users only | cmd=a | USING None | CHECK true
+[comments] Enable read access for all users | cmd=r | USING true | CHECK None
+[comments] Enable delete for authenticated users only | cmd=w | USING true | CHECK None
+[follows] Enable delete for authenticated users only | cmd=d | USING true | CHECK None
+[follows] Enable insert for authenticated users only | cmd=a | USING None | CHECK true
+[follows] Enable read access for all users | cmd=r | USING true | CHECK None
+[likes] Enable read access for all users | cmd=r | USING true | CHECK None
+[likes] Enable insert for authenticated users only | cmd=a | USING None | CHECK true
+[likes] Enable delete for authenticated users only | cmd=d | USING true | CHECK None
+[posts] Enable update access for all users | cmd=w | USING true | CHECK None
+[posts] Enable delete for users based on user_id | cmd=d | USING (( SELECT auth.uid() AS uid) = creatorid) | CHECK None
+[posts] Enable read access for all users | cmd=r | USING true | CHECK None
+[posts] Enable insert for authenticated users only | cmd=a | USING None | CHECK true
+[saves] Enable deletefor authenticated users only | cmd=d | USING true | CHECK None
+[saves] Enable read access for all users | cmd=r | USING true | CHECK None
+[saves] Enable insert for authenticated users only | cmd=a | USING None | CHECK true
+[user_ip_addresses] Users can insert their own IP addresses | cmd=a | USING None | CHECK (auth.uid() = user_id)
+[user_ip_addresses] Users can delete their own IP addresses | cmd=d | USING (auth.uid() = user_id) | CHECK None
+[user_ip_addresses] Users can update their own IP addresses | cmd=w | USING (auth.uid() = user_id) | CHECK (auth.uid() = user_id)
+[user_ip_addresses] Users can view their own IP addresses | cmd=r | USING (auth.uid() = user_id) | CHECK None
+[user_jellyfin_config] Users can read own jellyfin config | cmd=r | USING (auth.uid() = user_id) | CHECK None
+[user_jellyfin_config] Users can update own jellyfin config | cmd=w | USING (auth.uid() = user_id) | CHECK None
+[user_jellyfin_config] Service role can read all jellyfin configs | cmd=r | USING (auth.role() = 'service_role'::text) | CHECK None
+[user_jellyfin_config] Users can delete own jellyfin config | cmd=d | USING (auth.uid() = user_id) | CHECK None
+[user_jellyfin_config] Users can insert own jellyfin config | cmd=a | USING None | CHECK (auth.uid() = user_id)
+[users] Enable read access for all users | cmd=r | USING true | CHECK None
+[users] Enable update for authenticated users only | cmd=w | USING true | CHECK None
+[users] Enable insert for authenticated users only | cmd=a | USING None | CHECK true
+[watch_history] Enable update for all users | cmd=w | USING true | CHECK None
+[watch_history] Enable insert for all users | cmd=a | USING None | CHECK true
+[watch_history] Enable read access for all users | cmd=r | USING true | CHECK None
+[watch_history] Enable delete for users based on user_id | cmd=d | USING (( SELECT auth.uid() AS uid) = user_id) | CHECK None
+[watch_list] Enable read access for all users | cmd=r | USING true | CHECK None
+[watch_list] Enable delete for users based on user_id | cmd=d | USING (( SELECT auth.uid() AS uid) = user_id) | CHECK None
+[watch_list] Enable insert for authenticated users only | cmd=a | USING None | CHECK true

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import PostModalContent from '@/components/features/posts/PostModalContent';
 import { fetchPostById } from '@/lib/server/fetchPostsData';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 
 type Params = Promise<{ post_id: string }>;
 

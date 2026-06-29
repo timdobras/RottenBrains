@@ -1,7 +1,5 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { OAuthButton } from '@/components/features/auth/OAuthSignIn';
-import { createClient } from '@/lib/supabase/server';
 import { SubmitButton } from '@/components/features/auth/SubmitButton';
 import { login, signup } from './actions';
 

@@ -1,0 +1,4 @@
+# Migration working files — contain production PII / credentials, do NOT commit
+backfill/*.sql
+backfill/_source_counts.json
+*.local.md

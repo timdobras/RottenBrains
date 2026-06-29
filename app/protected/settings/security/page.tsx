@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import React from 'react';
 import IPAddressManager from '@/components/features/settings/IPAddressManager';
 import SettingsSection from '@/components/features/settings/SettingsSection';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 
 const SecuritySettingsPage = async () => {
   const user = await getCurrentUser();

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/hooks/UserContext';
-import { getFollowing } from '@/lib/supabase/clientQueries';
+import { getFollowing } from '@/lib/db/client-actions';
 import { queryKeys } from '@/lib/queryKeys';
 
 export default function FeedFollowing() {

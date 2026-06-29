@@ -3,7 +3,7 @@ import React from 'react';
 import FamilySettings from '@/components/features/settings/FamilySettings';
 import SettingsSection from '@/components/features/settings/SettingsSection';
 import { listUserFamilies } from '@/lib/family/server';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 
 export const dynamic = 'force-dynamic';
 
