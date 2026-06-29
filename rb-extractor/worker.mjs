@@ -2,6 +2,7 @@ import http from 'node:http';
 
 import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
+import { chromium } from 'patchright';
 
 import { extractStream } from './lib.mjs';
 
@@ -32,7 +33,7 @@ async function resolve(data) {
 
   for (const provider of PROVIDER_ORDER) {
     try {
-      const r = await extractStream(provider, data, { timeoutMs: 45000 });
+      const r = await extractStream(provider, data, { timeoutMs: 90000 });
       if (r.stream) {
         const value = {
           url: r.stream.url,
@@ -65,6 +66,36 @@ const worker = new Worker(
 
 worker.on('failed', (job, err) => console.error(`[job ${job?.id}] failed:`, err.message));
 worker.on('ready', () => console.log(`rb-extractor worker ready on queue "${QUEUE_NAME}" (providers: ${PROVIDER_ORDER.join(',')})`));
+
+// Boot self-test → Redis. Since we can't shell into the container, this is how
+// we (and future debugging) see the container's real browser capabilities:
+// can it launch headless? headed under DISPLAY (xvfb)? Read key rb-extractor:status.
+async function selfTest() {
+  const status = {
+    bootedAt: new Date().toISOString(),
+    display: process.env.DISPLAY || null,
+    providers: PROVIDER_ORDER,
+    headlessOk: false,
+    headedOk: false,
+  };
+  try {
+    const b = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+    await b.close();
+    status.headlessOk = true;
+  } catch (e) { status.headlessErr = String(e.message || e).slice(0, 180); }
+  if (process.env.DISPLAY) {
+    try {
+      const b = await chromium.launch({ headless: false, args: ['--no-sandbox'] });
+      const p = await b.newPage();
+      await p.goto('about:blank');
+      await b.close();
+      status.headedOk = true;
+    } catch (e) { status.headedErr = String(e.message || e).slice(0, 180); }
+  }
+  try { await connection.set('rb-extractor:status', JSON.stringify(status), 'EX', 86400); } catch {}
+  console.log('self-test:', JSON.stringify(status));
+}
+selfTest();
 
 // Minimal HTTP server purely for the Coolify healthcheck (workers have no port).
 http
