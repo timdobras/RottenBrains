@@ -14,7 +14,11 @@ import {
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/lib/logger';
-import { createClient } from '@/lib/supabase/client';
+import {
+  getJellyfinConfig,
+  setJellyfinSyncEnabled,
+  deleteJellyfinConfig,
+} from '@/lib/db/mutations';
 
 /** Resolved Jellyfin connection for the current user (member link + family integration). */
 interface JellyfinConfigRow {
@@ -53,41 +57,13 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const { toast } = useToast();
-  const supabase = createClient();
 
   // Load existing config on mount
   const loadExistingConfig = useCallback(async () => {
+    if (!userId) return;
     try {
-      const { data, error } = await supabase
-        .from('integration_member_links')
-        .select(
-          'id, sync_enabled, external_user_id, external_username, created_at, family_integrations!inner(server_url, webhook_secret, type)'
-        )
-        .eq('user_id', userId)
-        .eq('family_integrations.type', 'jellyfin')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        logger.error('Error fetching Jellyfin config:', error);
-        return;
-      }
-
-      if (data) {
-        const integ = data.family_integrations as unknown as {
-          server_url: string;
-          webhook_secret: string;
-        };
-        const config: JellyfinConfigRow = {
-          id: data.id,
-          server_url: integ.server_url,
-          jellyfin_user_id: data.external_user_id ?? '',
-          jellyfin_username: data.external_username,
-          sync_enabled: data.sync_enabled,
-          webhook_secret: integ.webhook_secret,
-          created_at: data.created_at,
-        };
+      const config = await getJellyfinConfig(userId);
+      if (config) {
         setExistingConfig(config);
         setServerUrl(config.server_url);
         setSyncEnabled(config.sync_enabled);
@@ -97,7 +73,7 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
     } catch (error) {
       logger.error('Error loading Jellyfin config:', error);
     }
-  }, [userId, supabase]);
+  }, [userId]);
 
   useEffect(() => {
     loadExistingConfig();
@@ -159,12 +135,7 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
 
     try {
       const newState = !syncEnabled;
-      const { error } = await supabase
-        .from('integration_member_links')
-        .update({ sync_enabled: newState, updated_at: new Date().toISOString() })
-        .eq('id', existingConfig.id);
-
-      if (error) throw error;
+      await setJellyfinSyncEnabled(existingConfig.id, newState);
 
       setSyncEnabled(newState);
       toast({
@@ -188,12 +159,7 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
     if (!existingConfig) return;
 
     try {
-      const { error } = await supabase
-        .from('integration_member_links')
-        .delete()
-        .eq('id', existingConfig.id);
-
-      if (error) throw error;
+      await deleteJellyfinConfig(existingConfig.id);
 
       // Reset all state
       setExistingConfig(null);

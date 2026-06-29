@@ -87,6 +87,7 @@ model likes {
 model movie_genre_stats {
   /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
   // 28 BigInt @default(0) @map("28")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
   user_id String @unique(map: "movie_genre_stats_user_id_unique") @db.Uuid
   /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
   // 12 BigInt @default(0) @map("12")
@@ -124,6 +125,24 @@ model movie_genre_stats {
   // 10752 BigInt @default(0) @map("10752")
   /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
   // 37 BigInt @default(0) @map("37")
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
+  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
   id      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   users   users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -273,43 +292,47 @@ model user_jellyfin_config {
 }
 
 model users {
-  id                                              String                @id @db.Uuid
-  created_at                                      DateTime              @default(now()) @db.Timestamptz(6)
+  id                                              String                     @id @db.Uuid
+  created_at                                      DateTime                   @default(now()) @db.Timestamptz(6)
   username                                        String?
   name                                            String?
   email                                           String?
   image_url                                       String?
   tmdb_id                                         String?
-  bio                                             String?               @default("Go to settings to change your Bio")
-  backdrop_url                                    String?               @default("https://w0.peakpx.com/wallpaper/939/963/HD-wallpaper-technology-error-404-not-found-black-white-minimalist.jpg")
+  bio                                             String?                    @default("Go to settings to change your Bio")
+  backdrop_url                                    String?                    @default("https://w0.peakpx.com/wallpaper/939/963/HD-wallpaper-technology-error-404-not-found-black-white-minimalist.jpg")
   feed_genres                                     Json[]
-  premium                                         Boolean               @default(false)
-  email_verified                                  Boolean               @default(true)
-  updated_at                                      DateTime              @default(now()) @updatedAt @db.Timestamptz(6)
+  premium                                         Boolean                    @default(false)
+  email_verified                                  Boolean                    @default(true)
+  updated_at                                      DateTime                   @default(now()) @updatedAt @db.Timestamptz(6)
+  accounts                                        account[]
   comment_likes                                   comment_likes[]
   comments                                        comments[]
   dev_blog                                        dev_blog[]
-  follows_follows_following_idTousers             follows[]             @relation("follows_following_idTousers")
-  follows_follows_user_idTousers                  follows[]             @relation("follows_user_idTousers")
+  families                                        families[]
+  family_integrations                             family_integrations[]
+  family_invites                                  family_invites[]
+  family_members                                  family_members[]
+  follows_follows_following_idTousers             follows[]                  @relation("follows_following_idTousers")
+  follows_follows_user_idTousers                  follows[]                  @relation("follows_user_idTousers")
+  integration_member_links                        integration_member_links[]
   likes                                           likes[]
   movie_genre_stats                               movie_genre_stats?
   new_episodes                                    new_episodes[]
-  notifications_notifications_recipient_idTousers notifications[]       @relation("notifications_recipient_idTousers")
-  notifications_notifications_triggered_byTousers notifications[]       @relation("notifications_triggered_byTousers")
+  notifications_notifications_recipient_idTousers notifications[]            @relation("notifications_recipient_idTousers")
+  notifications_notifications_triggered_byTousers notifications[]            @relation("notifications_triggered_byTousers")
   posts                                           posts[]
   saves                                           saves[]
+  sessions                                        session[]
   tv_genre_stats                                  tv_genre_stats?
   user_ip_addresses                               user_ip_addresses[]
   user_jellyfin_config                            user_jellyfin_config?
   watch_history                                   watch_history[]
   watch_list                                      watch_list[]
-  accounts                                        account[]
-  sessions                                        session[]
 
   @@index([id])
 }
 
-// ── Better Auth tables (auth identity/session store) ──────────────────
 model account {
   id                    String    @id @db.Uuid
   accountId             String    @map("account_id")
@@ -323,9 +346,10 @@ model account {
   scope                 String?
   password              String?
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                  users     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@unique([providerId, accountId], map: "account_provider_account_uidx")
   @@index([userId])
   @@map("account")
 }
@@ -338,8 +362,8 @@ model session {
   userAgent String?  @map("user_agent")
   userId    String   @map("user_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId])
   @@map("session")
@@ -351,7 +375,7 @@ model verification {
   value      String
   expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([identifier])
   @@map("verification")
@@ -389,4 +413,85 @@ model watch_list {
   users           users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, media_type, media_id, watch_list_type])
+}
+
+model families {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String
+  owner_id            String                @db.Uuid
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
+  users               users                 @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  family_integrations family_integrations[]
+  family_invites      family_invites[]
+  family_members      family_members[]
+}
+
+model family_integrations {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  family_id                String                     @db.Uuid
+  type                     String
+  server_url               String?
+  api_key                  String?
+  webhook_secret           String                     @default(dbgenerated("(gen_random_uuid())::text"))
+  config                   Json                       @default("{}")
+  created_by               String?                    @db.Uuid
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  users                    users?                     @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  families                 families                   @relation(fields: [family_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  integration_member_links integration_member_links[]
+
+  @@unique([family_id, type, server_url])
+  @@index([family_id, type], map: "idx_family_integrations_family_type")
+  @@index([webhook_secret], map: "idx_family_integrations_webhook")
+}
+
+model family_invites {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  family_id  String    @db.Uuid
+  code       String    @unique @default(dbgenerated("encode(gen_random_bytes(9), 'hex'::text)"))
+  created_by String?   @db.Uuid
+  expires_at DateTime? @db.Timestamptz(6)
+  max_uses   Int?
+  uses       Int       @default(0)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  users      users?    @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+  families   families  @relation(fields: [family_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([code], map: "idx_family_invites_code")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model family_members {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  family_id  String   @db.Uuid
+  user_id    String   @db.Uuid
+  role       String   @default("member")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  families   families @relation(fields: [family_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([family_id, user_id])
+  @@index([family_id], map: "idx_family_members_family")
+  @@index([user_id], map: "idx_family_members_user")
+}
+
+model integration_member_links {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  integration_id      String              @db.Uuid
+  user_id             String              @db.Uuid
+  external_user_id    String?
+  external_username   String?
+  access_token        String?
+  sync_enabled        Boolean             @default(true)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime            @default(now()) @db.Timestamptz(6)
+  family_integrations family_integrations @relation(fields: [integration_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([integration_id, user_id])
+  @@index([integration_id, external_user_id], map: "idx_integration_member_links_external")
+  @@index([integration_id], map: "idx_integration_member_links_integration")
+  @@index([user_id], map: "idx_integration_member_links_user")
 }

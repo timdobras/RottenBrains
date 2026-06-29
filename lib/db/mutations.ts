@@ -275,19 +275,37 @@ export interface JellyfinConfig {
   created_at: string;
 }
 
-/** Resolve the current user's Jellyfin config (one row per user), or null. */
+/**
+ * Resolve the current user's Jellyfin config, or null.
+ *
+ * Post-families model: a per-member `integration_member_links` row pointing at a
+ * shared `family_integrations` row of type 'jellyfin' (server_url + webhook live
+ * on the integration; the per-user jellyfin id/sync live on the link). The
+ * returned shape (incl. `id` = the link id) matches the component's row type.
+ */
 export async function getJellyfinConfig(userId: string): Promise<JellyfinConfig | null> {
   try {
-    const row = await prisma.user_jellyfin_config.findUnique({ where: { user_id: userId } });
-    if (!row) return null;
+    const link = await prisma.integration_member_links.findFirst({
+      where: { user_id: userId, family_integrations: { type: 'jellyfin' } },
+      orderBy: { created_at: 'asc' },
+      select: {
+        id: true,
+        sync_enabled: true,
+        external_user_id: true,
+        external_username: true,
+        created_at: true,
+        family_integrations: { select: { server_url: true, webhook_secret: true } },
+      },
+    });
+    if (!link) return null;
     return {
-      id: row.id,
-      server_url: row.server_url,
-      jellyfin_user_id: row.jellyfin_user_id,
-      jellyfin_username: row.jellyfin_username,
-      sync_enabled: row.sync_enabled,
-      webhook_secret: row.webhook_secret,
-      created_at: row.created_at.toISOString(),
+      id: link.id,
+      server_url: link.family_integrations.server_url ?? '',
+      jellyfin_user_id: link.external_user_id ?? '',
+      jellyfin_username: link.external_username,
+      sync_enabled: link.sync_enabled,
+      webhook_secret: link.family_integrations.webhook_secret,
+      created_at: link.created_at.toISOString(),
     };
   } catch (error) {
     logger.error('Error loading Jellyfin config:', error);
@@ -295,15 +313,13 @@ export async function getJellyfinConfig(userId: string): Promise<JellyfinConfig 
   }
 }
 
-/** Enable/disable watch-history sync. Ownership-scoped via `user_id`. */
-export async function setJellyfinSyncEnabled(
-  id: string,
-  userId: string,
-  enabled: boolean
-): Promise<void> {
+/** Enable/disable watch-history sync on the caller's own member link. */
+export async function setJellyfinSyncEnabled(linkId: string, enabled: boolean): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('Not authenticated');
   try {
-    await prisma.user_jellyfin_config.updateMany({
-      where: { id, user_id: userId },
+    await prisma.integration_member_links.updateMany({
+      where: { id: linkId, user_id: userId },
       data: { sync_enabled: enabled, updated_at: new Date() },
     });
   } catch (error) {
@@ -312,10 +328,12 @@ export async function setJellyfinSyncEnabled(
   }
 }
 
-/** Remove the user's Jellyfin integration. Ownership-scoped via `user_id`. */
-export async function deleteJellyfinConfig(id: string, userId: string): Promise<void> {
+/** Remove the caller's own Jellyfin member link. */
+export async function deleteJellyfinConfig(linkId: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('Not authenticated');
   try {
-    await prisma.user_jellyfin_config.deleteMany({ where: { id, user_id: userId } });
+    await prisma.integration_member_links.deleteMany({ where: { id: linkId, user_id: userId } });
   } catch (error) {
     logger.error('Error disconnecting Jellyfin:', error);
     throw error;
