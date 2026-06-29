@@ -62,6 +62,14 @@ out.append(f"INSERT INTO public.account (id,account_id,provider_id,user_id,creat
 # also keep users.email_verified=true + a username default for any new rows
 out.append("UPDATE public.users SET email_verified=true WHERE email_verified IS NOT TRUE;")
 out.append("UPDATE public.users SET username=email WHERE username IS NULL;")
+# rewrite Supabase-storage URLs → MinIO (objects already copied; the reload above
+# brought back the Supabase URLs, so this is the 004_storage_urls step inline).
+OLD="https://ketxnamtpbvfvblowfoo.supabase.co/storage/v1/object/public/"
+NEW="https://minios3.timdobras.com/rottenbrains/"
+out.append(f"UPDATE public.users SET image_url=replace(image_url,'{OLD}','{NEW}') WHERE image_url LIKE '{OLD}%';")
+out.append(f"UPDATE public.users SET backdrop_url=replace(backdrop_url,'{OLD}','{NEW}') WHERE backdrop_url LIKE '{OLD}%';")
+out.append(f"UPDATE public.dev_blog SET thumbnail=replace(thumbnail,'{OLD}','{NEW}') WHERE thumbnail LIKE '{OLD}%';")
+out.append(f"UPDATE public.dev_blog SET images=(SELECT array_agg(replace(e,'{OLD}','{NEW}')) FROM unnest(images) e) WHERE EXISTS(SELECT 1 FROM unnest(images) e WHERE e LIKE '{OLD}%');")
 out+=["SET session_replication_role=default;","COMMIT;"]
 open(1,'w').write("\n".join(out))
 PY
