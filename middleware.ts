@@ -1,5 +1,24 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getSessionCookie, getCookieCache } from 'better-auth/cookies';
+
+type SessionUser = { id: string; premium?: boolean };
+type Session = { user?: SessionUser } | null;
+
+// Resolve the current session via the Better Auth endpoint — edge-safe (plain
+// fetch, no Prisma) and DB-backed, so `premium` is always authoritative. This
+// is Better Auth's recommended middleware pattern; cost is one local HTTP hop
+// per protected request (same as the old Supabase getUser()).
+async function getSession(request: NextRequest): Promise<Session> {
+  try {
+    const res = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
+      headers: { cookie: request.headers.get('cookie') || '' },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Session;
+  } catch {
+    return null;
+  }
+}
 
 // Routes that do not require authentication
 const PUBLIC_ROUTES = [
@@ -42,26 +61,22 @@ export async function middleware(request: NextRequest) {
   if (isApiRoute(pathname)) return response;
   if (isPublicRoute(pathname)) return response;
 
-  // Logged-in check — edge-safe, cookie only (no DB call). Optimistic: presence
-  // of the Better Auth session cookie means logged in; pages revalidate.
-  const sessionCookie = getSessionCookie(request);
-  if (!sessionCookie) {
+  const session = await getSession(request);
+  const user = session?.user ?? null;
+
+  // Not authenticated → login.
+  if (!user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
+  // Authenticated but premium not required here.
   if (isAuthOnlyRoute(pathname)) return response;
 
-  // Premium gate. `premium` is a Better Auth user field, so it's in the signed
-  // cookie-cached session — readable here with no DB round-trip (replaces the
-  // old HMAC premium cookie). When the cache is stale (older than its maxAge)
-  // we let the request through and let the page enforce, rather than risk a
-  // false logout/paywall.
-  const cached = await getCookieCache(request);
-  const premium = (cached?.user as { premium?: boolean } | undefined)?.premium;
-  if (cached?.user && premium !== true) {
+  // Premium gate (authoritative — `premium` comes from the DB-backed session).
+  if (user.premium !== true) {
     const premiumUrl = request.nextUrl.clone();
     premiumUrl.pathname = '/premium';
     return NextResponse.redirect(premiumUrl);
