@@ -42,11 +42,18 @@ def q(sql):
 tables="users posts comments comment_likes likes saves follows notifications watch_history watch_list movie_genre_stats tv_genre_stats user_ip_addresses user_jellyfin_config new_episodes dev_blog families family_members family_invites family_integrations integration_member_links".split()
 out=["BEGIN;","SET session_replication_role=replica;"]
 # wipe in reverse dependency order, reload forward
-out.append("TRUNCATE "+", ".join("public."+t for t in tables)+", public.account RESTART IDENTITY;")
+# account + session also FK users, so they must be in the same TRUNCATE.
+out.append("TRUNCATE "+", ".join("public."+t for t in tables)+", public.account, public.session RESTART IDENTITY;")
+# `users` has Better-Auth-only NOT NULL columns (email_verified/updated_at) absent
+# from Supabase — list the Supabase columns explicitly so their DEFAULTs apply.
+USERS_COLS="id, created_at, username, name, email, image_url, tmdb_id, bio, backdrop_url, feed_genres, premium"
 for t in tables:
     d=q(f"select coalesce(json_agg(x),'[]'::json) as d from public.{t} x")[0]["d"]
     j=json.dumps(d); assert "$j$" not in j
-    out.append(f"INSERT INTO public.{t} SELECT * FROM json_populate_recordset(NULL::public.{t}, $j${j}$j$::json); -- {len(d)} rows")
+    if t=="users":
+        out.append(f"INSERT INTO public.users ({USERS_COLS}) SELECT {USERS_COLS} FROM json_populate_recordset(NULL::public.users, $j${j}$j$::json); -- {len(d)} rows")
+    else:
+        out.append(f"INSERT INTO public.{t} SELECT * FROM json_populate_recordset(NULL::public.{t}, $j${j}$j$::json); -- {len(d)} rows")
 # rebuild Better Auth accounts (credential bcrypt + oauth identities)
 cred=q("select coalesce(json_agg(json_build_object('uid',id,'pw',encrypted_password)),'[]'::json) d from auth.users where encrypted_password is not null and encrypted_password<>''")[0]["d"]
 oauth=q("select coalesce(json_agg(json_build_object('uid',user_id,'prov',provider,'aid',provider_id)),'[]'::json) d from auth.identities where provider in ('google','discord')")[0]["d"]
