@@ -1,20 +1,27 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { getSessionCookie } from 'better-auth/cookies';
 
 type SessionUser = { id: string; premium?: boolean };
-type Session = { user?: SessionUser } | null;
 
-// Resolve the current session via the Better Auth endpoint — edge-safe (plain
-// fetch, no Prisma) and DB-backed, so `premium` is always authoritative. This
-// is Better Auth's recommended middleware pattern; cost is one local HTTP hop
-// per protected request (same as the old Supabase getUser()).
-async function getSession(request: NextRequest): Promise<Session> {
+// Authoritative session read for the PREMIUM gate only. We hit the app over
+// loopback (127.0.0.1) — NOT request.nextUrl.origin — because behind Cloudflare
+// + Traefik the origin is the PUBLIC url, so the "local hop" actually round-trips
+// out through the tunnel/proxy/CrowdSec on every navigation and intermittently
+// fails, which previously logged valid users out at random. Loopback stays in
+// the container and is reliable. Returns null on any transient failure so the
+// caller can fail OPEN (the signed cookie already proves the user is logged in).
+async function authoritativeSession(
+  request: NextRequest
+): Promise<{ user: SessionUser | null } | null> {
   try {
-    const res = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
+    const base = `http://127.0.0.1:${process.env.PORT || 3000}`;
+    const res = await fetch(`${base}/api/auth/get-session`, {
       headers: { cookie: request.headers.get('cookie') || '' },
       cache: 'no-store',
     });
     if (!res.ok) return null;
-    return (await res.json()) as Session;
+    const s = (await res.json()) as { user?: SessionUser } | null;
+    return { user: s?.user ?? null };
   } catch {
     return null;
   }
@@ -61,11 +68,9 @@ export async function middleware(request: NextRequest) {
   if (isApiRoute(pathname)) return response;
   if (isPublicRoute(pathname)) return response;
 
-  const session = await getSession(request);
-  const user = session?.user ?? null;
-
-  // Not authenticated → login.
-  if (!user) {
+  // Logged-in check — read the signed session cookie LOCALLY (no network). This
+  // can't transiently fail, so a valid session is never falsely bounced to login.
+  if (!getSessionCookie(request)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('next', pathname);
@@ -75,8 +80,21 @@ export async function middleware(request: NextRequest) {
   // Authenticated but premium not required here.
   if (isAuthOnlyRoute(pathname)) return response;
 
-  // Premium gate (authoritative — `premium` comes from the DB-backed session).
-  if (user.premium !== true) {
+  // Premium gate. Resolve the authoritative session via loopback; on a transient
+  // failure FAIL OPEN (the cookie already proved login) rather than wrongly bounce
+  // a valid premium user. If the read succeeds but the session is gone (expired),
+  // send to login; if the user simply isn't premium, send to the paywall.
+  const session = await authoritativeSession(request);
+  if (session === null) return response; // transient — trust the cookie, allow through
+
+  if (!session.user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (session.user.premium !== true) {
     const premiumUrl = request.nextUrl.clone();
     premiumUrl.pathname = '/premium';
     return NextResponse.redirect(premiumUrl);
