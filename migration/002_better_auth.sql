@@ -9,6 +9,15 @@
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT true;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
+-- Better Auth does an EXACT-match email lookup (no normalization in 1.6.x), so a
+-- mixed-case stored email fails "User not found" when the user types it lowercase.
+-- citext makes the column compare case-insensitively → login works for any casing,
+-- and the unique index enforces case-insensitive email uniqueness. Prisma keeps
+-- treating it as a plain String at runtime (citext is wire-compatible with text).
+CREATE EXTENSION IF NOT EXISTS citext;
+ALTER TABLE public.users ALTER COLUMN email TYPE citext;
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_uidx ON public.users(email) WHERE email IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.account (
   id                       uuid PRIMARY KEY,
   account_id               text NOT NULL,

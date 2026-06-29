@@ -21,6 +21,12 @@ import { prisma } from './prisma';
 const googleEnabled = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const discordEnabled = !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET);
 
+// Registration kill-switch (env-toggleable, no redeploy of code to flip).
+// When on: blocks email/password sign-up AND first-time social sign-ups, while
+// existing-user login + social account-linking keep working (Better Auth only
+// checks disableSignUp on the new-user branch — see oauth2/link-account).
+const signupDisabled = process.env.DISABLE_SIGNUP === 'true';
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
@@ -37,6 +43,7 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    disableSignUp: signupDisabled,
     requireEmailVerification: false,
     password: {
       hash: async (password) => bcrypt.hash(password, 10),
@@ -51,6 +58,7 @@ export const auth = betterAuth({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
             prompt: 'select_account',
+            disableSignUp: signupDisabled,
           },
         }
       : {}),
@@ -59,6 +67,7 @@ export const auth = betterAuth({
           discord: {
             clientId: process.env.DISCORD_CLIENT_ID as string,
             clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+            disableSignUp: signupDisabled,
           },
         }
       : {}),

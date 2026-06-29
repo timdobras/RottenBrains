@@ -62,6 +62,9 @@ out.append(f"INSERT INTO public.account (id,account_id,provider_id,user_id,creat
 # also keep users.email_verified=true + a username default for any new rows
 out.append("UPDATE public.users SET email_verified=true WHERE email_verified IS NOT TRUE;")
 out.append("UPDATE public.users SET username=email WHERE username IS NULL;")
+# Better Auth lowercases emails on login lookup, but Supabase kept original casing
+# → mixed-case migrated emails fail "User not found". Normalize to lowercase.
+out.append("UPDATE public.users SET email=lower(email) WHERE email <> lower(email);")
 # rewrite Supabase-storage URLs → MinIO (objects already copied; the reload above
 # brought back the Supabase URLs, so this is the 004_storage_urls step inline).
 OLD="https://ketxnamtpbvfvblowfoo.supabase.co/storage/v1/object/public/"

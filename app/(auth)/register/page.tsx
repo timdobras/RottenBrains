@@ -10,6 +10,26 @@ type Params = Promise<{ message: string }>;
 
 export default async function Register({ searchParams }: { searchParams: Params }) {
   const { message } = await searchParams;
+
+  // Registration kill-switch (mirrors lib/auth.ts disableSignUp). When on, show a
+  // closed notice instead of a sign-up form that the API would just reject.
+  if (process.env.DISABLE_SIGNUP === 'true') {
+    return (
+      <div className="mx-auto flex h-screen w-full flex-1 flex-col items-center justify-center gap-4 px-8 text-center sm:max-w-md">
+        <h1 className="text-2xl font-semibold text-foreground">Registration is closed</h1>
+        <p className="text-foreground/70">
+          New sign-ups are currently disabled. If you already have an account, you can still log in.
+        </p>
+        <a
+          href="/login"
+          className="rounded-md bg-accent px-4 py-2 text-foreground no-underline"
+        >
+          Go to Sign In
+        </a>
+      </div>
+    );
+  }
+
   const signUp = async (formData: FormData) => {
     'use server';
     const email = formData.get('email') as string;
