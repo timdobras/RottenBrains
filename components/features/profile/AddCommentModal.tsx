@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
-import { createClient } from '@/lib/supabase/client';
+import { addComment } from '@/lib/db/mutations';
 
 interface AddCommentProps {
   post: any;
@@ -26,7 +26,6 @@ const AddComment: React.FC<AddCommentProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const postId = post.id;
   const { user } = useUser();
-  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +39,7 @@ const AddComment: React.FC<AddCommentProps> = ({
     setSubmitting(true);
     setContent(''); // optimistic clear
     try {
-      const { error } = await supabase
-        .from('comments')
-        .insert([{ post_id: postId, user_id: user_id, content: text, parent_id }])
-        .select();
-      if (error) throw error;
-
-      await supabase.rpc('increment_comments', { post_id: postId });
+      await addComment({ postId, content: text, parentId: parent_id });
 
       if (parent_id) await fetchReplies?.(parent_id);
       else await fetchComments?.();

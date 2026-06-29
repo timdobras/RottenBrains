@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
+import { createPost, updatePost, deletePost } from '@/lib/db/mutations';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
-import { createClient } from '@/lib/supabase/client';
 import { updateGenreStats } from '@/lib/supabase/clientQueries';
 import { getMediaDetails } from '@/lib/tmdb';
 import { useToast } from '../../ui/use-toast';
@@ -167,12 +167,9 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
       };
     }
 
-    const supabase = createClient();
-
     const postPayload = {
       media_id: dbvalues.media_id,
       media_type: dbvalues.media_type,
-      creatorid: dbvalues.creatorId,
       vote_user: dbvalues.vote_user,
       review_user: dbvalues.review_user,
       season_number: seasonNumber,
@@ -181,14 +178,10 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
 
     if (post && action === 'Update') {
       try {
-        const { data, error } = await supabase
-          .from('posts')
-          .update([postPayload])
-          .eq('id', post.id)
-          .select();
+        const { error } = await updatePost(post.id, postPayload);
 
         if (error) {
-          toast({ title: error.message });
+          toast({ title: error });
           console.log(error);
         } else {
           router.push('/');
@@ -199,13 +192,10 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
       }
     } else {
       try {
-        const { data, error } = await supabase
-          .from('posts')
-          .insert([postPayload])
-          .select();
+        const { error } = await createPost(postPayload);
         if (error) {
           console.log(error);
-          toast({ title: error.message });
+          toast({ title: error });
         } else {
           try {
             await updateGenreStats({
@@ -231,14 +221,13 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
     if (!post) return;
 
     setLoading(true);
-    const supabase = createClient();
 
     try {
-      const { data, error } = await supabase.from('posts').delete().eq('id', post.id);
+      const { error } = await deletePost(post.id);
 
       if (error) {
         console.log(error);
-        toast({ title: error.message });
+        toast({ title: error });
       } else {
         router.push('/');
         toast({ title: `Deleted Post` });
