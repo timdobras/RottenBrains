@@ -79,6 +79,48 @@ deploy-to-coolify:
   needs: ['build-image']
 
 # -------------------------------------------------------
+# Master: Build & deploy the rb-extractor monorepo service
+# Path-gated to rb-extractor/** so the heavy Playwright
+# image is NOT rebuilt on every normal app deploy.
+# -------------------------------------------------------
+build-extractor:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_TLS_CERTDIR: '/certs'
+    EXTRACTOR_IMAGE: $CI_REGISTRY_IMAGE/extractor
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $EXTRACTOR_IMAGE:latest -t $EXTRACTOR_IMAGE:$CI_COMMIT_SHORT_SHA ./rb-extractor
+    - docker push $EXTRACTOR_IMAGE:latest
+    - docker push $EXTRACTOR_IMAGE:$CI_COMMIT_SHORT_SHA
+  after_script:
+    - docker system prune -af --volumes || true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - rb-extractor/**/*
+
+deploy-extractor:
+  stage: deploy
+  tags:
+    - shell
+  script:
+    - echo "Triggering Coolify deployment (rb-extractor)..."
+    - |
+      curl -X GET "http://10.10.20.22:8000/api/v1/deploy?uuid=ajsh261us0je6vflr4ygftcn&force=true" \
+        -H "Authorization: Bearer $COOLIFY_TOKEN" \
+        -H "Accept: application/json" || true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - rb-extractor/**/*
+  needs: ['build-extractor']
+
+# -------------------------------------------------------
 # Cleanup: Prune docker on the shell runner
 # Removes dangling images, stopped containers, and build
 # cache that accumulate on the runner host over time.
