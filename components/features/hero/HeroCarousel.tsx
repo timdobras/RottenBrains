@@ -4,7 +4,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image';
 import type { EnrichedMediaItem } from '@/lib/tmdb/types';
 import { API_CONFIG } from '@/lib/constants';
-import { cn, getEnglishLogoPath, getMediaYear, getMediaDuration } from '@/lib/utils';
+import {
+  cn,
+  getEnglishLogoPath,
+  getMediaYear,
+  getMediaDuration,
+  getHrefFromMedia,
+} from '@/lib/utils';
 import ProgressiveImage from '@/components/features/media/ProgressiveImage';
 
 interface HeroCarouselProps {
@@ -296,7 +302,7 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   {/* CTAs */}
                   <div className="flex w-full flex-row items-stretch gap-2.5 sm:w-auto sm:items-center sm:gap-3">
                     <a
-                      href={`/protected/watch/${m.media_type}/${m.id}`}
+                      href={getHrefFromMedia(m.media_type, m.id)}
                       className="group flex flex-1 items-center justify-center gap-2 rounded-lg bg-white px-4 py-3.5 text-base font-semibold text-black shadow-lg shadow-black/30 transition-all duration-200 hover:shadow-xl hover:shadow-black/40 sm:flex-none sm:px-6 sm:py-3 sm:text-sm sm:hover:scale-105"
                     >
                       <svg
