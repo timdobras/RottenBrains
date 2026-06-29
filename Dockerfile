@@ -23,19 +23,19 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Raise the Node heap for the build only (type-checking is memory-heavy).
 ENV NODE_OPTIONS=--max-old-space-size=4096
 
-# NEXT_PUBLIC_* are inlined into the client bundle at build time; DATABASE_URL is
-# needed because some public pages (e.g. /blog) query the DB during static
-# generation. Pass these as --build-arg in CI/CD (Coolify: mark them build-time).
+# NEXT_PUBLIC_* are inlined into the client bundle at build time (pass as
+# --build-arg). Runtime-only secrets (DATABASE_URL, BETTER_AUTH_*, MINIO_*) are
+# injected by Coolify at container start — the build needs none of them because
+# every DB-querying page is dynamic (the root layout uses headers()), verified
+# by building with the CI's exact build-args.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_TMDB_API_KEY
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
-ARG DATABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_TMDB_API_KEY=$NEXT_PUBLIC_TMDB_API_KEY
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
-ENV DATABASE_URL=$DATABASE_URL
 
 # Regenerate the Prisma client against the full schema (idempotent).
 RUN npx prisma generate
