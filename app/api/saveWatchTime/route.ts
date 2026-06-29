@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { syncToJellyfin } from '@/lib/jellyfin/sync';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
-import { upsertWatchHistory } from '@/lib/supabase/serverQueries';
+import { upsertWatchHistory } from '@/lib/db/queries';
 
 interface WatchTimeData {
   time_spent: number;
@@ -123,8 +123,9 @@ export async function POST(req: NextRequest) {
     // Fire-and-forget: sync to Jellyfin if the user has it configured.
     // This runs asynchronously and does not block the API response.
     // Only sync updates originating from the app (not from Jellyfin webhooks).
-    const totalPercentage = result.data?.percentage_watched
-      ? parseFloat(result.data.percentage_watched)
+    const resultData = result.data as { percentage_watched?: string } | null | undefined;
+    const totalPercentage = resultData?.percentage_watched
+      ? parseFloat(resultData.percentage_watched)
       : parseFloat(data.percentage_watched);
 
     syncToJellyfin({

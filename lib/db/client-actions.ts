@@ -8,6 +8,11 @@ import { handleError as handleAppError, DatabaseError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { FeedGenre, IPost } from '@/types';
 import { getMediaDetails } from '../tmdb';
+import {
+  getPostByIdNew as getPostByIdNewServer,
+  getCommentsByPostId as getCommentsByPostIdServer,
+  getRepliesByCommentId as getRepliesByCommentIdServer,
+} from '@/lib/db/queries';
 
 /**
  * Server-action ports of the *data* functions in `lib/supabase/clientQueries.ts`.
@@ -405,4 +410,24 @@ export async function fetchUserNotifications(
     }
     return notification;
   });
+}
+
+/**
+ * Server-action wrappers around the `'server-only'` implementations in
+ * `lib/db/queries.ts`. These functions are needed by CLIENT components
+ * (CommentSection.tsx, fetchPostByIdClient.ts) which cannot import the
+ * server-only module directly. Delegating from a `'use server'` module keeps
+ * them callable from the browser while the real work runs server-side.
+ * Signatures mirror their `queries.ts` counterparts exactly.
+ */
+export async function getPostByIdNew(post_id: string, current_user_id?: string): Promise<any | null> {
+  return getPostByIdNewServer(post_id, current_user_id);
+}
+
+export async function getCommentsByPostId(post_id: string, current_user_id?: string) {
+  return getCommentsByPostIdServer(post_id, current_user_id);
+}
+
+export async function getRepliesByCommentId(comment_id: string, current_user_id?: string) {
+  return getRepliesByCommentIdServer(comment_id, current_user_id);
 }

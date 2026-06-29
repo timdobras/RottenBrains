@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import PostModalFull from '@/components/features/posts/PostModalFul';
 import UserPosts from '@/components/features/profile/UserPosts';
 import { fetchPostById } from '@/lib/server/fetchPostsData';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 
 type Params = Promise<{ userId: string }>;
 type SearchParams = Promise<{ post_id?: string }>;

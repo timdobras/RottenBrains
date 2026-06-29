@@ -6,8 +6,9 @@ import MediaCardClient from '@/components/features/media/MediaCardClient';
 import MediaCardServer from '@/components/features/media/MediaCardServer';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
 import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
-import { getWatchHistoryForUser, getWatchListSpecific } from '@/lib/supabase/clientQueries';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getWatchHistoryForUser } from '@/lib/db/client-actions';
+import { getWatchListSpecific } from '@/lib/supabase/clientQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
 import Profile from './Profile';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 // import ExploreCard from '@/components/features/explore/ExploreCard';
 import { fetchExploreData } from '@/lib/client/fetchExploreData';
-import { getCurrentUser, getBatchWatchTimes } from '@/lib/supabase/serverQueries';
+import { getCurrentUser, getBatchWatchTimes } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
 import { ExploreTabProps } from '@/types';
 import HomeMediaCardSkeleton from '../media/MediaCardSkeleton';

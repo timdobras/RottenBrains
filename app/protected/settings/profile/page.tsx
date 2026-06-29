@@ -1,7 +1,7 @@
 import React from 'react';
 import UserSettingsForm from '@/components/features/settings/UserSettingsForm';
 import SettingsSection from '@/components/features/settings/SettingsSection';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 
 const ProfileSettingsPage = async () => {
   const user = await getCurrentUser();

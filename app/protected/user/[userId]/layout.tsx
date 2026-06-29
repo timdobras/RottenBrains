@@ -3,7 +3,7 @@ import ScrollButtons from '@/components/common/ScrollButtons';
 import AuthButton from '@/components/features/auth/AuthButton';
 import FollowButton from '@/components/features/profile/FollowButton';
 import FollowInfo from '@/components/features/profile/FollowInfo';
-import { getUserFromDB } from '@/lib/supabase/serverQueries';
+import { getUserFromDB } from '@/lib/db/queries';
 import NewTabs from '@/components/features/profile/NewTabUser';
 
 type Props = {

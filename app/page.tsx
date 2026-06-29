@@ -11,7 +11,7 @@ import { STUDIOS, NETWORKS } from '@/lib/constants';
 import movieGenresJson from '@/lib/constants/movie_genres.json';
 import tvGenresJson from '@/lib/constants/tv_genres.json';
 import { logger } from '@/lib/logger';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 import {
   getPopular,
   getMovieDetails,

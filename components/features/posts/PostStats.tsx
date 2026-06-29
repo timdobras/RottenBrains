@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
-import { getPostComments } from '@/lib/supabase/clientQueries';
+import { getPostComments } from '@/lib/db/client-actions';
 import AddComment from './AddComment';
 import CommentCard from './CommentCard';
 import { usePostLike } from './PostLikeContext';

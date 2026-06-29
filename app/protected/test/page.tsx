@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getUserFromDB } from '@/lib/supabase/serverQueries';
+import { getUserFromDB } from '@/lib/db/queries';
 
 const TestPage = async () => {
   // Auth is enforced by middleware — user is guaranteed to exist here

@@ -7,7 +7,7 @@ import { useUser } from '@/hooks/UserContext';
 import { getCachedComments, setCachedComments } from '@/lib/client/commentCache';
 import { getLikedCommentIds } from '@/lib/client/commentLikes';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
-import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/supabase/serverQueries';
+import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/db/client-actions';
 import AddComment from './AddCommentModal';
 import CommentCard from './CommentCardModal';
 

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { NotificationIcon } from '@/components/ui/Icon';
 import { createClient } from '@/lib/supabase/client';
-import { fetchUserNotifications } from '@/lib/supabase/clientQueries';
+import { fetchUserNotifications } from '@/lib/db/client-actions';
 import CommentCard from './CommentCard';
 import FollowCard from './FollowCard';
 import LikeCard from './LikeCard';

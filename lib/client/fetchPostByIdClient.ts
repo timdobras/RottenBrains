@@ -1,6 +1,6 @@
 'use client';
 
-import { getPostByIdNew } from '@/lib/supabase/serverQueries';
+import { getPostByIdNew } from '@/lib/db/client-actions';
 import { logger } from '@/lib/logger';
 import { fetchMediaData } from './fetchMediaData';
 

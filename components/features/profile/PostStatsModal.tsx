@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
-import { getPostComments } from '@/lib/supabase/clientQueries';
+import { getPostComments } from '@/lib/db/client-actions';
 import AddComment from './AddCommentModal';
 import CommentCard from './CommentCardModal';
 

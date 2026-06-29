@@ -1,6 +1,6 @@
 import React from 'react';
 import PostForm from '@/components/features/posts/PostForm';
-import { getPostById } from '@/lib/supabase/serverQueries';
+import { getPostById } from '@/lib/db/queries';
 
 type Params = Promise<{ post_id: string }>;
 

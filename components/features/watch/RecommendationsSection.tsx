@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import MediaCardUI from '@/components/features/media/MediaCardUI';
 import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton';
-import { getBatchWatchTimes } from '@/lib/supabase/serverQueries';
+import { getBatchWatchTimes } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
 import { getCachedRecommendations } from '@/lib/tmdb/cachedFetchers';
 import { logger } from '@/lib/logger';

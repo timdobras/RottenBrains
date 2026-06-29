@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useState, useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
-import { getFollowers, getFollowing, getPostCount } from '@/lib/supabase/clientQueries';
+import { getFollowers, getFollowing, getPostCount } from '@/lib/db/client-actions';
 import { queryKeys } from '@/lib/queryKeys';
 import { IUser } from '@/types';
 import UserSearchCard from '../search-bar/UserSearchCard';

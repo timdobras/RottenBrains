@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useUser } from '@/hooks/UserContext';
-import { uploadProfilePicture } from '@/lib/supabase/clientQueries';
+import { uploadProfilePicture } from '@/lib/db/storage-actions';
 
 const ProfilePicture: React.FC = () => {
   const { user } = useUser();

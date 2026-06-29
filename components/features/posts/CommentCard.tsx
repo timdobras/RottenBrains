@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { getCommentReplies } from '@/lib/supabase/clientQueries';
+import { getCommentReplies } from '@/lib/db/client-actions';
 import { getRelativeTime } from '@/lib/utils';
 import AddComment from './AddComment';
 

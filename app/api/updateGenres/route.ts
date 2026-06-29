@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { updateGenreStats } from '@/lib/supabase/serverQueries';
+import { updateGenreStats } from '@/lib/db/queries';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 

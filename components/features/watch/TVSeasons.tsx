@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getSeasonDetails, getTVDetails, getEpisodeDetails } from '@/lib/tmdb';
-import { getBatchWatchTimes, watchTimeKey } from '@/lib/supabase/serverQueries';
+import { getBatchWatchTimes, watchTimeKey } from '@/lib/db/queries';
 import MediaCardUI from '../media/MediaCardUI';
 import EpisodeScrollAnchor from './EpisodeScrollAnchor';
 

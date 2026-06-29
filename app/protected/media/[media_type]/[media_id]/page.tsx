@@ -5,7 +5,7 @@ import MoreOptions from '@/components/features/media/MoreOptions';
 import GoBackArrow from '@/components/features/navigation/GoBackArrow';
 import { fetchMediaData } from '@/lib/client/fetchMediaData';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 import { getMediaCredits, getMediaDetails, getVideos } from '@/lib/tmdb';
 import { transformRuntime } from '@/lib/utils';
 

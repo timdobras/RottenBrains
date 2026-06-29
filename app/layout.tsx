@@ -3,7 +3,7 @@ import React from 'react';
 import TopLoader from '@/components/features/loaders/TopLoader';
 import UserProvider from '@/hooks/UserContext';
 import VideoProvider from '@/hooks/VideoProvider';
-import { getCurrentUser } from '@/lib/supabase/serverQueries';
+import { getCurrentUser } from '@/lib/db/queries';
 import { IUser } from '@/types';
 import MainContent from '@/components/common/MainContent';
 import Navbar from '@/components/features/navigation/Navbar';
