@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends xvfb xauth \
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-COPY lib.mjs server.mjs ./
+COPY lib.mjs server.mjs worker.mjs ./
 
 ENV PORT=8790
 ENV PROVIDERS=Videasy
 EXPOSE 8790
 
-# Run the service under a virtual display.
-CMD ["xvfb-run", "-a", "node", "server.mjs"]
+# Run the BullMQ worker under a virtual display (it also serves /health on PORT).
+CMD ["xvfb-run", "-a", "node", "worker.mjs"]
