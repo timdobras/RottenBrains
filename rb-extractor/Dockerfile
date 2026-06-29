@@ -1,23 +1,24 @@
 # Headless-browser HLS extractor for the RottenBrains native (ad-free) player.
-# Base image bundles Chromium + all system libs. The tag MUST match the
-# playwright version in package.json/package-lock.json (1.61.1) so the
-# pre-installed browser is reused instead of re-downloaded.
+# Base image bundles Chromium deps + system libs.
 FROM mcr.microsoft.com/playwright:v1.61.1-noble
 
-# xvfb is only needed for HEADED=1 (providers that detect HeadlessChrome, e.g.
-# SuperEmbed). The default Videasy worker runs plain headless — no X needed.
+# xvfb provides a virtual X display for headed (Turnstile) providers; headless
+# providers (Videasy) don't need it.
 RUN apt-get update && apt-get install -y --no-install-recommends xvfb xauth \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-COPY lib.mjs server.mjs worker.mjs ./
+# patchright (stealth) uses its own patched Chromium — install it explicitly.
+RUN npx patchright install chromium
+COPY lib.mjs server.mjs worker.mjs entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
 ENV PORT=8790
-ENV PROVIDERS=Videasy
+# Videasy = headless; VidSrc.fyi = headed (patchright + xvfb, beats Turnstile).
+ENV PROVIDERS="Videasy,VidSrc.fyi"
 EXPOSE 8790
 
-# Plain headless worker (also serves /health on PORT). For headed providers set
-# HEADED=1 and wrap with xvfb-run.
-CMD ["node", "worker.mjs"]
+# Entrypoint starts Xvfb then runs the worker (which also serves /health).
+CMD ["./entrypoint.sh"]

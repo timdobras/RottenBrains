@@ -12,7 +12,7 @@ import type { ExtractedStream, ResolveParams, StreamResolver } from '../types';
  */
 
 const QUEUE_NAME = process.env.STREAM_QUEUE || 'stream-extract';
-const JOB_TIMEOUT_MS = Number(process.env.STREAM_JOB_TIMEOUT_MS || 60_000);
+const JOB_TIMEOUT_MS = Number(process.env.STREAM_JOB_TIMEOUT_MS || 110_000);
 
 interface ExtractResult {
   url?: string;

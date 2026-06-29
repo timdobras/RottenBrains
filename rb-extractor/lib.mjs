@@ -1,4 +1,7 @@
-import { chromium } from 'playwright';
+// patchright is a stealth drop-in for playwright — it passes the non-interactive
+// Cloudflare Turnstile that gates providers like vidsrc.fyi/SuperEmbed (when run
+// headed). Videasy works with it too.
+import { chromium } from 'patchright';
 
 // A real Chrome UA; under headed+xvfb the Sec-CH-UA client hints match this
 // (no "HeadlessChrome"), which is what defeats the bot detection on these players.
@@ -25,6 +28,10 @@ function superembedApi({ type, id, season, episode }) {
   return `https://getsuperembed.link/?video_id=${id}&tmdb=1&player_loader=3&preferred_server=0${se}`;
 }
 
+// Providers gated by Cloudflare Turnstile (or HeadlessChrome detection) that
+// require a headed browser under an X display to pass.
+const HEADED_PROVIDERS = new Set(['VidSrc.fyi', 'SuperEmbed']);
+
 // --- per-provider drivers: navigate + interact; sniffing is generic ---
 const DRIVERS = {
   Videasy: async (page, _ctx, params) => {
@@ -49,9 +56,11 @@ const DRIVERS = {
     await poke(page, 5);
   },
   'VidSrc.fyi': async (page, _ctx, params) => {
+    // cloudnestra rcp + Cloudflare Turnstile — needs patchright headed and ~40s
+    // for the Turnstile proof-of-work to complete before the m3u8 loads.
     const tail = params.type === 'tv' ? `/${params.id}/${params.season || 1}/${params.episode || 1}` : `/${params.id}`;
     await page.goto(`https://vidsrc.fyi/embed/${params.type}${tail}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await poke(page, 6);
+    await poke(page, 16);
   },
 };
 
@@ -72,7 +81,7 @@ async function poke(page, rounds) {
   }
 }
 
-export async function extractStream(providerName, params, { timeoutMs = 45000 } = {}) {
+export async function extractStream(providerName, params, { timeoutMs = 90000 } = {}) {
   const driver = DRIVERS[providerName];
   if (!driver) throw new Error(`unknown provider ${providerName}`);
 
@@ -80,12 +89,19 @@ export async function extractStream(providerName, params, { timeoutMs = 45000 } 
   // to run headed (requires an X server / xvfb) for providers that detect
   // HeadlessChrome (e.g. SuperEmbed). The deployed Videasy-only worker uses
   // headless so it needs no xvfb.
+  // Per-provider headed/headless: Turnstile-walled providers need a headed
+  // browser (real browser-API probes) under an X display; Videasy works
+  // headless (no display). Resilient by design: if xvfb is unavailable, the
+  // headless providers still work and headed ones just fail gracefully.
+  const headed = process.env.HEADED === '1' || HEADED_PROVIDERS.has(providerName);
+  // IMPORTANT: patchright supplies its own stealth. Do NOT add the STEALTH
+  // init script or --disable-blink-features=AutomationControlled — those FIGHT
+  // patchright's patches and make us MORE detectable (Turnstile then fails).
   const browser = await chromium.launch({
-    headless: process.env.HEADED !== '1',
-    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled', '--autoplay-policy=no-user-gesture-required', '--mute-audio'],
+    headless: !headed,
+    args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required', '--mute-audio'],
   });
-  const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 720 }, ignoreHTTPSErrors: true });
-  await ctx.addInitScript(STEALTH);
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, ignoreHTTPSErrors: true });
 
   const hits = new Map(); // m3u8 url -> referer
   const wire = (pg) =>
