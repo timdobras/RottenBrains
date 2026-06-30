@@ -1,6 +1,7 @@
 'use client';
 
 import { Drawer } from '@base-ui/react/drawer';
+import { Drawer as VaulDrawer } from 'vaul';
 import { Heart, MessageCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
@@ -10,6 +11,12 @@ import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/db/client-actions';
 import AddComment from './AddCommentModal';
 import CommentCard from './CommentCardModal';
+
+// A/B trial: which library powers the mobile comment sheet.
+// 'vaul'   → Vaul (testing whether it feels smoother than Base UI)
+// 'baseui' → the original @base-ui/react drawer
+// Flip this one constant (and redeploy) to switch back.
+const MOBILE_SHEET: 'vaul' | 'baseui' = 'vaul';
 
 const CommentsSkeleton = () => (
   <div className="relative flex w-full flex-col gap-4 overflow-hidden p-3">
@@ -232,43 +239,79 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
         </button>
       </div>
 
-      {/* Mobile: Instagram-style bottom sheet with native swipe-to-dismiss. */}
-      <Drawer.Root
-        open={showSheet}
-        onOpenChange={setShowSheet}
-        swipeDirection="down"
-        modal={lockBodyScroll ? true : 'trap-focus'}
-      >
-        <Drawer.Portal>
-          <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 md:hidden" />
-          <Drawer.Popup className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none transition-transform duration-300 data-[starting-style]:translate-y-full data-[ending-style]:translate-y-full md:hidden">
-            {/* Grab handle + title. Base UI handles the swipe-to-dismiss; the
-                comment list below still scrolls normally. */}
-            <div className="shrink-0 select-none">
-              <div className="flex justify-center pt-2.5">
-                <div className="h-1.5 w-10 rounded-full bg-foreground/25" />
-              </div>
-              <Drawer.Title className="px-4 py-2 text-center text-sm font-semibold">
-                Comments
-              </Drawer.Title>
-              <div className="h-px w-full bg-foreground/10" />
-            </div>
+      {/* Mobile: Instagram-style bottom sheet with native swipe-to-dismiss.
+          Shared inner content; only the drawer library differs (see MOBILE_SHEET). */}
+      {(() => {
+        const grabHandle = (
+          <div className="flex justify-center pt-2.5">
+            <div className="h-1.5 w-10 rounded-full bg-foreground/25" />
+          </div>
+        );
+        const list = (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+            {renderList()}
+          </div>
+        );
+        const composer = (
+          <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
+            <AddComment
+              post={post}
+              user_id={user_id}
+              fetchComments={fetchComments}
+              fetchReplies={fetchReplies}
+            />
+          </div>
+        );
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
-              {renderList()}
-            </div>
+        if (MOBILE_SHEET === 'vaul') {
+          return (
+            <VaulDrawer.Root
+              open={showSheet}
+              onOpenChange={setShowSheet}
+              modal={!!lockBodyScroll}
+            >
+              <VaulDrawer.Portal>
+                <VaulDrawer.Overlay className="fixed inset-0 z-40 bg-black/50 md:hidden" />
+                <VaulDrawer.Content className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none md:hidden">
+                  <div className="shrink-0 select-none">
+                    {grabHandle}
+                    <VaulDrawer.Title className="px-4 py-2 text-center text-sm font-semibold">
+                      Comments
+                    </VaulDrawer.Title>
+                    <div className="h-px w-full bg-foreground/10" />
+                  </div>
+                  {list}
+                  {composer}
+                </VaulDrawer.Content>
+              </VaulDrawer.Portal>
+            </VaulDrawer.Root>
+          );
+        }
 
-            <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
-              <AddComment
-                post={post}
-                user_id={user_id}
-                fetchComments={fetchComments}
-                fetchReplies={fetchReplies}
-              />
-            </div>
-          </Drawer.Popup>
-        </Drawer.Portal>
-      </Drawer.Root>
+        return (
+          <Drawer.Root
+            open={showSheet}
+            onOpenChange={setShowSheet}
+            swipeDirection="down"
+            modal={lockBodyScroll ? true : 'trap-focus'}
+          >
+            <Drawer.Portal>
+              <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 md:hidden" />
+              <Drawer.Popup className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none transition-transform duration-300 data-[starting-style]:translate-y-full data-[ending-style]:translate-y-full md:hidden">
+                <div className="shrink-0 select-none">
+                  {grabHandle}
+                  <Drawer.Title className="px-4 py-2 text-center text-sm font-semibold">
+                    Comments
+                  </Drawer.Title>
+                  <div className="h-px w-full bg-foreground/10" />
+                </div>
+                {list}
+                {composer}
+              </Drawer.Popup>
+            </Drawer.Portal>
+          </Drawer.Root>
+        );
+      })()}
     </div>
   );
 };
