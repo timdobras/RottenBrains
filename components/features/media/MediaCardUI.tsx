@@ -19,7 +19,7 @@ import { getVideos } from '@/lib/tmdb';
 import { queryKeys } from '@/lib/queryKeys';
 import MoreOptions from './MoreOptions';
 import RemoveFromContinueWatching from './RemoveFromContinueWatching';
-import HoverImage, { extractTrailerInfo } from './TrailerDisplayOnHover';
+import { extractTrailerInfo } from './TrailerDisplayOnHover';
 import { useAverageColor } from '@/hooks/useAverageColor';
 
 // How long the pointer must rest on a card before the trailer pop-out opens.
@@ -142,6 +142,11 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   }, []);
 
   const usePopout = isDesktop && !disableTrailer;
+  // Mobile equivalent of the desktop hover pop-out: a small play control opens
+  // the SAME scaled <MediaCardHoverPreview> (with a close button). Replaces the
+  // old full-card tap-to-play overlay, which swallowed the tap and blocked
+  // navigation into the intercepted watch route.
+  const useMobileTrailer = !isDesktop && !disableTrailer;
 
   const closePreview = useCallback(() => {
     if (openTimer.current) {
@@ -187,17 +192,19 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
     }
   }, []);
 
-  // Close the pop-out if the row scrolls or the window resizes (anchor moves).
-  useEffect(() => {
-    if (!preview) return;
-    const onMove = () => closePreview();
-    window.addEventListener('scroll', onMove, true);
-    window.addEventListener('resize', onMove);
-    return () => {
-      window.removeEventListener('scroll', onMove, true);
-      window.removeEventListener('resize', onMove);
-    };
-  }, [preview, closePreview]);
+  // Mobile: open the trailer pop-out from the play button. preventDefault +
+  // stopPropagation so the play tap itself doesn't follow the card's <Link>;
+  // it pops immediately (snappy) and PreviewTrailer fetches the trailer.
+  const handleMobilePlay = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!posterRef.current) return;
+    const r = posterRef.current.getBoundingClientRect();
+    setPreview({ top: r.top, left: r.left, width: r.width, height: r.height });
+  }, []);
+
+  // (Scroll / resize dismissal now lives inside MediaCardHoverPreview so it can
+  // play the shrink-out animation instead of an instant unmount.)
 
   useEffect(() => () => closePreview(), [closePreview]);
 
@@ -241,28 +248,32 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
           // auto-scroll-to-content so the page behind doesn't scroll/jump.
           scroll={false}
         >
-          {disableTrailer || usePopout ? (
-            // Static poster. On desktop the trailer plays in the hover pop-out;
-            // when trailers are disabled it's just the image.
-            <div className="relative w-full overflow-hidden">
-              <ImageWithFallback
-                imageUrl={posterImageUrl}
-                altText={mediaTitle}
-                quality="w1280"
-                progressive={progressive}
-              />
-              {overlayNode}
-            </div>
-          ) : (
-            <HoverImage
+          {/* Always a static poster inside the <Link>. Desktop plays the
+              trailer in the hover pop-out; mobile opens the same pop-out via the
+              play button below — so tapping the card anywhere else navigates. */}
+          <div className="relative w-full overflow-hidden">
+            <ImageWithFallback
               imageUrl={posterImageUrl}
               altText={mediaTitle}
-              media_type={media_type || 'movie'}
-              media_id={media_id || 0}
-            >
-              {overlayNode}
-            </HoverImage>
-          )}
+              quality="w1280"
+              progressive={progressive}
+            />
+            {overlayNode}
+            {/* Mobile play control — a small corner target (NOT a full-card
+                overlay), so every other tap on the card follows the <Link>. */}
+            {useMobileTrailer && (
+              <button
+                type="button"
+                onClick={handleMobilePlay}
+                aria-label="Play trailer"
+                className="absolute bottom-2 left-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm active:scale-95"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-5 w-5" aria-hidden="true">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </Link>
         {showRemoveButton && user_id && media_type && media_id && (
           <RemoveFromContinueWatching
@@ -274,7 +285,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
           />
         )}
       </div>
-      {usePopout && preview && (
+      {preview && (
         <MediaCardHoverPreview
           href={href}
           imageUrl={posterImageUrl}
@@ -283,6 +294,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
           media_id={media_id || 0}
           anchorRect={preview}
           onClose={closePreview}
+          mobile={!isDesktop}
         />
       )}
       <div className="flex flex-col md:p-0">

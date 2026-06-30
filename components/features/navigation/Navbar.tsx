@@ -35,6 +35,8 @@ export default function Navbar() {
   const navRef = useRef<HTMLElement>(null);
   const lastScrollY = useRef(0);
   const currentTranslateY = useRef(0);
+  // Which element produced the last scroll we reacted to (window/document = null).
+  const lastScrollerRef = useRef<Element | null>(null);
   const MOBILE_NAV_HEIGHT = 48; // matches h-12
 
   useEffect(() => {
@@ -49,8 +51,24 @@ export default function Navbar() {
       document.documentElement.style.setProperty('--watch-player-top', `${px}px`);
     setPlayerTop(isMobile() ? MOBILE_NAV_HEIGHT : 0);
 
-    const update = () => {
-      const currentScrollY = window.scrollY;
+    // `scroller` is whichever element actually scrolled. Normally that's the
+    // document (null → window.scrollY), but the @watch overlay is its own
+    // `overflow-y-auto` container (the body is scroll-locked while it's open),
+    // so its scroll NEVER reaches a plain window listener. We capture scroll
+    // from any descendant scroller (see capture:true below) and read its
+    // scrollTop, so the hide-on-scroll bar + --watch-player-top track the watch
+    // overlay too — the player and the sticky season bar ride up/down with it.
+    const update = (scroller: Element | null) => {
+      const currentScrollY = scroller ? scroller.scrollTop : window.scrollY;
+
+      // When the active scroller changes (e.g. the overlay opens/closes),
+      // rebaseline so the first frame doesn't see a huge phantom delta and
+      // snap the bar shut/open.
+      if (lastScrollerRef.current !== scroller) {
+        lastScrollerRef.current = scroller;
+        lastScrollY.current = currentScrollY;
+      }
+
       const deltaY = currentScrollY - lastScrollY.current;
 
       setScrolled(currentScrollY > 50);
@@ -76,17 +94,27 @@ export default function Navbar() {
     };
 
     let ticking = false;
-    const onScroll = () => {
+    const onScroll = (e: Event) => {
+      const t = e.target as unknown;
+      // The scrolling element: an Element with a scrollTop (the overlay, a list,
+      // etc.). Document/window scrolls come through as document → treat as null.
+      const scroller =
+        t && t !== document && t instanceof Element && typeof t.scrollTop === 'number'
+          ? t
+          : null;
       if (ticking) return;
       ticking = true;
       window.requestAnimationFrame(() => {
-        update();
+        update(scroller);
         ticking = false;
       });
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    // capture:true is essential — scroll events don't bubble, but capturing on
+    // window still delivers scroll from nested scrollers (the @watch overlay).
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () =>
+      window.removeEventListener('scroll', onScroll, { capture: true } as EventListenerOptions);
   }, []);
 
   return (
@@ -108,7 +136,7 @@ export default function Navbar() {
                 alt="RottenBrains"
                 width={120}
                 height={20}
-                className="h-4 w-auto brightness-0 invert dark:invert md:h-5"
+                className="h-4 w-auto brightness-0 dark:invert md:h-5"
                 priority
               />
             </Link>

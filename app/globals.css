@@ -507,7 +507,11 @@
   }
   .small-screen-watch-top-premium,
   .small-screen-watch-top {
-    top: calc(56.25vw + 40px);
+    /* Stick to the player's live bottom edge: the player sits at
+       --watch-player-top (rides up 48px→0 as the hide-on-scroll navbar
+       retracts) and is 56.25vw tall (full-width 16:9). Tracking the var keeps
+       this season bar pinned right under the player as it moves. */
+    top: calc(var(--watch-player-top, 48px) + 56.25vw);
   }
 }
 

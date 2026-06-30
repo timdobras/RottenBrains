@@ -54,7 +54,12 @@ export default function WatchOverlay({ children }: { children: React.ReactNode }
 
   return (
     <div
-      className="fixed inset-0 z-30 overflow-y-auto overscroll-contain pt-12 md:pt-16"
+      // No mobile padding-top: the player section is `sticky top:var(--watch-player-top)`,
+      // and a scroll-container padding-top would STACK with that sticky inset
+      // (48 + 48 = 96), leaving a navbar-height gap above the player. The sticky
+      // var already offsets below the navbar. Desktop keeps md:pt-16 because the
+      // player there is in normal flow (md:relative), not sticky.
+      className="fixed inset-0 z-30 overflow-y-auto overscroll-contain md:pt-16"
       style={{ display: visible ? undefined : 'none' }}
     >
       {/* Background surface (fades in on first mount). */}

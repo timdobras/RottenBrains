@@ -50,6 +50,7 @@ const PreviewTrailer: React.FC<PreviewTrailerProps> = ({
   const [revealed, setRevealed] = useState(false); // poster has faded away
   const [loaded, setLoaded] = useState(false); // iframe finished loading (player ready)
   const [muted, setMuted] = useState(getSavedMuted); // remembered preference
+  const [paused, setPaused] = useState(false); // optimistic local play state (autoplays on mount)
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const { data } = useQuery({
@@ -111,6 +112,22 @@ const PreviewTrailer: React.FC<PreviewTrailerProps> = ({
     []
   );
 
+  // Play / pause the trailer via the IFrame API. Local optimistic state — the
+  // player starts playing (autoplay) so the first tap pauses.
+  const togglePlay = useCallback(
+    (e: React.MouseEvent) => {
+      // We're inside the card's <Link>; don't navigate when toggling playback.
+      e.preventDefault();
+      e.stopPropagation();
+      setPaused((p) => {
+        const next = !p;
+        command(next ? 'pauseVideo' : 'playVideo');
+        return next;
+      });
+    },
+    [command]
+  );
+
   const toggleMute = useCallback(
     (e: React.MouseEvent) => {
       // We're inside the card's <Link>; don't navigate when toggling sound.
@@ -167,13 +184,34 @@ const PreviewTrailer: React.FC<PreviewTrailerProps> = ({
         />
       )}
 
-      {/* Mute / unmute toggle (top-right, clear of YouTube's own UI). */}
+      {/* Play / pause toggle (bottom-left). */}
+      {src && loaded && (
+        <button
+          type="button"
+          onClick={togglePlay}
+          aria-label={paused ? 'Play trailer' : 'Pause trailer'}
+          className="absolute bottom-2 left-2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-black/80"
+        >
+          {paused ? (
+            <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-4 w-4" aria-hidden="true">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+          )}
+        </button>
+      )}
+
+      {/* Mute / unmute toggle (bottom-right, clear of YouTube's own UI and of
+          the mobile close button which sits top-right). */}
       {src && loaded && (
         <button
           type="button"
           onClick={toggleMute}
           aria-label={muted ? 'Unmute trailer' : 'Mute trailer'}
-          className="absolute right-2 top-2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-black/80"
+          className="absolute bottom-2 right-2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-black/80"
         >
           {muted ? (
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
