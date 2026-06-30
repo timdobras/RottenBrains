@@ -1,5 +1,7 @@
 'use client';
 
+import { CircleUserRound } from 'lucide-react';
+import { LogoWordmark } from '@/components/ui/Logo';
 import Link from 'next/link';
 import React, { useEffect, useRef } from 'react';
 import ProfilePictureNew from '@/components/features/navigation/NavProfilePicture';
@@ -57,11 +59,7 @@ const NavTop = () => {
         <div className="flex flex-row gap-4">
           {/* <MenuButtonWithSidebar /> */}
           <Link href="/" className="flex flex-row items-center gap-1">
-            <img
-              src="/assets/images/logo_text_new.svg"
-              alt="text-logo"
-              className="invert-on-dark h-4 w-auto"
-            />
+            <LogoWordmark className="h-4 w-auto text-foreground" />
           </Link>
         </div>
         {/* Right side */}
@@ -75,11 +73,7 @@ const NavTop = () => {
             href="/login"
             className="flex flex-row items-center gap-2 rounded-full bg-foreground/10 px-4 py-1"
           >
-            <img
-              src="/assets/icons/account-circle-outline.svg"
-              className="invert-on-dark h-5 w-5"
-              alt="Sign in"
-            />
+            <CircleUserRound className="h-5 w-5" />
             <p>Sign in</p>
           </Link>
         )}

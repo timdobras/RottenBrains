@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { Film, Tv } from 'lucide-react';
 import CommentSection from '../profile/CommentSection';
 import PostHeader from './PostHeader';
 import PostMedia from './PostMedia';
@@ -44,11 +45,11 @@ const PostModalContent = ({ post_media_data, user_id }: PostModalContentProps) =
           <PostMedia media={media_data} post={post} />
         </div>
         <div className="flex shrink-0 flex-row items-center gap-2 px-3 py-2">
-          <img
-            src={`/assets/icons/${media_data.media_type}-outline.svg`}
-            alt=""
-            className="invert-on-dark aspect-square h-5"
-          />
+          {media_data.media_type === 'tv' ? (
+            <Tv className="aspect-square h-5" />
+          ) : (
+            <Film className="aspect-square h-5" />
+          )}
           <Link
             href={`/protected/media/${media_data.media_type}/${media_data.media_id}`}
             className="line-clamp-1 font-medium"

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
@@ -106,12 +107,13 @@ const GenreSelector: React.FC = () => {
         {mediaGenre && mediaGenre.length > 0 ? (
           mediaGenre.map((media: any) => (
             <Link href={`/protected/media/${selectedType}/${media.id}`} key={media.id}>
-              <div className="animate-fade-in">
-                <img
-                  src={getTMDBImageUrl(media.poster_path, 'w500') || ''}
-                  alt={media.title || media.name}
-                  className="rounded-[8px] bg-foreground/10 hover:opacity-80"
-                  loading="lazy"
+              <div className="animate-fade-in relative aspect-[2/3] w-full">
+                <Image
+                  src={getTMDBImageUrl(media.poster_path, 'w500') || '/assets/images/logo_new_black.svg'}
+                  alt={media.title || media.name || ''}
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                  className="rounded-[8px] bg-foreground/10 object-cover hover:opacity-80"
                 />
               </div>
             </Link>

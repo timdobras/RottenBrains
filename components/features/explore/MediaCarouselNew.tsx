@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Slider from 'react-slick';
+import { ChevronDown, Play } from 'lucide-react';
 import { Genre } from '@/components/features/home/GenreSelector';
 import ProgressiveImage from '@/components/features/media/ProgressiveImage';
 import movie_genres from '@/lib/constants/movie_genres.json';
@@ -79,11 +80,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                             className="flex flex-row items-center gap-2 rounded-full bg-black/20 px-3 py-1 backdrop-blur-xl"
                           >
                             <p className="text-white">Categories</p>
-                            <img
-                              src="/assets/icons/drop_down_arrow_solid.svg"
-                              alt="dropdown arrow"
-                              className=""
-                            />
+                            <ChevronDown className="h-4 w-4 text-white" />
                           </button>
                           {isDropdownOpen && (
                             <div className="backdrop-blur/xl custom-scrollbar absolute left-0 top-full z-50 mt-2 flex max-h-[60vh] w-max flex-col overflow-y-auto rounded-lg bg-background p-2 shadow-lg md:flex-row">
@@ -147,11 +144,7 @@ const TopMovieCarousel = ({ movies }: any) => {
                             href={watchLink}
                             className="flex flex-row items-center gap-2 rounded-full bg-white px-6 py-3 text-lg text-black"
                           >
-                            <img
-                              src="/assets/icons/play-solid.svg"
-                              alt=""
-                              className="h-[20px] w-[20px]"
-                            />
+                            <Play className="h-[20px] w-[20px] fill-current" />
                             <p>Watch Now</p>
                           </Link>
                           <Link

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import React from 'react';
+import { Film, Tv } from 'lucide-react';
 import UserReviewText from './UserReviewText';
 
 interface Media {
@@ -28,11 +29,11 @@ const PostContent = ({ media, post, post_link, expanded }: PostContentProps) => 
     <div className="flex flex-col px-2">
       <div className="mt-2 flex flex-col gap-2">
         <div className="flex w-full flex-row items-center gap-2">
-          <img
-            src={`/assets/icons/${post.media_type}-outline.svg`}
-            alt=""
-            className="invert-on-dark aspect-square h-5"
-          />
+          {post.media_type === 'tv' ? (
+            <Tv className="aspect-square h-5" />
+          ) : (
+            <Film className="aspect-square h-5" />
+          )}
           <Link
             href={`/protected/media/${post.media_type}/${post.media_id}`}
             className="line-clamp-1 font-medium"

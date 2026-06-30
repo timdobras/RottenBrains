@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
@@ -15,9 +16,11 @@ const MediaSearchCard = ({ media, onClick }: SearchCardProps) => {
       className={`flex h-auto w-full cursor-pointer flex-row gap-4 p-4 hover:bg-foreground/10 md:h-32`}
     >
       {media.poster_path && media.poster_path !== '' ? (
-        <img
-          src={getTMDBImageUrl(media.poster_path, 'w200') || ''}
-          alt=""
+        <Image
+          src={getTMDBImageUrl(media.poster_path, 'w200') || '/assets/images/logo_new_black.svg'}
+          alt={media.title || media.name || ''}
+          width={96}
+          height={96}
           className="aspect-square h-24 flex-shrink-0 overflow-hidden rounded-[8px] object-cover object-center md:h-full"
         />
       ) : (

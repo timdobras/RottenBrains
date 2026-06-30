@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
+import { LogoWordmark } from '@/components/ui/Logo';
 import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
 import { PlusIcon, SearchIcon } from '@/components/ui/Icon';
@@ -131,14 +131,7 @@ export default function Navbar() {
           {/* Left: Logo + Nav links */}
           <div className="flex items-center gap-4 md:gap-8">
             <Link href="/">
-              <Image
-                src="/assets/images/logo_text_new.svg"
-                alt="RottenBrains"
-                width={120}
-                height={20}
-                className="h-4 w-auto brightness-0 dark:invert md:h-5"
-                priority
-              />
+              <LogoWordmark className="h-4 w-auto text-foreground md:h-5" />
             </Link>
 
             {/* Desktop nav links */}

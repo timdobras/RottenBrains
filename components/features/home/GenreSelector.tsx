@@ -1,4 +1,5 @@
 'use client';
+import { SlidersHorizontal } from 'lucide-react';
 import { redirect, usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState, useMemo } from 'react';
 import Modal from '@/components/features/profile/Modal';
@@ -232,11 +233,7 @@ const GenreSelector: React.FC<GenreSelectorProps> = ({
           className="flex h-full flex-shrink-0 items-center justify-center rounded-full bg-foreground/10 p-2"
           onClick={() => setIsSettingsModalOpen(true)}
         >
-          <img
-            src="/assets/icons/tune-outline.svg"
-            alt="settings"
-            className="invert-on-dark aspect-square h-full"
-          />
+          <SlidersHorizontal className="aspect-square h-full" />
         </button>
       ) : (
         <></>

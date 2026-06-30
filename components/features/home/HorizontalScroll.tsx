@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -48,7 +49,7 @@ export default function HorizontalScroll({
           onClick={handleScrollLeft}
           className="absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/80 p-2 text-white hover:bg-black/80 focus:outline-none md:flex"
         >
-          <img src="/assets/icons/caret-left-solid.svg" alt="" className="h-4 w-4 invert" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
       )}
 
@@ -69,7 +70,7 @@ export default function HorizontalScroll({
           onClick={handleScrollRight}
           className="absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-black/80 p-2 text-white hover:bg-black/80 focus:outline-none md:flex"
         >
-          <img src="/assets/icons/caret-right-solid.svg" alt="" className="h-4 w-4 invert" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       )}
     </div>

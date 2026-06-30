@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { LogoMark } from '@/components/ui/Logo';
 import { useInView } from 'react-intersection-observer';
 import HomePostCardUI from '@/components/features/posts/HomePostCardUI';
 import { useUser } from '@/hooks/UserContext';
@@ -83,11 +84,7 @@ const UserPostsType: React.FC<UserPostsProps> = ({
       {!loadingPosts && hasMorePosts && <div ref={refPosts} className="h-[100px] w-[100px]"></div>}
       {!hasMorePosts && (
         <div className="flex w-full flex-col items-center justify-center gap-4 rounded-[8px] bg-foreground/10 p-4">
-          <img
-            src="/assets/images/logo_new_black.svg"
-            alt="No more posts"
-            className="invert-on-dark h-8 w-8 opacity-50"
-          />
+          <LogoMark className="h-8 w-8 text-foreground opacity-50" />
           <p className="text-foreground/50">No more posts</p>
         </div>
       )}

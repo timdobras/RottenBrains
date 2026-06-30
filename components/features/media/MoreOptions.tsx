@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
+import { Folder, MoreVertical } from 'lucide-react';
 import { addToWatchList, updateGenreStats } from '@/lib/db/client-actions';
 
 type MoreOptionsProps = {
@@ -71,11 +72,7 @@ const MoreOptions = ({ user_id, media_type, media_id, genre_ids }: MoreOptionsPr
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <img
-          src="/assets/icons/more-vert.svg"
-          alt=""
-          className="invert-on-dark h-[20px] w-[20px]"
-        />
+        <MoreVertical className="h-[20px] w-[20px]" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="border-none bg-background p-0" align="start">
         <div className="h-full w-full bg-foreground/10">
@@ -83,33 +80,21 @@ const MoreOptions = ({ user_id, media_type, media_id, genre_ids }: MoreOptionsPr
             className="flex h-full w-full flex-row items-center gap-4 p-2 hover:cursor-pointer hover:bg-foreground/20"
             onClick={handleSaveToWatching}
           >
-            <img
-              src="/assets/icons/folder-outline.svg"
-              alt=""
-              className="invert-on-dark h-[24px] w-[24px]"
-            />
+            <Folder className="h-[24px] w-[24px]" />
             <p>Watching</p>
           </div>
           <div
             className="flex h-full w-full flex-row items-center gap-4 p-2 hover:cursor-pointer hover:bg-foreground/20"
             onClick={handleSaveToPlanned}
           >
-            <img
-              src="/assets/icons/folder-outline.svg"
-              alt=""
-              className="invert-on-dark h-[24px] w-[24px]"
-            />
+            <Folder className="h-[24px] w-[24px]" />
             <p>Planned</p>
           </div>
           <div
             className="flex h-full w-full flex-row items-center gap-4 p-2 hover:cursor-pointer hover:bg-foreground/20"
             onClick={handleSaveToWatched}
           >
-            <img
-              src="/assets/icons/folder-outline.svg"
-              alt=""
-              className="invert-on-dark h-[24px] w-[24px]"
-            />
+            <Folder className="h-[24px] w-[24px]" />
             <p>Watched</p>
           </div>
         </div>

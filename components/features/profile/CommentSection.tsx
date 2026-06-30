@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import { Heart, MessageCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useHasMounted from '@/hooks/useHasMounted';
@@ -60,25 +61,7 @@ const HeartButton = ({
   onClick: () => void;
 }) => (
   <button onClick={onClick} className={animate ? 'pop' : ''} aria-label="Like post">
-    {liked ? (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 -960 960 960"
-        width={size}
-        height={size}
-        className="fill-accent"
-      >
-        <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
-      </svg>
-    ) : (
-      <img
-        src="/assets/icons/heart-outline.svg"
-        alt=""
-        width={size}
-        height={size}
-        className="invert-on-dark"
-      />
-    )}
+    <Heart size={size} className={liked ? 'fill-current text-accent' : ''} />
   </button>
 );
 
@@ -275,13 +258,7 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
           className="flex items-center gap-2 text-foreground"
           aria-label="View comments"
         >
-          <img
-            src="/assets/icons/comment-outline.svg"
-            alt=""
-            width={24}
-            height={24}
-            className="invert-on-dark"
-          />
+          <MessageCircle size={24} />
           <span className="font-semibold">{commentCount}</span>
         </button>
       </div>

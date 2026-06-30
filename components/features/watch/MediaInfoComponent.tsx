@@ -1,3 +1,5 @@
+import { Star } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
@@ -27,22 +29,14 @@ const MediaInfoComponent = async ({ media_type, media_id, season_number }: Media
         <Link href={`/protected/media/${media_type}/${media_id}`}>
           <div className="min-h-[450px] min-w-[300px] overflow-hidden rounded-[8px] drop-shadow-2xl">
             <div className="absolute m-2 flex flex-row items-center justify-center gap-2 rounded-[6px] bg-background/50 p-2 text-lg font-bold backdrop-blur">
-              <img
-                src="/assets/icons/star-solid.svg"
-                alt=""
-                width={20}
-                height={20}
-                className="invert-on-dark"
-                loading="lazy"
-              />
+              <Star size={20} className="fill-current" />
               <p>{media.vote_average.toFixed(1)}</p>
             </div>
-            <img
-              src={getTMDBImageUrl(media.poster_path, 'w500') || ''}
-              alt=""
-              width="300"
-              height="450"
-              loading="lazy"
+            <Image
+              src={getTMDBImageUrl(media.poster_path, 'w500') || '/assets/images/logo_new_black.svg'}
+              alt={media.title || media.name || ''}
+              width={300}
+              height={450}
             />
           </div>
         </Link>

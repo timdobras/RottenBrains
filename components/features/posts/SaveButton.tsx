@@ -1,4 +1,5 @@
 'use client';
+import { Bookmark } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
 import { removeSave, savePost } from '@/lib/client/updatePostData';
@@ -31,23 +32,7 @@ const SaveButton: React.FC<any> = ({ post }: any) => {
 
   return (
     <button onClick={handleSave}>
-      {saved ? (
-        <img
-          src={'/assets/icons/bookmark-solid.svg'}
-          alt="Saved"
-          width={30}
-          height={30}
-          className="invert-on-dark"
-        />
-      ) : (
-        <img
-          src={'/assets/icons/bookmark-outline.svg'}
-          alt="Not Saved"
-          width={30}
-          height={30}
-          className="invert-on-dark"
-        />
-      )}
+      <Bookmark size={30} className={saved ? 'fill-current' : ''} />
     </button>
   );
 };

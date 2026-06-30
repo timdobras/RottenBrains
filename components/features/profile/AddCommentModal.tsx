@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
 import { addComment } from '@/lib/db/mutations';
@@ -58,9 +59,11 @@ const AddComment: React.FC<AddCommentProps> = ({
       onSubmit={handleSubmit}
       className="flex w-full items-center gap-2 border-t border-foreground/10 p-2"
     >
-      <img
-        src={user.image_url}
+      <Image
+        src={user.image_url || '/assets/images/logo_new_black.svg'}
         alt=""
+        width={32}
+        height={32}
         className="aspect-square h-8 shrink-0 rounded-full bg-foreground/10 object-cover"
       />
       <div className="flex w-full items-center gap-2 rounded-full bg-foreground/10 px-3">

@@ -1,6 +1,7 @@
 'use client';
 
 import { FastAverageColor } from 'fast-average-color';
+import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -67,11 +68,7 @@ const PostCardMain: React.FC<{ post: Post }> = ({ post }) => {
           ))}
         </div>
         <ReactMarkdown className={'line-clamp-5 text-sm'}>{content}</ReactMarkdown>
-        <img
-          src="/assets/icons/arrow-out-outline.svg"
-          alt=""
-          className="invert-on-dark ml-auto h-6 w-6"
-        />
+        <ExternalLink className="ml-auto h-6 w-6" />
       </div>
     </Link>
   );

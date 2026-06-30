@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
 
@@ -27,12 +28,15 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, media_type }) => {
       href={`/protected/media/${media_type}/${media.id}`}
       className="flex h-32 w-full flex-row items-center gap-4 overflow-hidden rounded-[8px] bg-foreground/10"
     >
-      <img
-        src={getTMDBImageUrl(media.poster_path, 'w200') || ''}
-        alt={`${media.title || media.name} Poster`}
-        loading="lazy"
-        className="h-full"
-      />
+      <div className="relative aspect-[2/3] h-full flex-shrink-0">
+        <Image
+          src={getTMDBImageUrl(media.poster_path, 'w200') || '/assets/images/logo_new_black.svg'}
+          alt={`${media.title || media.name} Poster`}
+          fill
+          sizes="96px"
+          className="object-cover"
+        />
+      </div>
       <div className="flex flex-col gap-2">
         <p className="font-semibold">{media.title || media.name}</p>
         <div className="flew-warp flex flex-row gap-2 text-sm">

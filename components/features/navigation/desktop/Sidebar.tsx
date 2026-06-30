@@ -1,6 +1,8 @@
 'use client';
 
+import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { LogoMark, LogoWordmark } from '@/components/ui/Logo';
 import { useSidebar } from '@/hooks/SidebarContext';
 import useHasMounted from '@/hooks/useHasMounted';
 import useLocalStorage from '@/hooks/useLocalStorage';
@@ -49,11 +51,7 @@ const Sidebar = () => {
         <ul className="flex h-full w-full flex-col justify-start">
           <div className="my-8 flex w-full flex-row items-center gap-4 px-4">
             <Link href={'/'} className="flex flex-row items-center gap-4">
-              <img
-                src="/assets/images/logo_text_new.svg"
-                alt="text-logo"
-                className="invert-on-dark h-4 w-auto"
-              />
+              <LogoWordmark className="h-4 w-auto text-foreground" />
             </Link>
             {/* <button
               onClick={toggleSidebar}
@@ -96,23 +94,13 @@ const Sidebar = () => {
         <ul className="flex h-full flex-col justify-start rounded-[8px] bg-foreground/10 p-2">
           <div className="my-8 flex w-full flex-row items-center justify-center">
             <Link href={'/'} className="flex flex-shrink-0 flex-row items-center gap-4">
-              <img
-                src="/assets/images/logo_new_black.svg"
-                alt="text-logo"
-                className="invert-on-dark h-6 w-auto"
-              />
+              <LogoMark className="h-6 w-6 text-foreground" />
             </Link>
             <button
               onClick={toggleSidebar}
               className="absolute -right-0 rounded-full bg-background p-1 hover:bg-foreground/20"
             >
-              <img
-                src="/assets/icons/chevron-forward.svg"
-                alt="menu-icon"
-                width={24}
-                height={24}
-                className="invert-on-dark"
-              />
+              <ChevronRight className="h-6 w-6" />
             </button>
           </div>
           <NavLink href="/" icon={HomeIcon} />

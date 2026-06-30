@@ -1,7 +1,9 @@
 'use client';
 
+import { CircleUserRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LogoMark } from '@/components/ui/Logo';
 import { useSidebar } from '@/hooks/SidebarContext';
 import useHasMounted from '@/hooks/useHasMounted';
 import useLocalStorage from '@/hooks/useLocalStorage';
@@ -31,7 +33,7 @@ const Navbar = ({ children }: any) => {
         <div className="flex w-full items-center justify-between gap-4 px-2">
           <div>
             <Link href="/">
-              <img className="aspect-square h-8" src="/assets/images/logo_new_white.svg" alt="" />
+              <LogoMark className="aspect-square h-8 w-8 text-foreground" />
             </Link>
           </div>
           {/* Middle Section: The search bar expands to fill available space */}
@@ -73,22 +75,14 @@ const Navbar = ({ children }: any) => {
                   href="/register"
                   className="flex flex-row items-center gap-2 rounded-full bg-foreground/10 px-4 py-2"
                 >
-                  <img
-                    src="/assets/icons/account-circle-outline.svg"
-                    className="invert-on-dark opacity-80"
-                    alt=""
-                  />
+                  <CircleUserRound className="opacity-80" />
                   <p>Create Account</p>
                 </Link>
                 <Link
                   href="/login"
                   className="flex flex-row items-center gap-2 rounded-full bg-foreground/10 px-4 py-2"
                 >
-                  <img
-                    src="/assets/icons/account-circle-outline.svg"
-                    className="invert-on-dark opacity-80"
-                    alt=""
-                  />
+                  <CircleUserRound className="opacity-80" />
                   <p>Log in</p>
                 </Link>
               </>

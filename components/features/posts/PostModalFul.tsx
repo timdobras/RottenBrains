@@ -1,3 +1,4 @@
+import { Film, Tv } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 import ProfilePicture from '@/components/ui/ProfilePicture';
@@ -56,11 +57,7 @@ const PostModalFull = ({ post_media_data, user_id }: PostModalFullProps) => {
             <div className="flex flex-col px-2 md:px-4">
               <div className="flex flex-col gap-2 py-4">
                 <div className="flex w-full flex-row gap-2">
-                  <img
-                    src={`/assets/icons/${media_data.media_type}-outline.svg`}
-                    alt=""
-                    className="invert-on-dark"
-                  />
+                  {media_data.media_type === 'tv' ? <Tv /> : <Film />}
                   <Link
                     href={`/protected/media/${media_data.media_type}/${media_data.media_id}`}
                     className="line-clamp-1 font-medium"

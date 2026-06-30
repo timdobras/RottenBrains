@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React from 'react';
@@ -20,10 +21,12 @@ const UserIconNavBottom = () => {
           isActive ? `bg-secondary/20 text-accent` : `text-foreground`
         }`}
       >
-        <img
-          src={user?.image_url}
+        <Image
+          src={user?.image_url || '/assets/images/logo_new_black.svg'}
           alt="User Avatar"
-          className={`aspect-square h-[24px] rounded-full`}
+          width={24}
+          height={24}
+          className={`aspect-square h-[24px] rounded-full object-cover`}
         />
       </div>
       <p className="text-xs">You</p>

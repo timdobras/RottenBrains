@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ArrowLeft, Search } from 'lucide-react';
 import useHasMounted from '@/hooks/useHasMounted';
 import { useUser } from '@/hooks/UserContext';
 import { searchUsers } from '@/lib/client/searchUsers';
@@ -254,11 +255,7 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
                 onClick={onClose}
                 className="flex aspect-square h-full items-center justify-center rounded-full transition-colors hover:bg-foreground/10"
               >
-                <img
-                  src="/assets/icons/arrow-back-outline.svg"
-                  alt=""
-                  className="invert-on-dark aspect-square h-6"
-                />
+                <ArrowLeft className="aspect-square h-6" />
               </button>
               <div className="relative flex-1">
                 <input
@@ -304,11 +301,7 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
               ) : searchQuery.length < 2 ? (
                 <div className="flex h-full w-full flex-col items-center justify-center px-4">
                   <div className="flex flex-col items-center gap-2">
-                    <img
-                      src="/assets/icons/search.svg"
-                      alt=""
-                      className="invert-on-dark h-12 w-12 opacity-40"
-                    />
+                    <Search className="h-12 w-12 opacity-40" />
                     <p className="text-lg font-medium text-foreground/80">Search for anything</p>
                     <p className="text-center text-sm text-foreground/50">
                       Movies, TV Shows, People, or Users

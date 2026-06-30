@@ -1,6 +1,7 @@
 'use client';
 
 import { format, isToday, isYesterday } from 'date-fns';
+import { LogoMark } from '@/components/ui/Logo';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useUser } from '@/hooks/UserContext';
@@ -101,11 +102,7 @@ const WatchHistoryWithInfiniteScroll = () => {
     <div className="w-full">
       {watchHistory.length === 0 && !loading && !hasMore && (
         <div className="flex w-full flex-col items-center justify-center gap-4 rounded-[8px] bg-foreground/10 p-4">
-          <img
-            src="/assets/images/logo_new_black.svg"
-            alt="No watch history"
-            className="invert-on-dark h-8 w-8 opacity-50"
-          />
+          <LogoMark className="h-8 w-8 text-foreground opacity-50" />
           <p className="text-foreground/50">No watch history found.</p>
         </div>
       )}
@@ -161,11 +158,7 @@ const WatchHistoryWithInfiniteScroll = () => {
       {/* “No more history” message */}
       {!hasMore && watchHistory.length > 0 && (
         <div className="mt-4 flex w-full flex-col items-center justify-center gap-4 rounded-[8px] bg-foreground/10 p-4">
-          <img
-            src="/assets/images/logo_new_black.svg"
-            alt="No more history"
-            className="invert-on-dark h-8 w-8 opacity-50"
-          />
+          <LogoMark className="h-8 w-8 text-foreground opacity-50" />
           <p className="text-foreground/50">No more watch history</p>
         </div>
       )}

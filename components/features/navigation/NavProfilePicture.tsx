@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -46,9 +47,11 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
   if (!mounted) {
     return (
       <button className="outline-none">
-        <img
-          src={user.image_url}
+        <Image
+          src={user.image_url || '/assets/images/logo_new_black.svg'}
           alt="User Avatar"
+          width={32}
+          height={32}
           className={`aspect-square rounded-full object-cover transition-opacity hover:opacity-80 ${imageSize}`}
         />
       </button>
@@ -76,9 +79,11 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className="outline-none">
-          <img
-            src={user.image_url}
+          <Image
+            src={user.image_url || '/assets/images/logo_new_black.svg'}
             alt="User Avatar"
+            width={32}
+            height={32}
             className={`aspect-square rounded-full object-cover transition-opacity hover:opacity-80 ${imageSize}`}
           />
         </button>
@@ -89,9 +94,11 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
             href="/protected/profile"
             className="flex items-center gap-3 rounded-sm p-2 transition-colors hover:bg-accent"
           >
-            <img
-              src={user.image_url}
+            <Image
+              src={user.image_url || '/assets/images/logo_new_black.svg'}
               alt="User Avatar"
+              width={40}
+              height={40}
               className="h-10 w-10 rounded-full object-cover"
             />
             <div className="flex min-w-0 flex-col">

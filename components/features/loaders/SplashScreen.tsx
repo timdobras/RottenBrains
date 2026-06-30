@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { LogoMark } from '@/components/ui/Logo';
 
 /**
  * Full-screen branded splash shown on the FIRST load only.
@@ -75,19 +76,8 @@ export default function SplashScreen() {
             next-themes sets the .dark class before first paint, so the theme is
             already resolved when this server-rendered overlay appears. */}
         <span className="absolute inset-0 animate-spin rounded-full border-2 border-b-transparent border-l-transparent border-r-foreground/15 border-t-foreground/70 [animation-duration:1.1s] motion-reduce:animate-none" />
-        {/* Breathing R logo — black on light, white on dark */}
-        <img
-          src="/assets/images/logo_new_black.svg"
-          alt="Rotten Brains"
-          draggable={false}
-          className="h-12 w-12 select-none animate-[splash-breathe_1.6s_ease-in-out_infinite] motion-reduce:animate-none dark:hidden"
-        />
-        <img
-          src="/assets/images/logo_new_white.svg"
-          alt=""
-          draggable={false}
-          className="hidden h-12 w-12 select-none animate-[splash-breathe_1.6s_ease-in-out_infinite] motion-reduce:animate-none dark:block"
-        />
+        {/* Breathing R logo — currentColor follows the theme (black on light, white on dark) */}
+        <LogoMark className="h-12 w-12 select-none text-foreground animate-[splash-breathe_1.6s_ease-in-out_infinite] motion-reduce:animate-none" />
       </div>
     </div>
   );

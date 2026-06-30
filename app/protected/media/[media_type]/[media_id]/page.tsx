@@ -1,3 +1,5 @@
+import { Play, Star } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 import JellyfinPlayButton from '@/components/features/media/JellyfinPlayButton';
@@ -172,26 +174,12 @@ export default async function mediaPage({ params }: { params: Params }) {
                       href={`/protected/create-post/${media_type}/${media_id}`}
                       className="z-10 flex flex-row items-center gap-2 rounded-[8px] bg-foreground/10 px-6 py-2 drop-shadow-lg hover:scale-105"
                     >
-                      <img
-                        src="/assets/icons/star-outline.svg"
-                        alt=""
-                        width={20}
-                        height={20}
-                        className="invert-on-dark"
-                        loading="lazy"
-                      />
+                      <Star size={20} />
                       <p className="text-sm">Rate</p>
                     </Link>
                     <JellyfinPlayButton media_type={media_type} media_id={media_id} />
                     <div className="flex flex-row items-center gap-2 rounded-[8px] bg-foreground/20 px-6 py-2 drop-shadow-lg">
-                      <img
-                        src="/assets/icons/star-solid.svg"
-                        alt=""
-                        width={20}
-                        height={20}
-                        className="invert-on-dark"
-                        loading="lazy"
-                      />
+                      <Star size={20} className="fill-current" />
                       <p className="text-sm text-foreground/50">
                         <span className="text-foreground/100">{media.vote_average.toFixed(1)}</span>
                         /10 <span>({formatNumber(media.vote_count)})</span>
@@ -202,12 +190,13 @@ export default async function mediaPage({ params }: { params: Params }) {
               </div>
             </div>
             <div className="flex h-auto flex-col gap-4 md:h-[50vh] md:flex-row md:gap-8">
-              <div className="h-full">
-                <img
-                  src={getTMDBImageUrl(media.poster_path, 'w500') || ''}
-                  alt=""
-                  loading="lazy"
-                  className="h-full rounded-[4px] drop-shadow-lg"
+              <div className="relative aspect-[2/3] h-full">
+                <Image
+                  src={getTMDBImageUrl(media.poster_path, 'w500') || '/assets/images/logo_new_black.svg'}
+                  alt={media.title || media.name || ''}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="rounded-[4px] object-cover drop-shadow-lg"
                 />
               </div>
               <div className="relative h-full">
@@ -215,11 +204,7 @@ export default async function mediaPage({ params }: { params: Params }) {
                   className="absolute bottom-0 z-10 m-4 flex flex-row items-center gap-2 rounded-[8px] bg-black/20 px-6 py-2 drop-shadow-lg backdrop-blur-lg hover:scale-105"
                   href={watchLink}
                 >
-                  <img
-                    src="/assets/icons/play-solid.svg"
-                    alt=""
-                    className="h-[20px] w-[20px] invert"
-                  />
+                  <Play className="h-[20px] w-[20px] fill-current text-white" />
                   <p className="text-white">Watch</p>
                 </Link>
                 <div className="h-full">

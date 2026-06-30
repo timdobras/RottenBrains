@@ -1,5 +1,6 @@
 'use client';
 
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import useHasMounted from '@/hooks/useHasMounted';
 
@@ -36,13 +37,14 @@ export default function NavThemeSwitch() {
       aria-label="Toggle theme"
     >
       <div className="flex items-center gap-2">
-        {mounted && (
-          <img
-            src={`/assets/icons/${currentTheme}-mode.svg`}
-            alt={`${currentTheme} mode icon`}
-            className="invert-on-dark"
-          />
-        )}
+        {mounted &&
+          (currentTheme === 'light' ? (
+            <Sun className="h-5 w-5" />
+          ) : currentTheme === 'dark' ? (
+            <Moon className="h-5 w-5" />
+          ) : (
+            <Monitor className="h-5 w-5" />
+          ))}
         <p>{getLabel(currentTheme)}</p>
       </div>
     </button>

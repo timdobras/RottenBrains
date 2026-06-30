@@ -1,7 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { Heart, MessageCircle } from 'lucide-react';
 import { useUser } from '@/hooks/UserContext';
 import { createPost, updatePost, deletePost } from '@/lib/db/mutations';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
@@ -292,19 +294,11 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
           {/* Static footer preview */}
           <div className="flex flex-row items-center gap-4 px-2 py-2 text-foreground/40">
             <div className="flex items-center gap-1">
-              <img
-                src="/assets/icons/heart-outline.svg"
-                alt=""
-                className="invert-on-dark h-5 w-5 opacity-50"
-              />
+              <Heart className="h-5 w-5 opacity-50" />
               <span className="text-xs">0</span>
             </div>
             <div className="flex items-center gap-1">
-              <img
-                src="/assets/icons/comment-outline.svg"
-                alt=""
-                className="invert-on-dark h-5 w-5 opacity-50"
-              />
+              <MessageCircle className="h-5 w-5 opacity-50" />
               <span className="text-xs">0</span>
             </div>
           </div>
@@ -377,16 +371,18 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
                     key={backdrop.file_path}
                     type="button"
                     onClick={() => setSelectedImagePath(backdrop.file_path)}
-                    className={`aspect-video overflow-hidden rounded-lg transition-all ${
+                    className={`relative aspect-video overflow-hidden rounded-lg transition-all ${
                       selectedImagePath === backdrop.file_path
                         ? 'ring-2 ring-accent ring-offset-2 ring-offset-background'
                         : 'opacity-50 hover:opacity-80'
                     }`}
                   >
-                    <img
-                      src={getTMDBImageUrl(backdrop.file_path, 'w300') || ''}
+                    <Image
+                      src={getTMDBImageUrl(backdrop.file_path, 'w300') || '/assets/images/logo_new_black.svg'}
                       alt="Backdrop option"
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 33vw, 25vw"
+                      className="object-cover"
                     />
                   </button>
                 ))}

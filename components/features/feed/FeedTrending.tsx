@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { getTrendingMovies, getTrendingTV } from '@/lib/tmdb';
@@ -85,9 +86,11 @@ function TrendingItem({
         className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-foreground/5"
       >
         {posterPath ? (
-          <img
+          <Image
             src={`https://image.tmdb.org/t/p/w92${posterPath}`}
             alt={title}
+            width={32}
+            height={48}
             className="h-12 w-8 flex-shrink-0 rounded object-cover"
           />
         ) : (

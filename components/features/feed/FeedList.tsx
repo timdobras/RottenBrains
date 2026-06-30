@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { LogoMark } from '@/components/ui/Logo';
 import { useInView } from 'react-intersection-observer';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import HomePostCardUI from '@/components/features/posts/HomePostCardUI';
@@ -72,11 +73,7 @@ export default function FeedList() {
   if (posts.length === 0 && !hasNextPage) {
     return (
       <div className="flex w-full flex-col items-center justify-center gap-4 p-8">
-        <img
-          src="/assets/images/logo_new_black.svg"
-          alt="No posts"
-          className="invert-on-dark h-10 w-10 opacity-50"
-        />
+        <LogoMark className="h-10 w-10 text-foreground opacity-50" />
         <p className="text-foreground/50 text-center">
           Your feed is empty. Follow people to see their posts here.
         </p>
@@ -105,11 +102,7 @@ export default function FeedList() {
       )}
       {!hasNextPage && posts.length > 0 && (
         <div className="flex w-full max-w-[500px] flex-col items-center justify-center gap-4 rounded-[8px] bg-foreground/10 p-4">
-          <img
-            src="/assets/images/logo_new_black.svg"
-            alt="No more posts"
-            className="invert-on-dark h-8 w-8 opacity-50"
-          />
+          <LogoMark className="h-8 w-8 text-foreground opacity-50" />
           <p className="text-foreground/50">No more posts</p>
         </div>
       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/hooks/UserContext';
@@ -47,9 +48,11 @@ export default function FeedFollowing() {
                   className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-foreground/5"
                 >
                   {u.image_url ? (
-                    <img
-                      src={u.image_url}
+                    <Image
+                      src={u.image_url || '/assets/images/logo_new_black.svg'}
                       alt={u.username}
+                      width={36}
+                      height={36}
                       className="h-9 w-9 rounded-full object-cover"
                     />
                   ) : (

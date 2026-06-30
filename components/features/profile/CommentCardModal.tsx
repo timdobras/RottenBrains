@@ -1,4 +1,6 @@
 'use client';
+import { Heart } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { toggleCommentLike } from '@/lib/client/commentLikes';
@@ -61,9 +63,11 @@ const CommentCard = ({
 
   return (
     <div className="flex w-full gap-2">
-      <img
-        src={creator.image_url}
+      <Image
+        src={creator.image_url || '/assets/images/logo_new_black.svg'}
         alt=""
+        width={32}
+        height={32}
         className="aspect-square h-8 shrink-0 rounded-full bg-foreground/10 object-cover"
       />
       <div className="flex w-full flex-col gap-1">
@@ -135,21 +139,7 @@ const CommentCard = ({
         aria-label={liked ? 'Unlike comment' : 'Like comment'}
         className={`shrink-0 self-start pt-1 ${animate ? 'pop' : ''}`}
       >
-        {liked ? (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 -960 960 960"
-            className="h-4 w-4 fill-accent"
-          >
-            <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
-          </svg>
-        ) : (
-          <img
-            src="/assets/icons/heart-outline.svg"
-            alt=""
-            className="invert-on-dark h-4 w-4"
-          />
-        )}
+        <Heart className={`h-4 w-4 ${liked ? 'fill-accent text-accent' : ''}`} />
       </button>
     </div>
   );

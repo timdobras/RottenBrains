@@ -1,5 +1,6 @@
 'use client'; // Ensure this is a client component
 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React from 'react';
 
 const ScrollButtons = ({
@@ -39,21 +40,13 @@ const ScrollButtons = ({
         onClick={scrollLeft}
         className="z-10 rounded-full border border-foreground/10 p-2 drop-shadow-lg hover:bg-foreground/20"
       >
-        <img
-          src="/assets/icons/chevron-back.svg"
-          alt=""
-          className="invert-on-dark aspect-[1/1] h-4 w-4"
-        />
+        <ChevronLeft className="aspect-[1/1] h-4 w-4" />
       </button>
       <button
         onClick={scrollRight}
         className="z-10 rounded-full border border-foreground/10 p-2 drop-shadow-lg hover:bg-foreground/20"
       >
-        <img
-          src="/assets/icons/chevron-forward.svg"
-          alt=""
-          className="invert-on-dark aspect-[1/1] h-4 w-4"
-        />
+        <ChevronRight className="aspect-[1/1] h-4 w-4" />
       </button>
     </div>
   );

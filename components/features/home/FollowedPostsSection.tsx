@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { LogoMark } from '@/components/ui/Logo';
 import { Suspense } from 'react';
 import HomePostCardUI from '@/components/features/posts/HomePostCardUI';
 import { fetchPostsData } from '@/lib/server/fetchPostsData';
@@ -20,13 +20,7 @@ async function FollowedPostsList({ userId, variant = 'default' }: FollowedPostsS
   if (!followedPosts || followedPosts.length === 0) {
     return (
       <div className="flex h-52 w-full flex-col items-center justify-center gap-4 rounded-[16px] bg-foreground/10">
-        <Image
-          src="/assets/images/logo_new_black.svg"
-          alt=""
-          width={48}
-          height={48}
-          className="invert-on-dark aspect-square h-12 opacity-50"
-        />
+        <LogoMark className="aspect-square h-12 w-12 text-foreground opacity-50" />
         <p className="text-foreground/50">Start following your friends to see posts.</p>
       </div>
     );

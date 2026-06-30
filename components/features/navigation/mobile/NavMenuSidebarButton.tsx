@@ -24,6 +24,7 @@ import {
   InfoIcon,
   FeedIcon,
 } from '../../../ui/Icon';
+import { Menu } from 'lucide-react';
 import NavLinkMobile from './SidebarLink';
 
 const NavMenuSidebarButton: React.FC = () => {
@@ -37,7 +38,7 @@ const NavMenuSidebarButton: React.FC = () => {
     <>
       {/* Menu Button */}
       <button onClick={toggleMenu} aria-label="Open Menu">
-        <img src="/assets/icons/menu.svg" alt="menu icon" className="invert-on-dark h-6 w-6" />
+        <Menu className="h-6 w-6" />
       </button>
 
       {/* Sidebar */}

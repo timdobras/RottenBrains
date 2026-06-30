@@ -1,13 +1,14 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 const GoBackArrow = () => {
   const router = useRouter();
 
   return (
     <button onClick={() => router.back()}>
-      <img src="/assets/icons/arrow-back.svg" alt="" className="invert-on-dark h-6 w-6"></img>
+      <ArrowLeft className="h-6 w-6" />
     </button>
   );
 };

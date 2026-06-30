@@ -2,6 +2,7 @@
 
 import React, { FC } from 'react';
 import { getTMDBImageUrl, isOfflineMode } from '@/lib/mocks/config';
+import { LogoMark } from '@/components/ui/Logo';
 import ProgressiveImage from './ProgressiveImage';
 
 // TMDB image widths available for responsive srcSet
@@ -16,7 +17,6 @@ interface ImageWithFallbackProps {
   imageUrl?: string | null; // The URL of the image
   altText: string; // Alt text for the image
   fallbackText?: string; // Optional fallback text to display when the image is unavailable
-  fallbackIcon?: string; // Optional fallback icon URL
   quality?: string;
   sizes?: string; // Responsive sizes attribute
   progressive?: boolean; // Enable progressive loading (low-res → high-res fade-in)
@@ -26,7 +26,6 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
   imageUrl,
   altText,
   fallbackText = 'No image available',
-  fallbackIcon = '/assets/images/logo_new_black.svg',
   quality = 'w500', // Default image quality (w500, w780, w1280, etc.) - w500 for most thumbnails
   sizes = '(max-width: 767px) 50vw, (max-width: 1024px) 33vw, 25vw',
   progressive = true,
@@ -64,13 +63,7 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
     />
   ) : (
     <div className="flex aspect-[16/9] h-full w-full flex-col items-center justify-center gap-2 bg-foreground/10">
-      <img
-        src={fallbackIcon}
-        alt="Fallback Icon"
-        className="invert-on-dark h-8 w-8 opacity-50"
-        width={32}
-        height={32}
-      />
+      <LogoMark className="h-8 w-8 text-foreground opacity-50" />
       <p className="text-xs text-foreground/50">{fallbackText}</p>
     </div>
   );

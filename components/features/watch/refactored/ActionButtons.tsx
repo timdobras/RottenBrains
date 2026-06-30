@@ -1,3 +1,4 @@
+import { Star } from 'lucide-react';
 import Link from 'next/link';
 import JellyfinButton from '../JellyfinButton';
 import ShareButton from '../ShareButton';
@@ -16,14 +17,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ media_type, media_id }) =
         href={`/protected/create-post/${media_type}/${media_id}`}
         className="z-10 flex flex-row items-center gap-2 justify-self-end rounded-full bg-foreground/10 px-4 py-1"
       >
-        <img
-          src="/assets/icons/star-outline.svg"
-          alt="Rate"
-          width={12}
-          height={12}
-          className="invert-on-dark"
-          loading="lazy"
-        />
+        <Star size={12} />
         <p>Rate</p>
       </Link>
       <ShareButton />

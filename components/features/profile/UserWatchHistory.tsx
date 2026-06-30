@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { LogoMark } from '@/components/ui/Logo';
 import { useInView } from 'react-intersection-observer';
 import { useUser } from '@/hooks/UserContext';
 import { getWatchHistoryForUser } from '@/lib/db/client-actions';
@@ -84,11 +85,7 @@ const UserWatchHistory: React.FC<UserWatchHistoryProps> = ({
           )}
           {!hasMoreHistory && (
             <div className="flex w-full flex-col items-center justify-center gap-4 rounded-[8px] bg-foreground/10 p-4">
-              <img
-                src="/assets/images/logo_new_black.svg"
-                alt="No more history"
-                className="invert-on-dark h-8 w-8 opacity-50"
-              />
+              <LogoMark className="h-8 w-8 text-foreground opacity-50" />
               <p className="text-foreground/50">No more watch history</p>
             </div>
           )}

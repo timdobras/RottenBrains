@@ -1,3 +1,4 @@
+import { Calendar } from 'lucide-react';
 import { formatEpisodeCode, getRelativeTime } from '@/lib/utils';
 import ToggleClamp from '../../posts/ToggleClamp';
 
@@ -56,11 +57,7 @@ const MediaInfo: React.FC<MediaInfoProps> = ({
         </h2>
         <div className="flex flex-row items-center gap-2">
           {!isDesktop && (
-            <img
-              src="/assets/icons/calendar-outline.svg"
-              alt=""
-              className="invert-on-dark h-5 w-5 opacity-60"
-            />
+            <Calendar className="h-5 w-5 opacity-60" />
           )}
           <p className="text-xs text-foreground/60">
             {getRelativeTime(media_release_date)}

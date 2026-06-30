@@ -36,6 +36,16 @@ const nextConfig = {
         hostname: 'ketxnamtpbvfvblowfoo.supabase.co',
         pathname: '**/*',
       },
+      {
+        protocol: 'https',
+        hostname: 'minios3.timdobras.com',
+        pathname: '**/*',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.discordapp.com',
+        pathname: '**/*',
+      },
     ],
     dangerouslyAllowSVG: true,
   },

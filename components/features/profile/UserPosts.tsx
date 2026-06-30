@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { LogoMark } from '@/components/ui/Logo';
 import { useInView } from 'react-intersection-observer';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import HomePostCardUI from '@/components/features/posts/HomePostCardUI';
@@ -100,11 +101,7 @@ const UserPosts: React.FC<UserPostsProps> = ({
           className="flex w-full flex-col items-center justify-center gap-4 rounded-[8px] bg-foreground/10 p-4"
           key={'loader'}
         >
-          <img
-            src="/assets/images/logo_new_black.svg"
-            alt="No more posts"
-            className="invert-on-dark h-8 w-8 opacity-50"
-          />
+          <LogoMark className="h-8 w-8 text-foreground opacity-50" />
           <p className="text-foreground/50">No more posts</p>
         </div>
       )}

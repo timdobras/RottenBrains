@@ -1,4 +1,5 @@
 'use client';
+import { SquarePen } from 'lucide-react';
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useUser } from '@/hooks/UserContext';
 import { uploadProfilePicture } from '@/lib/db/storage-actions';
@@ -84,11 +85,7 @@ const ProfilePicture: React.FC = () => {
           onClick={() => setIsEditing(true)}
           className="absolute flex h-full w-full items-center justify-center rounded px-4 py-2 text-white opacity-0 hover:opacity-100"
         >
-          <img
-            src="/assets/icons/pen-to-square-solid.svg"
-            alt="Edit"
-            className="invert-on-dark h-[50px] w-[50px]"
-          />
+          <SquarePen className="h-[50px] w-[50px]" />
         </button>
       )}
     </div>

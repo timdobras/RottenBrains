@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronDown } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { searchUsers } from '@/lib/client/searchUsers';
@@ -257,10 +258,8 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, ref) => {
           onClick={() => setOpenCategoryDialog(!openCategoryDialog)}
         >
           <p className="font-medium">{searchCategory}</p>
-          <img
-            src="/assets/icons/chevron-down.svg"
-            alt=""
-            className={`invert-on-dark transition-transform ${openCategoryDialog ? 'rotate-180' : ''}`}
+          <ChevronDown
+            className={`transition-transform ${openCategoryDialog ? 'rotate-180' : ''}`}
           />
         </button>
 

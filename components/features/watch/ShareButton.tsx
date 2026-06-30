@@ -1,5 +1,6 @@
 'use client';
 
+import { Share2 } from 'lucide-react';
 import { useState } from 'react';
 
 const ShareButton: React.FC = () => {
@@ -45,14 +46,7 @@ const ShareButton: React.FC = () => {
       onClick={sharePage}
       className="z-10 flex flex-shrink-0 flex-row items-center gap-2 justify-self-end rounded-full bg-foreground/10 px-4 py-1"
     >
-      <img
-        src="/assets/icons/share-outline.svg"
-        alt="Share"
-        width={12}
-        height={12}
-        className="invert-on-dark"
-        loading="lazy"
-      />
+      <Share2 size={12} />
       <p>Share</p>
     </button>
   );

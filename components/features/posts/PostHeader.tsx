@@ -1,3 +1,4 @@
+import { MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 import { getRelativeTime } from '@/lib/utils';
@@ -40,13 +41,7 @@ const PostHeader = ({ creator, post, user_id }: PostHeaderProps) => {
       <div className="flex h-full flex-row items-center gap-2">
         {creator.id.toString() === user_id && (
           <Link href={`/protected/edit-post/${post.id}`}>
-            <img
-              src="/assets/icons/ellipsis-solid.svg"
-              alt=""
-              width={20}
-              height={20}
-              className="invert-on-dark mr-2 min-h-[20px] min-w-[20px] justify-self-end"
-            />
+            <MoreHorizontal size={20} className="mr-2 min-h-[20px] min-w-[20px] justify-self-end" />
           </Link>
         )}
       </div>

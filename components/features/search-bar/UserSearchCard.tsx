@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import { SearchCardProps } from './MediaSearchCard';
@@ -9,11 +10,15 @@ const UserSearchCard = ({ media: user, onClick }: SearchCardProps) => {
       className={`flex h-32 w-full cursor-pointer flex-row gap-4 p-4 hover:bg-foreground/10`}
     >
       {user.image_url && user.image_url !== '' ? (
-        <img
-          src={user.image_url}
-          alt=""
-          className="aspect-square h-full flex-shrink-0 overflow-hidden rounded-full object-cover object-center"
-        />
+        <div className="relative aspect-square h-full flex-shrink-0 overflow-hidden rounded-full">
+          <Image
+            src={user.image_url}
+            alt=""
+            fill
+            sizes="96px"
+            className="object-cover object-center"
+          />
+        </div>
       ) : (
         <div className="aspect-square h-full flex-shrink-0 rounded-full bg-foreground/20"></div>
       )}

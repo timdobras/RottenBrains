@@ -1,4 +1,5 @@
 'use client';
+import { Heart, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
@@ -83,39 +84,16 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
     <div className="flex flex-row items-center gap-4 px-2">
       <div className="flex flex-row items-center gap-2">
         <button onClick={handleLike} className={animate ? 'pop' : ''}>
-          {liked ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="24px"
-              viewBox="0 -960 960 960"
-              width="24px"
-              fill="0000000"
-              className={`heart-icon ${animate ? 'pop' : ''} fill-accent`}
-            >
-              <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
-            </svg>
-          ) : (
-            <img
-              src={'/assets/icons/heart-outline.svg'}
-              alt="Not Liked"
-              width="24px"
-              height="24px"
-              className={`heart-icon invert-on-dark ${animate ? 'pop' : ''}`}
-            />
-          )}
+          <Heart
+            className={`heart-icon h-6 w-6 ${animate ? 'pop' : ''} ${liked ? 'fill-current text-accent' : ''}`}
+          />
         </button>
         <p className="font-bold">{likes}</p>
       </div>
       <div className="flex flex-row items-center gap-2">
         <div>
           <Link href={post_link} scroll={false} className="text-foreground">
-            <img
-              src="/assets/icons/comment-outline.svg"
-              alt="Comment"
-              width={24}
-              height={24}
-              className="invert-on-dark max-h-[24px] min-h-[24px] min-w-[24px] max-w-[24px]"
-            />
+            <MessageCircle className="max-h-[24px] min-h-[24px] min-w-[24px] max-w-[24px]" />
           </Link>
           {state.isOpen && (
             <div

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
@@ -10,11 +11,15 @@ const PersonSearchCard = ({ media: person, onClick }: SearchCardProps) => {
       className={`flex h-32 w-full cursor-pointer flex-row gap-4 p-4 hover:bg-foreground/10`}
     >
       {person.profile_path && person.profile_path !== '' ? (
-        <img
-          src={getTMDBImageUrl(person.profile_path, 'w200') || ''}
-          alt=""
-          className="aspect-square h-full flex-shrink-0 overflow-hidden rounded-[8px] object-cover object-center"
-        />
+        <div className="relative aspect-square h-full flex-shrink-0 overflow-hidden rounded-[8px]">
+          <Image
+            src={getTMDBImageUrl(person.profile_path, 'w200') || '/assets/images/logo_new_black.svg'}
+            alt={person.name || ''}
+            fill
+            sizes="96px"
+            className="object-cover object-center"
+          />
+        </div>
       ) : (
         <div className="aspect-square h-full flex-shrink-0 rounded-[8px] bg-foreground/20"></div>
       )}

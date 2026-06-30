@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import React, { FC } from 'react';
 import { getRelativeTime } from '@/lib/utils';
@@ -12,10 +13,12 @@ const ReplyCard: FC<FollowCardProps> = ({ notification }) => {
   return (
     <div className="flex w-full flex-row gap-4 p-4">
       <Link href={`/protected/user/${notification.triggered_by_user.id}`} className="flex-shrink-0">
-        <img
-          src={notification.triggered_by_user.image_url}
+        <Image
+          src={notification.triggered_by_user.image_url || '/assets/images/logo_new_black.svg'}
           alt=""
-          className="aspect-square h-12 rounded-full"
+          width={48}
+          height={48}
+          className="aspect-square h-12 rounded-full object-cover"
         />
       </Link>
       <Link href={post_link} scroll={false} className="flex flex-col gap-4">

@@ -140,10 +140,10 @@ export default async function Register({ searchParams }: { searchParams: Params 
         <p className="mt-4 bg-foreground/10 p-4 text-center text-foreground">{message}</p>
         <p className="self-center text-gray-400">
           Already have an account?
-          <a href="/login" className="text-accent">
+          <Link href="/login" className="text-accent">
             {' '}
             Sign In
-          </a>
+          </Link>
         </p>
       </form>
     </div>
