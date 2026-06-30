@@ -205,17 +205,19 @@ export default function NativePlayerDevPage() {
         </section>
       )}
 
-      {playerStream && (
+      {(activeInput || manual) && (
         <div style={{ aspectRatio: '16 / 9', width: '100%', borderRadius: 10, overflow: 'hidden', border: '1px solid #2a2f3a' }}>
           <CustomPlayer
             // identity = the title (NOT the provider): switching provider keeps
             // the same instance so it resumes from the last spot; a new title
             // remounts fresh from the start.
             key={manual ? 'manual' : `${mediaType}-${mediaId}-${season}-${episode}`}
-            src={playerStream.src}
-            type={playerStream.type}
-            subtitles={playerStream.subtitles}
+            src={playerStream?.src ?? ''}
+            type={playerStream?.type ?? 'hls'}
+            subtitles={playerStream?.subtitles ?? []}
             autoPlay
+            // probed everything, nothing available → friendly message in-frame
+            noSource={!!activeInput && !manual && !probing && !resolved}
             {...(!manual && {
               providers: menuProviders,
               currentProvider: selected,

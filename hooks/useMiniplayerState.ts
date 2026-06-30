@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import useLocalStorage from './useLocalStorage';
 import useIsMobile from './useIsMobile';
 import { STORAGE_KEYS } from '@/lib/constants';
@@ -38,7 +38,7 @@ const MOBILE_DEFAULTS: PersistedState = {
 
 const DESKTOP_DEFAULTS: PersistedState = {
   edge: 'bottom-right',
-  size: { width: 280, height: 280 / ASPECT_RATIO },
+  size: { width: 400, height: 400 / ASPECT_RATIO },
 };
 
 function getViewportDimensions() {
@@ -60,6 +60,26 @@ export function useMiniplayerState() {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [tempPosition, setTempPosition] = useState<{ x: number; y: number } | null>(null);
+
+  // The miniplayer is no longer user-resizable: its size is a fixed per-platform
+  // value (mobile = 50vw, reactive to viewport; desktop = the default width), so
+  // we derive it here and ignore any stale persisted size.
+  const [vpWidth, setVpWidth] = useState(() => getViewportDimensions().width);
+  useEffect(() => {
+    const onResize = () => setVpWidth(getViewportDimensions().width);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
+  // Size scales with the viewport (no fixed px → not weird on tiny laptops vs
+  // 4K). Mobile ≈ 50vw; desktop ≈ 24vw, each clamped to a sane range.
+  const width = isMobile
+    ? Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, vpWidth * 0.5)))
+    : Math.round(Math.min(520, Math.max(300, vpWidth * 0.24)));
+  const size = useMemo(() => ({ width, height: Math.round(width / ASPECT_RATIO) }), [width]);
 
   // Calculate actual position from edge
   const calculatePositionFromEdge = useCallback(
@@ -107,7 +127,7 @@ export function useMiniplayerState() {
   // Handle drag end with snapping
   const handleDragEnd = useCallback(
     (finalX: number, finalY: number) => {
-      const edge = calculateNearestEdge(finalX, finalY, persistedState.size);
+      const edge = calculateNearestEdge(finalX, finalY, size);
 
       setPersistedState({
         ...persistedState,
@@ -118,7 +138,7 @@ export function useMiniplayerState() {
 
       logger.debug('Miniplayer snapped to edge:', edge);
     },
-    [persistedState, calculateNearestEdge, setPersistedState]
+    [persistedState, calculateNearestEdge, setPersistedState, size]
   );
 
   // Handle resize - called during drag, don't reset isResizing here
@@ -139,7 +159,7 @@ export function useMiniplayerState() {
   );
 
   // Get current position based on persisted edge
-  const currentPosition = calculatePositionFromEdge(persistedState.edge, persistedState.size);
+  const currentPosition = calculatePositionFromEdge(persistedState.edge, size);
 
   // Update position on window resize
   useEffect(() => {
@@ -153,7 +173,7 @@ export function useMiniplayerState() {
 
   return {
     position: tempPosition || currentPosition,
-    size: persistedState.size,
+    size,
     edge: persistedState.edge,
     isDragging,
     isResizing,

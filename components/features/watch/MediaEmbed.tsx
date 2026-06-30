@@ -8,7 +8,9 @@ const VideoEmbed = () => {
 
   return (
     <section
-      className={`sticky top-14 w-full flex-col md:relative md:top-0 ${
+      // mobile: stick to the live bottom edge of the (hide-on-scroll) navbar so
+      // the player rides up/down with it. desktop: normal flow (md:relative).
+      className={`sticky top-[var(--watch-player-top,3rem)] w-full flex-col md:relative md:top-0 ${
         isTheater ? 'bg-black' : 'bg-background'
       }`}
     >

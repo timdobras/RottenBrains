@@ -5,7 +5,9 @@ import {
   Captions,
   Loader2,
   Maximize,
+  Maximize2,
   Minimize,
+  Minimize2,
   Pause,
   PictureInPicture2,
   Play,
@@ -13,6 +15,7 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -56,12 +59,26 @@ interface CustomPlayerProps {
   resolving?: boolean;
   /** Still discovering providers — shows a "checking…" line in the menu. */
   probing?: boolean;
+  /** Resolution finished but nothing has this title → show a friendly message
+   *  instead of an endless spinner. */
+  noSource?: boolean;
   /** Progress callback for watch-history tracking. Fired on timeupdate, pause,
    *  and end. The parent throttles/persists — we just emit raw state. */
   onProgress?: (s: { currentTime: number; duration: number; paused: boolean; ended: boolean }) => void;
   /** Compact presentation for the floating miniplayer (slim controls). The
    *  underlying <video>/hls instance is identical, so one instance serves both. */
   mini?: boolean;
+  /** Reports the video's intrinsic aspect ratio (width/height) once metadata
+   *  loads and whenever it changes — the shell uses it to size the miniplayer. */
+  onAspectRatio?: (ratio: number) => void;
+  /** Touch layout for the miniplayer (top play/pause + close, no scrubber). */
+  mobile?: boolean;
+  /** Miniplayer: expand back to the watch page. */
+  onExpand?: () => void;
+  /** Miniplayer: close/stop the player. */
+  onClose?: () => void;
+  /** Full player: shrink to the miniplayer (and go home). */
+  onMinimize?: () => void;
 }
 
 function fmt(t: number): string {
@@ -89,10 +106,15 @@ export default function CustomPlayer({
   providers,
   currentProvider = '',
   onSelectProvider,
-  resolving = false,
   probing = false,
+  noSource = false,
   onProgress,
   mini = false,
+  onAspectRatio,
+  mobile = false,
+  onExpand,
+  onClose,
+  onMinimize,
 }: CustomPlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -100,6 +122,8 @@ export default function CustomPlayer({
   // keep the latest onProgress in a ref so the media-events effect stays []-dep
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
+  const onAspectRatioRef = useRef(onAspectRatio);
+  onAspectRatioRef.current = onAspectRatio;
 
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -129,6 +153,10 @@ export default function CustomPlayer({
   startTimeRef.current = startTime;
   // synchronous drag flag so timeupdate doesn't fight the scrubber mid-drag
   const draggingRef = useRef(false);
+  // debounce rapid seeks (double-clicks, arrow-key spam, quick scrubs) into a
+  // single video.currentTime change so hls isn't asked to re-seek many times.
+  const seekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
 
   // ---- engine setup ----
   useEffect(() => {
@@ -215,6 +243,15 @@ export default function CustomPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, type]);
 
+  // On mobile, volume is hardware-controlled — keep the element at full, unmuted.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && mobile) {
+      v.muted = false;
+      v.volume = 1;
+    }
+  }, [mobile, src]);
+
   // ---- media element events ----
   useEffect(() => {
     const v = videoRef.current;
@@ -242,6 +279,13 @@ export default function CustomPlayer({
       emit();
     };
     const onDur = () => setDuration(v.duration || 0);
+    // report intrinsic aspect ratio once known / when it changes (HLS level
+    // switch can change it) so the shell can size the miniplayer to the content.
+    const onMeta = () => {
+      if (v.videoWidth > 0 && v.videoHeight > 0) {
+        onAspectRatioRef.current?.(v.videoWidth / v.videoHeight);
+      }
+    };
     const onPlay = () => setPlaying(true);
     const onPause = () => {
       setPlaying(false);
@@ -263,6 +307,8 @@ export default function CustomPlayer({
     v.addEventListener('timeupdate', onTime);
     v.addEventListener('seeked', onSeeked);
     v.addEventListener('durationchange', onDur);
+    v.addEventListener('loadedmetadata', onMeta);
+    v.addEventListener('resize', onMeta);
     v.addEventListener('play', onPlay);
     v.addEventListener('pause', onPause);
     v.addEventListener('ended', onEnded);
@@ -274,6 +320,8 @@ export default function CustomPlayer({
       v.removeEventListener('timeupdate', onTime);
       v.removeEventListener('seeked', onSeeked);
       v.removeEventListener('durationchange', onDur);
+      v.removeEventListener('loadedmetadata', onMeta);
+      v.removeEventListener('resize', onMeta);
       v.removeEventListener('play', onPlay);
       v.removeEventListener('pause', onPause);
       v.removeEventListener('ended', onEnded);
@@ -344,9 +392,35 @@ export default function CustomPlayer({
     if (v.paused) v.play().catch(() => {});
     else v.pause();
   }, []);
+  // Debounced absolute seek: reflects the target immediately but only commits
+  // the real video.currentTime once seeks stop arriving for ~180ms — so a burst
+  // (multi-click / rapid scrub) collapses to one hls seek instead of a storm.
   const seek = useCallback((t: number) => {
     const v = videoRef.current;
-    if (v) v.currentTime = Math.max(0, Math.min(t, v.duration || t));
+    if (!v) return;
+    const target = Math.max(0, Math.min(t, v.duration || t));
+    pendingSeekRef.current = target;
+    if (seekTimerRef.current) clearTimeout(seekTimerRef.current);
+    seekTimerRef.current = setTimeout(() => {
+      const vid = videoRef.current;
+      if (vid && pendingSeekRef.current != null) vid.currentTime = pendingSeekRef.current;
+      pendingSeekRef.current = null;
+      seekTimerRef.current = null;
+    }, 180);
+  }, []);
+  // Relative seek (keyboard ±5s): accumulate off the pending target so rapid
+  // presses keep adding up even while the actual seek is still debounced.
+  const seekBy = useCallback(
+    (delta: number) => {
+      const v = videoRef.current;
+      if (!v) return;
+      seek((pendingSeekRef.current ?? v.currentTime) + delta);
+    },
+    [seek],
+  );
+  // drop any pending debounced seek on unmount
+  useEffect(() => () => {
+    if (seekTimerRef.current) clearTimeout(seekTimerRef.current);
   }, []);
   const setVol = useCallback((val: number) => {
     const v = videoRef.current;
@@ -405,8 +479,8 @@ export default function CustomPlayer({
       switch (e.key.toLowerCase()) {
         case ' ':
         case 'k': e.preventDefault(); togglePlay(); break;
-        case 'arrowright': seek(v.currentTime + 5); break;
-        case 'arrowleft': seek(v.currentTime - 5); break;
+        case 'arrowright': seekBy(5); break;
+        case 'arrowleft': seekBy(-5); break;
         case 'arrowup': e.preventDefault(); setVol(v.volume + 0.1); break;
         case 'arrowdown': e.preventDefault(); setVol(v.volume - 0.1); break;
         case 'f': toggleFs(); break;
@@ -418,7 +492,7 @@ export default function CustomPlayer({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, seek, setVol, toggleFs, toggleMute, poke, mini]);
+  }, [togglePlay, seekBy, setVol, toggleFs, toggleMute, poke, mini]);
 
   // scrubber: a transparent native <input type=range> overlay handles all
   // drag/click/touch/keyboard reliably; we just draw the track/buffer/handle.
@@ -441,13 +515,62 @@ export default function CustomPlayer({
     'cursor-pointer text-xs text-white/85 focus:bg-white/15 focus:text-white data-[state=checked]:text-red-400';
   const menuLabelCls = 'px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/40';
 
+  // Shared scrubber (full + mini). Visual track + buffered + progress + handle,
+  // with a transparent native range input on top for click/drag/keyboard.
+  const scrubberEl = (
+    <div className="group/bar relative flex h-3.5 items-center">
+      <div className="relative h-1 w-full rounded-full bg-white/25 transition-[height] group-hover/bar:h-1.5">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-white/30" style={{ width: `${bufPct}%` }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-red-500" style={{ width: `${pct}%` }} />
+        <div
+          className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500 shadow"
+          style={{ left: `${pct}%` }}
+        />
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={duration || 0}
+        step={0.5}
+        value={displayTime}
+        onChange={(e) => {
+          const t = Number(e.target.value);
+          setScrubTime(t);
+          setSeeking(true);
+          // drag only moves the thumb; keyboard/click seek immediately, a pointer
+          // drag seeks once on release (avoids a per-tick seek storm).
+          if (!draggingRef.current) seek(t);
+        }}
+        onPointerDown={() => {
+          draggingRef.current = true;
+          setDragging(true);
+          setShow(true);
+        }}
+        onPointerUp={(e) => {
+          seek(Number(e.currentTarget.value));
+          draggingRef.current = false;
+          setDragging(false);
+          e.currentTarget.blur();
+        }}
+        onPointerCancel={(e) => {
+          if (draggingRef.current) seek(Number(e.currentTarget.value));
+          draggingRef.current = false;
+          setDragging(false);
+        }}
+        onKeyDown={() => setShow(true)}
+        aria-label="seek"
+        className="absolute inset-0 m-0 h-full w-full cursor-pointer bg-transparent opacity-0"
+      />
+    </div>
+  );
+
   return (
     <div
       ref={wrapRef}
       className={`group relative h-full w-full overflow-hidden bg-black ${className}`}
       // Hide the cursor along with the controls during playback; any mousemove
       // calls poke() which shows both again.
-      style={{ cursor: controlsOn ? undefined : 'none' }}
+      style={{ cursor: !mini && !controlsOn ? 'none' : undefined }}
       onMouseMove={poke}
       onMouseLeave={() => playing && setShow(false)}
     >
@@ -456,8 +579,11 @@ export default function CustomPlayer({
         ref={videoRef}
         playsInline
         crossOrigin="anonymous"
-        className="h-full w-full bg-black"
-        onClick={togglePlay}
+        // object-contain: show the video at its true aspect ratio, centered in
+        // the container (4/3 in a 16/9 box → full height, pillarboxed).
+        className="h-full w-full bg-black object-contain"
+        // in mini the shell routes taps (play/pause on desktop, expand on mobile)
+        onClick={mini ? undefined : togglePlay}
         controlsList="nodownload"
       >
         {subtitles.map((s, i) => (
@@ -465,25 +591,28 @@ export default function CustomPlayer({
         ))}
       </video>
 
-      {/* switching-provider overlay */}
-      {resolving && (
-        <div className="absolute inset-0 z-30 grid place-items-center bg-black/65">
-          <div className="flex items-center gap-2 text-sm text-white/90">
-            <Loader2 className="h-6 w-6 animate-spin" /> {currentProvider ? `switching to ${currentProvider}…` : 'loading…'}
-          </div>
-        </div>
-      )}
-
-      {/* buffering spinner — also while a finished scrub is still loading its
-          target (esp. when paused, where there's no 'waiting' event). Hidden
-          while `resolving`, which has its own overlay (avoids a double spinner). */}
-      {(waiting || (seeking && !dragging)) && !error && !resolving && (
+      {/* Loading spinner — shown immediately while there's no playable source
+          yet (resolving: src is still empty) and while the video buffers/seeks.
+          Always inside the player frame, so it's never just a black box. */}
+      {!error && !noSource && (!src || waiting || (seeking && !dragging)) && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <Loader2 className="h-10 w-10 animate-spin text-white/80" />
         </div>
       )}
 
-      {/* error */}
+      {/* No source found — a friendly message instead of an endless spinner. */}
+      {noSource && !error && (
+        <div className="absolute inset-0 grid place-items-center bg-black p-6 text-center">
+          <div className="max-w-xs">
+            <p className="mb-1 text-base font-semibold text-white">No source available</p>
+            <p className="text-sm text-white/70">
+              We couldn&apos;t find anything to play for this title right now — try another title or check back later.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* playback error */}
       {error && (
         <div className="absolute inset-0 grid place-items-center bg-black/70 p-4 text-center text-sm text-white">
           {error}
@@ -505,65 +634,14 @@ export default function CustomPlayer({
         </div>
       )}
 
-      {/* controls */}
+      {/* full-mode controls */}
+      {!mini && (
       <div
         className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 transition-opacity duration-200 ${
           controlsOn ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {/* scrubber — visual track + a transparent native range input on top */}
-        <div className="group/bar relative mb-1.5 flex h-3.5 items-center">
-          <div className="relative h-1 w-full rounded-full bg-white/25 transition-[height] group-hover/bar:h-1.5">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-white/30" style={{ width: `${bufPct}%` }} />
-            <div className="absolute inset-y-0 left-0 rounded-full bg-red-500" style={{ width: `${pct}%` }} />
-            {/* draggable handle — always visible */}
-            <div
-              className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500 shadow"
-              style={{ left: `${pct}%` }}
-            />
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={0.5}
-            value={displayTime}
-            onChange={(e) => {
-              const t = Number(e.target.value);
-              setScrubTime(t);
-              setSeeking(true);
-              // While dragging, only move the thumb — do NOT seek on every tick
-              // (that fired a seek storm: dozens of hls segment loads through the
-              // proxy, thrashing playback). Keyboard/click (no active pointer
-              // drag) seek immediately; a pointer drag seeks once on release.
-              if (!draggingRef.current) seek(t);
-            }}
-            onPointerDown={() => {
-              draggingRef.current = true;
-              setDragging(true);
-              setShow(true);
-            }}
-            onPointerUp={(e) => {
-              // commit the single seek to the final dragged position
-              seek(Number(e.currentTarget.value));
-              draggingRef.current = false;
-              setDragging(false);
-              // hand focus back to the player so space / c / f keybinds keep
-              // working — a focused range input otherwise swallows them.
-              e.currentTarget.blur();
-              // keep showing the target until 'seeked' fires (handled above)
-            }}
-            onPointerCancel={(e) => {
-              // interrupted drag: still commit the seek so it doesn't get stuck
-              if (draggingRef.current) seek(Number(e.currentTarget.value));
-              draggingRef.current = false;
-              setDragging(false);
-            }}
-            onKeyDown={() => setShow(true)}
-            aria-label="seek"
-            className="absolute inset-0 m-0 h-full w-full cursor-pointer bg-transparent opacity-0"
-          />
-        </div>
+        <div className="mb-1.5">{scrubberEl}</div>
 
         {/* button row */}
         <div className="flex items-center gap-1 text-white">
@@ -573,21 +651,24 @@ export default function CustomPlayer({
 
           {!mini && (
             <>
-          <div className="group/vol flex items-center">
-            <button className={btn} onClick={toggleMute} aria-label="mute">
-              <VolIcon className="h-5 w-5" />
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={muted ? 0 : volume}
-              onChange={(e) => setVol(Number(e.target.value))}
-              className="h-1 w-0 cursor-pointer accent-red-500 opacity-0 transition-all group-hover/vol:w-16 group-hover/vol:opacity-100"
-              aria-label="volume"
-            />
-          </div>
+          {/* volume is hardware-controlled on mobile — hide the software control */}
+          {!mobile && (
+            <div className="group/vol flex items-center">
+              <button className={btn} onClick={toggleMute} aria-label="mute">
+                <VolIcon className="h-5 w-5" />
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={muted ? 0 : volume}
+                onChange={(e) => setVol(Number(e.target.value))}
+                className="h-1 w-0 cursor-pointer accent-red-500 opacity-0 transition-all group-hover/vol:w-16 group-hover/vol:opacity-100"
+                aria-label="volume"
+              />
+            </div>
+          )}
 
           <span className="px-1 text-xs tabular-nums text-white/85">
             {fmt(displayTime)} <span className="text-white/40">/ {fmt(duration)}</span>
@@ -670,6 +751,11 @@ export default function CustomPlayer({
                 <PictureInPicture2 className="h-5 w-5" />
               </button>
             )}
+            {onMinimize && (
+              <button className={btn} onClick={onMinimize} aria-label="minimize to miniplayer">
+                <Minimize2 className="h-5 w-5" />
+              </button>
+            )}
             <button className={btn} onClick={toggleFs} aria-label="fullscreen">
               {fs ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
             </button>
@@ -678,6 +764,76 @@ export default function CustomPlayer({
           )}
         </div>
       </div>
+      )}
+
+      {/* ===== miniplayer overlay (chrome + controls live here; the shell owns
+              the window box + drag + tap routing) ===== */}
+      {mini &&
+        (mobile ? (
+          <>
+            {/* mobile: play/pause top-left, close top-right, no scrubber.
+                A tap on the video routes to expand (handled by the shell). */}
+            <button
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute left-1.5 top-1.5 z-20 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white"
+              aria-label="play/pause"
+            >
+              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute right-1.5 top-1.5 z-20 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white"
+              aria-label="close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            {/* slight dark wash on hover */}
+            <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-150 group-hover:bg-black/30" />
+            {/* top-left close */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute right-1.5 top-1.5 z-20 grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+              aria-label="close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {/* top-right expand → watch page */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onExpand?.(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute left-1.5 top-1.5 z-20 grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+              aria-label="expand"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+            {/* center play/pause (hover) */}
+            <button
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute left-1/2 top-1/2 z-20 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity hover:bg-black/75 group-hover:opacity-100"
+              aria-label="play/pause"
+            >
+              {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            </button>
+            {/* bottom: time (hover) + full-width scrubber (always). Its own
+                pointer events don't bubble so scrubbing never drags the window. */}
+            <div
+              className="absolute inset-x-0 bottom-0 z-20 px-2 pb-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="mb-0.5 px-0.5 text-[10px] tabular-nums text-white/85 opacity-0 transition-opacity group-hover:opacity-100">
+                {fmt(displayTime)} <span className="text-white/40">/ {fmt(duration)}</span>
+              </div>
+              {scrubberEl}
+            </div>
+          </>
+        ))}
     </div>
   );
 }

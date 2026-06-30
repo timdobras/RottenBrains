@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 
@@ -37,21 +37,31 @@ export default function VideoShell() {
   const [placeholderRect, setPlaceholderRect] = useState<DOMRect | null>(null);
   const rafRef = useRef<number>(0);
 
-  const {
-    position,
-    size,
-    isDragging,
-    setIsDragging,
-    setIsResizing,
-    setTempPosition,
-    handleDragEnd,
-    handleResize,
-  } = useMiniplayerState();
+  // Intrinsic video aspect ratio (width/height); defaults to 16/9 until the
+  // metadata loads. Full mode keeps a 16/9 box (video letterboxed via
+  // object-contain); mini mode sizes its window to this ratio.
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
+  useEffect(() => {
+    // new title → back to the 16/9 default until its metadata arrives
+    setAspectRatio(16 / 9);
+  }, [media_id, media_type, season_number, episode_number]);
+
+  const { position, size, isDragging, setIsDragging, setTempPosition, handleDragEnd } =
+    useMiniplayerState();
 
   const dragStartRef = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number } | null>(
     null,
   );
-  const resizeStartRef = useRef<{ mouseX: number; startWidth: number } | null>(null);
+  const movedRef = useRef(false); // did the pointer move past the drag threshold
+  const shellElRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  // watch-page href for this title (mini tap on mobile → expand here)
+  const href =
+    media_id && media_type ? getHrefFromMedia(media_type, media_id, season_number, episode_number) : '/';
+  const hrefRef = useRef(href);
+  hrefRef.current = href;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
 
   // ── stream + tracking (the new pipeline) ──
   const input: ResolveInput | null =
@@ -64,13 +74,21 @@ export default function VideoShell() {
     { enabled: premium && !!input },
   );
 
-  // Hold the last successfully-resolved stream so a re-resolve (provider switch
-  // or transient error, where useStreamResolver briefly sets stream=null) does
-  // NOT blank the player or churn its engine effect — the old stream keeps
-  // playing under the "switching…" overlay until the new src is ready.
+  // Hold the last successfully-resolved stream so a PROVIDER switch (where
+  // useStreamResolver briefly sets stream=null) doesn't blank the player —
+  // the old stream keeps playing until the new src is ready.
   const lastStreamRef = useRef<{ src: string; type: 'hls' | 'mp4'; subtitles: CustomPlayerSubtitle[] }>(
     { src: '', type: 'hls', subtitles: [] },
   );
+  // BUT a TITLE change must NOT keep the old stream — otherwise switching to a
+  // title no provider has would replay the previous media (and never show the
+  // no-source state). Drop the held stream whenever the title changes.
+  const titleKey = `${media_type}-${media_id}-${season_number ?? ''}-${episode_number ?? ''}`;
+  const lastTitleRef = useRef(titleKey);
+  if (lastTitleRef.current !== titleKey) {
+    lastTitleRef.current = titleKey;
+    lastStreamRef.current = { src: '', type: 'hls', subtitles: [] };
+  }
   if (stream.src) {
     lastStreamRef.current = { src: stream.src, type: stream.type, subtitles: stream.subtitles };
   }
@@ -127,94 +145,61 @@ export default function VideoShell() {
     };
   }, [mounted, mode, state.theaterMode, media_id, season_number, episode_number]);
 
-  // ── drag/resize handlers (mini mode) ──
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).closest('button, a')) return;
-      e.preventDefault();
+  // ── miniplayer drag-or-tap ──
+  // The whole surface is grabbable; CustomPlayer's buttons + scrubber
+  // stopPropagation so they never start a drag. Moving past a small threshold =
+  // drag the window; a press without moving = a tap → play/pause (desktop) or
+  // expand to the watch page (mobile).
+  const onShellPointerDown = useCallback(
+    (e: React.PointerEvent) => {
       dragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, posX: position.x, posY: position.y };
-      setIsDragging(true);
+      movedRef.current = false;
     },
-    [position, setIsDragging],
-  );
-
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if ((e.target as HTMLElement).closest('button, a')) return;
-      const touch = e.touches[0];
-      dragStartRef.current = { mouseX: touch.clientX, mouseY: touch.clientY, posX: position.x, posY: position.y };
-      setIsDragging(true);
-    },
-    [position, setIsDragging],
-  );
-
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsResizing(true);
-      resizeStartRef.current = { mouseX: e.clientX, startWidth: size.width };
-    },
-    [size.width, setIsResizing],
+    [position],
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (resizeStartRef.current) {
-        const dx = e.clientX - resizeStartRef.current.mouseX;
-        handleResize(resizeStartRef.current.startWidth - dx); // drag left = bigger
-        return;
+    const THRESHOLD = 5;
+    const onMove = (e: PointerEvent) => {
+      const s = dragStartRef.current;
+      if (!s) return;
+      const dx = e.clientX - s.mouseX;
+      const dy = e.clientY - s.mouseY;
+      if (!movedRef.current && Math.hypot(dx, dy) < THRESHOLD) return;
+      if (!movedRef.current) {
+        movedRef.current = true;
+        setIsDragging(true);
       }
-      if (!dragStartRef.current) return;
-      const dx = e.clientX - dragStartRef.current.mouseX;
-      const dy = e.clientY - dragStartRef.current.mouseY;
-      setTempPosition({ x: dragStartRef.current.posX + dx, y: dragStartRef.current.posY + dy });
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!dragStartRef.current) return;
       e.preventDefault();
-      const touch = e.touches[0];
-      const dx = touch.clientX - dragStartRef.current.mouseX;
-      const dy = touch.clientY - dragStartRef.current.mouseY;
-      setTempPosition({ x: dragStartRef.current.posX + dx, y: dragStartRef.current.posY + dy });
+      setTempPosition({ x: s.posX + dx, y: s.posY + dy });
     };
-
-    const handleMouseUp = (e: MouseEvent) => {
-      if (resizeStartRef.current) {
-        resizeStartRef.current = null;
-        setIsResizing(false);
-        return;
+    const onUp = (e: PointerEvent) => {
+      const s = dragStartRef.current;
+      if (!s) return;
+      dragStartRef.current = null;
+      if (movedRef.current) {
+        handleDragEnd(s.posX + (e.clientX - s.mouseX), s.posY + (e.clientY - s.mouseY));
+        setIsDragging(false);
+      } else {
+        // tap (no drag): mobile → expand to watch page; desktop → play/pause
+        if (isMobileRef.current) {
+          router.push(hrefRef.current);
+        } else {
+          const v = shellElRef.current?.querySelector('video');
+          if (v) v.paused ? v.play().catch(() => {}) : v.pause();
+        }
       }
-      if (!dragStartRef.current) return;
-      const dx = e.clientX - dragStartRef.current.mouseX;
-      const dy = e.clientY - dragStartRef.current.mouseY;
-      handleDragEnd(dragStartRef.current.posX + dx, dragStartRef.current.posY + dy);
-      setIsDragging(false);
-      dragStartRef.current = null;
+      movedRef.current = false;
     };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (!dragStartRef.current) return;
-      const touch = e.changedTouches[0];
-      const dx = touch.clientX - dragStartRef.current.mouseX;
-      const dy = touch.clientY - dragStartRef.current.mouseY;
-      handleDragEnd(dragStartRef.current.posX + dx, dragStartRef.current.posY + dy);
-      setIsDragging(false);
-      dragStartRef.current = null;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
-  }, [setIsDragging, setIsResizing, setTempPosition, handleDragEnd, handleResize]);
+  }, [setIsDragging, setTempPosition, handleDragEnd, router]);
 
   // ── bail conditions ──
   if (!mounted) return null;
@@ -240,16 +225,26 @@ export default function VideoShell() {
         left: position.x,
         top: position.y,
         width: size.width,
-        height: size.height,
+        // mini window adopts the content's aspect ratio (4/3 content → 4/3 box)
+        height: Math.round(size.width / aspectRatio),
         zIndex: 99999,
-        borderRadius: 8,
+        borderRadius: 14,
         boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-        cursor: isDragging ? 'grabbing' : 'default',
-        transition: isDragging ? 'none' : 'left 0.2s ease-out, top 0.2s ease-out',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        // animate position + the aspect-ratio size change; instant while the
+        // user is actively dragging so it stays responsive.
+        transition: isDragging
+          ? 'none'
+          : 'left 0.2s ease-out, top 0.2s ease-out, width 0.2s ease-out, height 0.2s ease-out',
       };
 
   return ReactDOM.createPortal(
-    <div className="relative overflow-hidden bg-black" style={style}>
+    <div
+      ref={shellElRef}
+      className="relative overflow-hidden bg-black"
+      style={{ ...style, touchAction: isFullMode ? undefined : 'none' }}
+      onPointerDown={isFullMode ? undefined : onShellPointerDown}
+    >
       {/* Player layer */}
       <div className="absolute inset-0 overflow-hidden">
         {!premium ? (
@@ -273,83 +268,17 @@ export default function VideoShell() {
               resolving={stream.resolving}
               probing={stream.probing}
               onProgress={onProgress}
+              onAspectRatio={setAspectRatio}
+              mobile={isMobile}
+              // resolution finished and nothing has it → player shows a message
+              noSource={stream.status === 'error' && !display.src}
+              onExpand={() => router.push(href)}
+              onClose={() => setState((s) => ({ ...s, media_id: undefined }))}
+              onMinimize={() => router.push('/')}
             />
-            {stream.status === 'error' && !display.src && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black px-4 text-center text-sm text-white">
-                No playable source found.
-              </div>
-            )}
           </>
         )}
       </div>
-
-      {/* Mini-mode chrome: drag zones, resize handle, expand + close */}
-      {!isFullMode && (
-        <div className="pointer-events-none absolute inset-0">
-          {isDragging && <div className="pointer-events-auto absolute inset-0 cursor-grabbing bg-black/20" />}
-
-          {/* Edge grab zones */}
-          <div
-            className="pointer-events-auto absolute left-0 right-0 top-0 h-5 cursor-grab touch-none"
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-          />
-          <div
-            className="pointer-events-auto absolute bottom-0 left-0 right-0 h-5 cursor-grab touch-none"
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-          />
-          <div
-            className="pointer-events-auto absolute bottom-5 left-0 top-5 w-5 cursor-grab touch-none"
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-          />
-          <div
-            className="pointer-events-auto absolute bottom-5 right-0 top-5 w-5 cursor-grab touch-none"
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-          />
-
-          {/* Resize handle (desktop) */}
-          {!isMobile && (
-            <div
-              className="pointer-events-auto flex h-7 w-7 cursor-nwse-resize items-center justify-center rounded-md border border-white/20 bg-black/80 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-neutral-700"
-              style={{ position: 'absolute', top: 6, left: 6 }}
-              onMouseDown={handleResizeStart}
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M21 21l-6-6m6 6v-6m0 6h-6M3 3l6 6M3 3v6m0-6h6" />
-              </svg>
-            </div>
-          )}
-
-          {/* Expand + close */}
-          <div className="pointer-events-auto flex gap-1" style={{ position: 'absolute', top: 6, right: 6 }}>
-            <Link
-              href={getHrefFromMedia(media_type, media_id, season_number, episode_number)}
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-white/20 bg-black/80 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-neutral-700"
-              onClick={(e) => e.stopPropagation()}
-              aria-label="expand"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M15 3h6v6M14 10l7-7M9 21H3v-6M10 14l-7 7" />
-              </svg>
-            </Link>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setState((s) => ({ ...s, media_id: undefined }));
-              }}
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-white/20 bg-black/80 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-red-600"
-              aria-label="close"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
     </div>,
     container,
   );

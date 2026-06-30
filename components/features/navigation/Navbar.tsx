@@ -42,6 +42,12 @@ export default function Navbar() {
     setScrolled(window.scrollY > 50);
 
     const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+    // Publish the bar's current bottom edge (0..height) so the watch-page player
+    // can stick to it and ride up/down with the bar. Desktop = 0 (player is in
+    // normal flow there, md:relative).
+    const setPlayerTop = (px: number) =>
+      document.documentElement.style.setProperty('--watch-player-top', `${px}px`);
+    setPlayerTop(isMobile() ? MOBILE_NAV_HEIGHT : 0);
 
     const update = () => {
       const currentScrollY = window.scrollY;
@@ -56,10 +62,14 @@ export default function Navbar() {
         next = Math.min(0, Math.max(-MOBILE_NAV_HEIGHT, next));
         currentTranslateY.current = next;
         if (navRef.current) navRef.current.style.transform = `translateY(${next}px)`;
-      } else if (currentTranslateY.current !== 0) {
-        // Keep the bar pinned on desktop
-        currentTranslateY.current = 0;
-        if (navRef.current) navRef.current.style.transform = 'translateY(0)';
+        setPlayerTop(MOBILE_NAV_HEIGHT + next); // bottom edge of the bar, 0..48
+      } else {
+        if (currentTranslateY.current !== 0) {
+          // Keep the bar pinned on desktop
+          currentTranslateY.current = 0;
+          if (navRef.current) navRef.current.style.transform = 'translateY(0)';
+        }
+        setPlayerTop(0);
       }
 
       lastScrollY.current = currentScrollY;

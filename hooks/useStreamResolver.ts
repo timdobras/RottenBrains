@@ -134,6 +134,18 @@ export function useStreamResolver(
 
   // Auto-resolve when an input is supplied and enabled (keyed on the actual params).
   const key = input && input.id !== '' && input.id != null ? buildQuery(input, verbose) : null;
+  // Reset SYNCHRONOUSLY when the target changes (during render, not in the
+  // effect) so consumers never momentarily see the PREVIOUS input's stream —
+  // that stale frame made the old media replay when switching to a title a
+  // provider lacks. (React "adjust state on prop change" pattern.)
+  const lastKeyRef = useRef(key);
+  if (lastKeyRef.current !== key) {
+    lastKeyRef.current = key;
+    reqIdRef.current++; // invalidate any in-flight resolve for the old key
+    setStream(null);
+    setError(null);
+    setStatus(key ? 'resolving' : 'idle');
+  }
   useEffect(() => {
     if (enabled && key) resolve();
     // eslint-disable-next-line react-hooks/exhaustive-deps
