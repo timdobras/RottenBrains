@@ -71,15 +71,29 @@ export default function VideoShell() {
   // lag — so we flip this flag on for ~320ms around a mode change to get the
   // slide+grow, then turn it back off for instant scroll tracking.
   const [animatingMode, setAnimatingMode] = useState(false);
+  // Transient full-screen click-shield raised during EITHER mode switch
+  // (mini→full and full→mini). While the player + watch overlay animate, the
+  // content shifts under the pointer; without the shield a click — or, on
+  // touch, the tap's delayed synthetic click fired after the overlay has opened
+  // under the finger — lands on whatever element is now there and navigates to
+  // it ("expanding/minimizing opens a random media card"). The shield absorbs
+  // any click for the transition + a short buffer so nothing stray is hit.
+  const [shieldActive, setShieldActive] = useState(false);
   const prevModeRef = useRef(mode);
   useEffect(() => {
     if (prevModeRef.current === mode) return;
     prevModeRef.current = mode;
     setAnimatingMode(true);
-    // Must outlast the 0.25s geometry transition so it isn't cut to
-    // `transition: none` mid-glide.
+    setShieldActive(true);
+    // animatingMode must outlast the 0.25s geometry transition so it isn't cut
+    // to `transition: none` mid-glide.
     const t = setTimeout(() => setAnimatingMode(false), 320);
-    return () => clearTimeout(t);
+    // Shield outlasts the animation AND a touch's ~300ms synthetic-click delay.
+    const t2 = setTimeout(() => setShieldActive(false), 450);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(t2);
+    };
   }, [mode]);
 
   const { position, size, isDragging, setIsDragging, setTempPosition, handleDragEnd } =
@@ -310,12 +324,24 @@ export default function VideoShell() {
       };
 
   return ReactDOM.createPortal(
-    <div
-      ref={shellElRef}
-      className="relative overflow-hidden bg-black"
-      style={{ ...style, touchAction: isFullMode ? undefined : 'none' }}
-      onPointerDown={isFullMode ? undefined : onShellPointerDown}
-    >
+    <>
+      {shieldActive && (
+        <div
+          aria-hidden
+          // Transient transition click-shield (see shieldActive above). A
+          // transparent fixed layer above everything (incl. the mini player's
+          // z-99999) that absorbs any click/tap while the player and overlay
+          // animate, so content shifting under the pointer can't be activated.
+          className="fixed inset-0"
+          style={{ zIndex: 999999 }}
+        />
+      )}
+      <div
+        ref={shellElRef}
+        className="relative overflow-hidden bg-black"
+        style={{ ...style, touchAction: isFullMode ? undefined : 'none' }}
+        onPointerDown={isFullMode ? undefined : onShellPointerDown}
+      >
       {/* Player layer */}
       <div className="absolute inset-0 overflow-hidden">
         {!premium ? (
@@ -389,7 +415,8 @@ export default function VideoShell() {
           </>
         )}
       </div>
-    </div>,
+      </div>
+    </>,
     container,
   );
 }
