@@ -69,7 +69,7 @@ export default function CommentsDemo() {
         </div>
       </div>
 
-      <Drawer.Root open={open} onOpenChange={setOpen}>
+      <Drawer.Root open={open} onOpenChange={setOpen} scrollLockTimeout={0}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-[300] bg-black/50" />
           <Drawer.Content className="fixed inset-x-0 bottom-0 z-[300] mx-auto flex h-[80%] max-w-[390px] flex-col rounded-t-2xl border-t border-border bg-background outline-none">

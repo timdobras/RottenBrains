@@ -269,6 +269,10 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
               open={showSheet}
               onOpenChange={setShowSheet}
               modal={!!lockBodyScroll}
+              // No cooldown after scrolling: pulling down while the list is at
+              // the top transfers straight into closing the sheet (native feel),
+              // instead of rubber-banding for ~100ms first.
+              scrollLockTimeout={0}
             >
               <VaulDrawer.Portal>
                 <VaulDrawer.Overlay className="fixed inset-0 z-40 bg-black/50 md:hidden" />
