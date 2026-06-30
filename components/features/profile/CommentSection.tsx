@@ -259,6 +259,10 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
               user_id={user_id}
               fetchComments={fetchComments}
               fetchReplies={fetchReplies}
+              // Focus the input as the sheet opens so the keyboard comes up
+              // ready to type. (iOS may only raise the keyboard on the first
+              // tap — see note; Android raises it immediately.)
+              autoFocus
             />
           </div>
         );
@@ -276,7 +280,21 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
             >
               <VaulDrawer.Portal>
                 <VaulDrawer.Overlay className="fixed inset-0 z-40 bg-black/50 md:hidden" />
-                <VaulDrawer.Content className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none md:hidden">
+                <VaulDrawer.Content
+                  className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none md:hidden"
+                  // Focus the comment input as the sheet opens so the keyboard
+                  // is ready to type. Radix would otherwise focus the content
+                  // container; we redirect it to the text input.
+                  onOpenAutoFocus={(e: any) => {
+                    e.preventDefault();
+                    const root = e.currentTarget as HTMLElement;
+                    (
+                      root?.querySelector(
+                        'input[type="text"]'
+                      ) as HTMLInputElement | null
+                    )?.focus();
+                  }}
+                >
                   <div className="shrink-0 select-none">
                     {grabHandle}
                     <VaulDrawer.Title className="px-4 py-2 text-center text-sm font-semibold">
