@@ -1,9 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import ImageWithFallback from '@/components/features/media/ImageWithFallback';
 import MediaCardOverlay from '@/components/features/media/MediaCardOverlay';
+import MediaCardHoverPreview, {
+  type AnchorRect,
+} from '@/components/features/media/MediaCardHoverPreview';
 import {
   formatDate,
   formatEpisodeCode,
@@ -11,9 +15,11 @@ import {
   getImageUrl,
   transformRuntime,
 } from '@/lib/utils';
+import { getVideos } from '@/lib/tmdb';
+import { queryKeys } from '@/lib/queryKeys';
 import MoreOptions from './MoreOptions';
 import RemoveFromContinueWatching from './RemoveFromContinueWatching';
-import HoverImage from './TrailerDisplayOnHover';
+import HoverImage, { extractTrailerInfo } from './TrailerDisplayOnHover';
 import { useAverageColor } from '@/hooks/useAverageColor';
 
 interface MediaCardProps {
@@ -105,6 +111,105 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
     : undefined;
   const mediaColor = useAverageColor(colorImageUrl);
 
+  const href = getHrefFromMedia(
+    media_type || 'movie',
+    media_id || 0,
+    season_number,
+    episode_number
+  );
+  const posterImageUrl = getImageUrl(media, season_number, episode_number);
+
+  // Desktop-only Netflix-style hover pop-out (portal). Disabled on touch /
+  // small screens, where the inline tap-to-play trailer is kept instead.
+  const queryClient = useQueryClient();
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [preview, setPreview] = useState<AnchorRect | null>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelled = useRef(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px) and (hover: hover)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const usePopout = isDesktop && !disableTrailer;
+
+  const closePreview = useCallback(() => {
+    if (openTimer.current) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    setPreview(null);
+  }, []);
+
+  const handleAnchorEnter = useCallback(() => {
+    cancelled.current = false;
+    // Small delay so merely scrolling past a card doesn't trigger the pop-out.
+    openTimer.current = setTimeout(async () => {
+      if (!posterRef.current) return;
+      // Only pop out if the title actually has a trailer. The fetch is cached,
+      // so the pop-out reuses it instantly. No trailer → no pop-out.
+      let data;
+      try {
+        data = await queryClient.fetchQuery({
+          queryKey: queryKeys.media.videos(media_type || 'movie', media_id || 0),
+          queryFn: () => getVideos(media_type || 'movie', media_id || 0),
+          staleTime: 1000 * 60 * 60,
+        });
+      } catch {
+        return;
+      }
+      if (cancelled.current) return; // user left while fetching
+      if (!extractTrailerInfo(data)?.url) return; // no trailer
+      const el = posterRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setPreview({ top: r.top, left: r.left, width: r.width, height: r.height });
+    }, 250);
+  }, [queryClient, media_type, media_id]);
+
+  const handleAnchorLeave = useCallback(() => {
+    // Cancel a pending open (timer + any in-flight trailer fetch). An already-
+    // open pop-out owns its own close via its onMouseLeave.
+    cancelled.current = true;
+    if (openTimer.current) {
+      clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+  }, []);
+
+  // Close the pop-out if the row scrolls or the window resizes (anchor moves).
+  useEffect(() => {
+    if (!preview) return;
+    const onMove = () => closePreview();
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+    return () => {
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('resize', onMove);
+    };
+  }, [preview, closePreview]);
+
+  useEffect(() => () => closePreview(), [closePreview]);
+
+  const overlayNode = (
+    <MediaCardOverlay
+      runtime={media.runtime}
+      number_of_episodes={media.number_of_episodes}
+      voteAverage={media.vote_average}
+      isNew={isNew}
+      isSoon={isSoon}
+      quality={quality}
+      isNewEpisodes={isNewEpisodes}
+      watchTime={watch_time}
+      transformRuntime={transformRuntime}
+    />
+  );
+
   return (
     <article className="group relative flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[512px]">
       <div
@@ -112,56 +217,38 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
         style={{ backgroundColor: mediaColor }}
         suppressHydrationWarning
       />
-      <div className="relative">
+      <div
+        className="relative"
+        ref={posterRef}
+        onMouseEnter={usePopout ? handleAnchorEnter : undefined}
+        onMouseLeave={usePopout ? handleAnchorLeave : undefined}
+      >
         <Link
           className={`relative block w-full overflow-hidden md:rounded-[8px] ${
             rounded === true ? 'rounded-[8px]' : ''
           }`}
-          href={getHrefFromMedia(
-            media_type || 'movie',
-            media_id || 0,
-            season_number,
-            episode_number
-          )}
+          href={href}
         >
-          {disableTrailer ? (
+          {disableTrailer || usePopout ? (
+            // Static poster. On desktop the trailer plays in the hover pop-out;
+            // when trailers are disabled it's just the image.
             <div className="relative w-full overflow-hidden">
               <ImageWithFallback
-                imageUrl={getImageUrl(media, season_number, episode_number)}
+                imageUrl={posterImageUrl}
                 altText={mediaTitle}
                 quality="w1280"
                 progressive={progressive}
               />
-              <MediaCardOverlay
-                runtime={media.runtime}
-                number_of_episodes={media.number_of_episodes}
-                voteAverage={media.vote_average}
-                isNew={isNew}
-                isSoon={isSoon}
-                quality={quality}
-                isNewEpisodes={isNewEpisodes}
-                watchTime={watch_time}
-                transformRuntime={transformRuntime}
-              />
+              {overlayNode}
             </div>
           ) : (
             <HoverImage
-              imageUrl={getImageUrl(media, season_number, episode_number)}
+              imageUrl={posterImageUrl}
               altText={mediaTitle}
               media_type={media_type || 'movie'}
               media_id={media_id || 0}
             >
-              <MediaCardOverlay
-                runtime={media.runtime}
-                number_of_episodes={media.number_of_episodes}
-                voteAverage={media.vote_average}
-                isNew={isNew}
-                isSoon={isSoon}
-                quality={quality}
-                isNewEpisodes={isNewEpisodes}
-                watchTime={watch_time}
-                transformRuntime={transformRuntime}
-              />
+              {overlayNode}
             </HoverImage>
           )}
         </Link>
@@ -175,6 +262,17 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
           />
         )}
       </div>
+      {usePopout && preview && (
+        <MediaCardHoverPreview
+          href={href}
+          imageUrl={posterImageUrl}
+          altText={mediaTitle}
+          media_type={media_type || 'movie'}
+          media_id={media_id || 0}
+          anchorRect={preview}
+          onClose={closePreview}
+        />
+      )}
       <div className="flex flex-col md:p-0">
         <div className="mt-2 flex flex-row justify-between">
           <h2 className="text-sm font-semibold">
