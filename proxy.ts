@@ -41,6 +41,7 @@ const PUBLIC_ROUTES = [
   '/offline',
   '/design',
   '/dev', // dev-only POC pages (gated to development in the page itself)
+  '/playground', // throwaway gesture/animation sandbox (no auth, no app data)
 ];
 
 // Routes that require authentication but NOT premium
