@@ -11,11 +11,9 @@ const nextConfig = {
   // Keep Prisma external so its dynamically-loaded query engine is traced into
   // the standalone bundle (it's also copied explicitly in the Dockerfile).
   serverExternalPackages: ['sharp', '@prisma/client'],
-  eslint: {
-    // Lint errors fail the build. Warnings (any, <img>, import order, etc.)
-    // still pass — those are tracked separately for incremental cleanup.
-    ignoreDuringBuilds: false,
-  },
+  // React Compiler (stable in Next 16) — auto-memoizes components. Relies on
+  // Babel so dev/build compile is a bit slower; runtime re-renders are reduced.
+  reactCompiler: true,
   images: {
     remotePatterns: [
       {
