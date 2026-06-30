@@ -6,6 +6,8 @@ import VideoProvider from '@/hooks/VideoProvider';
 import { getCurrentUser } from '@/lib/db/queries';
 import { IUser } from '@/types';
 import MainContent from '@/components/common/MainContent';
+import WatchBackdrop from '@/components/features/watch/WatchBackdrop';
+import WatchLinkInterceptor from '@/components/features/watch/WatchLinkInterceptor';
 import Navbar from '@/components/features/navigation/Navbar';
 import './globals.css';
 import { ThemeProvider } from 'next-themes';
@@ -68,12 +70,17 @@ export const viewport = {
 export default async function NotProtectedLayout({
   children,
   modal,
+  watch,
 }: {
   children: React.ReactNode;
   // `modal` is the @modal parallel-route slot. It lives at the root layout (not
   // app/protected) so the intercepting post modal works from EVERY surface,
   // including the homepage `/`, which renders the post feed outside /protected.
   modal: React.ReactNode;
+  // `watch` is the @watch parallel-route slot: a soft navigation to a /watch URL
+  // renders the watch page as a fullscreen overlay here (origin page stays
+  // mounted underneath), instead of a hard route change. See app/@watch.
+  watch: React.ReactNode;
 }) {
   // Use getCurrentUser() which is wrapped with React cache() for deduplication.
   // This avoids a raw select('*') and shares the result with any page-level
@@ -112,6 +119,11 @@ export default async function NotProtectedLayout({
                 <Navbar />
                 <MainContent>{children}</MainContent>
                 {modal}
+                {/* Store-driven backdrop fades in with the player on expand,
+                    ahead of the route-driven {watch} content below it. */}
+                <WatchBackdrop />
+                {watch}
+                <WatchLinkInterceptor />
                 <div id="player-root" />
                 <footer></footer>
                 {/* <CookieConsent /> */}

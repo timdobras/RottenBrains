@@ -22,6 +22,11 @@ import RemoveFromContinueWatching from './RemoveFromContinueWatching';
 import HoverImage, { extractTrailerInfo } from './TrailerDisplayOnHover';
 import { useAverageColor } from '@/hooks/useAverageColor';
 
+// How long the pointer must rest on a card before the trailer pop-out opens.
+// Kept fairly long so a passing cursor — or a quick hover-then-click to navigate
+// — never triggers the trailer.
+const HOVER_OPEN_DELAY = 700;
+
 interface MediaCardProps {
   media: any;
   media_type?: string;
@@ -148,7 +153,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
 
   const handleAnchorEnter = useCallback(() => {
     cancelled.current = false;
-    // Small delay so merely scrolling past a card doesn't trigger the pop-out.
+    // Delay so merely scrolling/passing over a card doesn't trigger the pop-out.
     openTimer.current = setTimeout(async () => {
       if (!posterRef.current) return;
       // Only pop out if the title actually has a trailer. The fetch is cached,
@@ -169,7 +174,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
       if (!el) return;
       const r = el.getBoundingClientRect();
       setPreview({ top: r.top, left: r.left, width: r.width, height: r.height });
-    }, 250);
+    }, HOVER_OPEN_DELAY);
   }, [queryClient, media_type, media_id]);
 
   const handleAnchorLeave = useCallback(() => {
@@ -222,12 +227,19 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
         ref={posterRef}
         onMouseEnter={usePopout ? handleAnchorEnter : undefined}
         onMouseLeave={usePopout ? handleAnchorLeave : undefined}
+        // If the user clicks to navigate before the delay elapses, cancel the
+        // pending open so the trailer never pops out over the outgoing page.
+        // mousedown fires before the Link's click-navigation.
+        onMouseDown={usePopout ? handleAnchorLeave : undefined}
       >
         <Link
           className={`relative block w-full overflow-hidden md:rounded-[8px] ${
             rounded === true ? 'rounded-[8px]' : ''
           }`}
           href={href}
+          // Opens the watch overlay (fixed/display-toggled); skip Next's
+          // auto-scroll-to-content so the page behind doesn't scroll/jump.
+          scroll={false}
         >
           {disableTrailer || usePopout ? (
             // Static poster. On desktop the trailer plays in the hover pop-out;

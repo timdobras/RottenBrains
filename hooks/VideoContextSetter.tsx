@@ -10,6 +10,10 @@ interface VideoContextSetterProps {
   season_number?: VideoState['season_number'];
   episode_number?: VideoState['episode_number'];
   resumePosition?: number; // playback position in seconds from watch history
+  // Set by the @watch intercepting overlay so the player knows it can pop the
+  // overlay (router.back) on minimize/close. Defaults to false for the real
+  // (hard-loaded) /watch page, preserving the previous push('/') behavior.
+  isOverlay?: boolean;
 }
 
 export default function VideoContextSetter({
@@ -18,11 +22,12 @@ export default function VideoContextSetter({
   season_number,
   episode_number,
   resumePosition,
+  isOverlay = false,
 }: VideoContextSetterProps) {
   const { setState } = useVideo();
 
   useEffect(() => {
-    // Enter "full" mode with the new media
+    // Enter "full" mode with the new media.
     setState({
       media_type,
       media_id,
@@ -30,13 +35,15 @@ export default function VideoContextSetter({
       episode_number,
       mode: 'full',
       resumePosition,
+      isOverlay,
     });
-
-    return () => {
-      // Revert to mini when unmounting
-      setState((s) => ({ ...s, mode: 'mini' }));
-    };
-  }, [media_type, media_id, season_number, episode_number, resumePosition, setState]);
+    // NO cleanup-minimize on purpose. The overlay is kept alive, so hopping
+    // between titles unmounts this VideoContextSetter and mounts the next one
+    // ASYNCHRONOUSLY (after the next title's RSC loads). A cleanup-minimize would
+    // fire in that gap → a max→mini→max flash that briefly reveals the origin
+    // page. Minimize is driven explicitly instead: the minimize button, the link
+    // interceptor (navigating away), and the popstate handler (browser back).
+  }, [media_type, media_id, season_number, episode_number, resumePosition, isOverlay, setState]);
 
   return null;
 }

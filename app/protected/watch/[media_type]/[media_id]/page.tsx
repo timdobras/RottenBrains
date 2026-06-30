@@ -1,9 +1,4 @@
-import VideoEmbed from '@/components/features/watch/MediaEmbed';
-import RecommendationsSection from '@/components/features/watch/RecommendationsSection';
-import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
-import WatchPageWrapper from '@/components/features/watch/WatchPageWrapper';
-import VideoContextSetter from '@/hooks/VideoContextSetter';
-import { getCurrentUser, getPlaybackPosition } from '@/lib/db/queries';
+import WatchMovieBody from '@/components/features/watch/WatchMovieBody';
 import { getCachedMediaDetails } from '@/lib/tmdb/cachedFetchers';
 import { logger } from '@/lib/logger';
 
@@ -43,37 +38,7 @@ export default async function mediaPage({ params }: { params: Params }) {
   const media_type = rawParams.media_type;
   const media_id = Number(rawParams.media_id);
 
-  // Parallel fetch user and media data
-  const [user, media] = await Promise.all([
-    getCurrentUser(),
-    getCachedMediaDetails(media_type, media_id),
-  ]);
-
-  if (!media) {
-    return <div>NO MEDIA FOUND</div>;
-  }
-
-  // Fetch playback position for resume support (e.g. Videasy's ?progress= param)
-  const playbackPosition = user ? await getPlaybackPosition(user.id, media_type, media_id) : null;
-
-  return (
-    <>
-      <VideoContextSetter
-        media_type={media_type}
-        media_id={media_id}
-        resumePosition={playbackPosition ?? undefined}
-      />
-      <WatchPageWrapper>
-        <VideoEmbed />
-        <div className="flex flex-col md:w-full">
-          <WatchPageDetails
-            media={media}
-            media_type={media_type}
-            media_id={media_id}
-          ></WatchPageDetails>
-        </div>
-        <RecommendationsSection mediaType={media_type} mediaId={media_id} userId={user?.id} />
-      </WatchPageWrapper>
-    </>
-  );
+  // Full (hard-loaded / shared-link) movie watch page. The soft-nav overlay
+  // variant renders the same body via app/@watch — see WatchMovieBody.
+  return <WatchMovieBody media_type={media_type} media_id={media_id} />;
 }

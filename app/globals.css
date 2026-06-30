@@ -162,6 +162,40 @@
   }
 }
 
+/* The @watch overlay's background surface fades in (0→100) around the player on
+   maximize, so the origin page dissolves into the theme background rather than
+   being hard-covered. */
+.watch-overlay-bg {
+  animation: watchOverlayBgIn 0.25s ease-out both;
+}
+
+@keyframes watchOverlayBgIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Entrance for the watch page body (details/recommendations) so the content
+   eases in under the player instead of popping. Staggered via inline
+   animation-delay where used. `both` holds the hidden state through the delay. */
+.watch-content-in {
+  animation: watchContentIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes watchContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.25s ease-in-out;
 }

@@ -12,6 +12,14 @@ export type VideoState = {
   provider?: string;
   resumePosition?: number; // playback position in seconds for resume (from DB)
   theaterMode?: boolean; // edge-to-edge immersive player on desktop
+  // True while the current title was opened via the @watch intercepting overlay
+  // (soft nav) rather than a hard-loaded /watch page. Decides whether minimize/
+  // close pop the overlay (router.back) or fall back to pushing '/'.
+  isOverlay?: boolean;
+  // The page you were on when you opened the watch overlay. Minimize returns
+  // HERE — not router.back(), which after episode-hopping would only step back
+  // to the previous episode rather than the page you originally came from.
+  originUrl?: string;
 };
 
 const VideoContext = createContext<{

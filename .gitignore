@@ -40,3 +40,9 @@ next-env.d.ts
 
 # mock images for offline development
 /public/mock-images/
+
+# Local MCP server config (contains credentials)
+.mcp.json
+
+# local env backups (contain secrets)
+.env.local.bak*
