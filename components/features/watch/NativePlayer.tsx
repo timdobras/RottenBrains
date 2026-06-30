@@ -11,6 +11,25 @@ export interface NativeSubtitle {
   default?: boolean;
 }
 
+/** Live playback diagnostics, surfaced via `onStats` (for the dev/debug panel). */
+export interface NativePlayerStats {
+  engine: 'hls.js' | 'native-hls' | 'mp4';
+  /** Available HLS quality levels (empty for mp4/native). */
+  levels: { height: number; bitrate: number; name?: string }[];
+  /** Index into `levels` of the active level, or -1 for auto/unknown. */
+  currentLevel: number;
+  currentHeight: number | null;
+  currentBitrate: number | null;
+  videoWidth: number;
+  videoHeight: number;
+  /** Seconds buffered ahead of the playhead. */
+  bufferAhead: number;
+  droppedFrames: number;
+  /** ms from loadSource to MANIFEST_PARSED (hls.js only). */
+  manifestMs: number | null;
+  errors: { type: string; details: string; fatal: boolean }[];
+}
+
 interface NativePlayerProps {
   /** Proxy-wrapped stream URL (from /api/stream/extract). */
   src: string;
@@ -21,7 +40,25 @@ interface NativePlayerProps {
   startTime?: number;
   /** Fired periodically with (currentSeconds, durationSeconds). */
   onProgress?: (current: number, duration: number) => void;
+  /** Fired with live playback diagnostics (qualities, buffer, errors…). */
+  onStats?: (stats: NativePlayerStats) => void;
   className?: string;
+}
+
+function emptyStats(engine: NativePlayerStats['engine']): NativePlayerStats {
+  return {
+    engine,
+    levels: [],
+    currentLevel: -1,
+    currentHeight: null,
+    currentBitrate: null,
+    videoWidth: 0,
+    videoHeight: 0,
+    bufferAhead: 0,
+    droppedFrames: 0,
+    manifestMs: null,
+    errors: [],
+  };
 }
 
 /**
@@ -35,10 +72,12 @@ export default function NativePlayer({
   subtitles = [],
   startTime = 0,
   onProgress,
+  onStats,
   className,
 }: NativePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const statsRef = useRef<NativePlayerStats>(emptyStats('hls.js'));
 
   useEffect(() => {
     const video = videoRef.current;
@@ -46,6 +85,9 @@ export default function NativePlayer({
 
     setError(null);
     let hls: Hls | null = null;
+
+    // Reset diagnostics for this source.
+    const emit = () => onStats?.({ ...statsRef.current, levels: [...statsRef.current.levels], errors: [...statsRef.current.errors] });
 
     const seekToStart = () => {
       if (startTime > 0 && Number.isFinite(startTime)) {
@@ -59,26 +101,54 @@ export default function NativePlayer({
 
     if (streamType === 'mp4') {
       // Progressive MP4 (e.g. vidlink) — native <video>, no hls.js.
+      statsRef.current = emptyStats('mp4');
+      emit();
       video.src = src;
       video.addEventListener('loadedmetadata', seekToStart, { once: true });
     } else if (Hls.isSupported()) {
+      statsRef.current = emptyStats('hls.js');
+      emit();
       hls = new Hls({
         // Our proxy already attaches upstream headers, so default loaders are fine.
         enableWorker: true,
         lowLatencyMode: false,
         backBufferLength: 90,
       });
+      const loadedAt = Date.now();
       hls.loadSource(src);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, seekToStart);
+      hls.on(Hls.Events.MANIFEST_PARSED, (_evt, data) => {
+        statsRef.current.manifestMs = Date.now() - loadedAt;
+        statsRef.current.levels = (data.levels ?? []).map((l) => ({
+          height: l.height,
+          bitrate: l.bitrate,
+          name: l.name,
+        }));
+        emit();
+        seekToStart();
+      });
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_evt, data) => {
+        const lvl = hls?.levels?.[data.level];
+        statsRef.current.currentLevel = data.level;
+        statsRef.current.currentHeight = lvl?.height ?? null;
+        statsRef.current.currentBitrate = lvl?.bitrate ?? null;
+        emit();
+      });
       hls.on(Hls.Events.ERROR, (_evt, data) => {
+        statsRef.current.errors = [
+          ...statsRef.current.errors.slice(-19),
+          { type: data.type, details: data.details, fatal: !!data.fatal },
+        ];
+        emit();
         if (data.fatal) {
           logger.error('NativePlayer fatal hls error', data);
-          setError(`Playback error: ${data.type}`);
+          setError(`Playback error: ${data.type} / ${data.details}`);
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS (Safari / iOS)
+      statsRef.current = emptyStats('native-hls');
+      emit();
       video.src = src;
       video.addEventListener('loadedmetadata', seekToStart, { once: true });
     } else {
@@ -88,7 +158,32 @@ export default function NativePlayer({
     return () => {
       if (hls) hls.destroy();
     };
-  }, [src, streamType, startTime]);
+  }, [src, streamType, startTime, onStats]);
+
+  // Poll dynamic stats (buffer / resolution / dropped frames) ~1s, while onStats is set.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !onStats) return;
+    const tick = () => {
+      const s = statsRef.current;
+      s.videoWidth = video.videoWidth || 0;
+      s.videoHeight = video.videoHeight || 0;
+      // Buffered seconds ahead of the playhead.
+      let ahead = 0;
+      for (let i = 0; i < video.buffered.length; i++) {
+        if (video.currentTime >= video.buffered.start(i) && video.currentTime <= video.buffered.end(i)) {
+          ahead = video.buffered.end(i) - video.currentTime;
+          break;
+        }
+      }
+      s.bufferAhead = ahead;
+      const q = video.getVideoPlaybackQuality?.();
+      if (q) s.droppedFrames = q.droppedVideoFrames;
+      onStats({ ...s, levels: [...s.levels], errors: [...s.errors] });
+    };
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [onStats]);
 
   // Progress reporting (throttled to ~5s).
   useEffect(() => {

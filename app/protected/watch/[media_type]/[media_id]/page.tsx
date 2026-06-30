@@ -1,6 +1,5 @@
 import VideoEmbed from '@/components/features/watch/MediaEmbed';
 import RecommendationsSection from '@/components/features/watch/RecommendationsSection';
-import WatchDuration from '@/components/features/watch/WatchDuration';
 import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
 import WatchPageWrapper from '@/components/features/watch/WatchPageWrapper';
 import VideoContextSetter from '@/hooks/VideoContextSetter';
@@ -64,13 +63,6 @@ export default async function mediaPage({ params }: { params: Params }) {
         media_id={media_id}
         resumePosition={playbackPosition ?? undefined}
       />
-      {user && (
-        <WatchDuration
-          media_type={media_type}
-          media_id={media_id}
-          media_duration={media.runtime || 120}
-        />
-      )}
       <WatchPageWrapper>
         <VideoEmbed />
         <div className="flex flex-col md:w-full">

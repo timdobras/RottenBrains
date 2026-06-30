@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { internalProviderName, publicProviderName } from '@/lib/stream/providerNames';
 import { publicOrigin } from '@/lib/stream/publicOrigin';
 import { resolveStream } from '@/lib/stream/resolvers';
 import type { ResolveParams } from '@/lib/stream/types';
@@ -48,15 +49,26 @@ export async function GET(req: NextRequest) {
     media_id,
     season_number: searchParams.get('season_number') ?? undefined,
     episode_number: searchParams.get('episode_number') ?? undefined,
+    // Force a specific provider; omitted = Auto cascade. Client sends the public
+    // (aliased) name in prod — map it back to the real provider here.
+    provider: searchParams.get('provider')
+      ? internalProviderName(searchParams.get('provider') as string)
+      : undefined,
   };
 
+  // `?verbose=1` adds a debug block (timing + raw upstream URL/host/headers) for
+  // the dev page. Suppressed in production so the upstream CDN never leaks there.
+  const verbose = searchParams.get('verbose') === '1' && process.env.NODE_ENV !== 'production';
+
   let stream;
+  const t0 = Date.now();
   try {
     stream = await resolveStream(params);
   } catch (err) {
     logger.error('extract: resolver threw', { err, params });
     return NextResponse.json({ error: 'resolution_failed' }, { status: 502 });
   }
+  const elapsedMs = Date.now() - t0;
 
   if (!stream) {
     // Caller should fall back to an iframe provider.
@@ -64,8 +76,16 @@ export async function GET(req: NextRequest) {
   }
 
   const headers = stream.headers ?? {};
+  let upstreamHost: string | null = null;
+  try {
+    upstreamHost = new URL(stream.url).host;
+  } catch {
+    /* non-URL upstream */
+  }
+
   return NextResponse.json({
-    resolver: stream.resolver,
+    // aliased in prod so the client never learns which real provider served it
+    resolver: publicProviderName(stream.resolver),
     type: stream.type,
     // Already proxy-wrapped so the client just feeds this straight to hls.js.
     src: proxied(origin, stream.url, headers),
@@ -75,5 +95,15 @@ export async function GET(req: NextRequest) {
       default: s.default ?? false,
       src: proxied(origin, s.url, headers),
     })),
+    ...(verbose && {
+      debug: {
+        elapsedMs,
+        upstreamUrl: stream.url,
+        upstreamHost,
+        headers,
+        subtitleCount: stream.subtitles?.length ?? 0,
+        params,
+      },
+    }),
   });
 }

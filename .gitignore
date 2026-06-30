@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+rb-extractor/node_modules
+# local-only dev worker launcher (hardcoded absolute paths)
+rb-extractor/run-dev-worker.sh
 /.pnp
 .pnp.js
 .yarn/install-state.gz

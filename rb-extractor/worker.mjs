@@ -4,7 +4,7 @@ import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { chromium } from 'patchright';
 
-import { extractStream } from './lib.mjs';
+import { extractStream, KNOWN_PROVIDERS } from './lib.mjs';
 
 // --- config ---
 const QUEUE_NAME = process.env.STREAM_QUEUE || 'stream-extract';
@@ -17,6 +17,11 @@ const PROVIDER_ORDER = (process.env.PROVIDERS || 'vidlink.pro,spencerdevs,vidroc
   .map((s) => s.trim());
 const HEALTH_PORT = Number(process.env.PORT || 8790);
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 25 * 60 * 1000);
+// Availability cache: which providers HAVE a given title (+ subtitle/quality
+// metadata). Unlike the stream URL (short-lived token), this is stable, so it
+// lives in Redis with a long TTL and is shared across workers + restarts. Lets
+// the app instantly show known-good sources for previously-watched titles.
+const AVAIL_TTL_S = Number(process.env.AVAIL_TTL_S || 12 * 60 * 60);
 
 if (!REDIS_URL) {
   console.error('REDIS_URL is required');
@@ -29,27 +34,57 @@ const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 // In-process cache — extracted m3u8 URLs are short-lived; a browser launch per
 // job is expensive, so repeat requests for the same title reuse the result.
 const cache = new Map();
-const keyOf = (d) => `${d.type}:${d.id}:${d.season || ''}:${d.episode || ''}`;
+// Cache key includes the requested provider so a forced single-provider result
+// is cached separately from the Auto (cascade) result for the same title.
+const keyOf = (d) => `${d.type}:${d.id}:${d.season || ''}:${d.episode || ''}:${d.provider || 'auto'}`;
+// Title-scoped (provider-independent) key for the shared availability hash.
+const availKey = (d) => `rb-extractor:avail:${d.type}:${d.id}:${d.season || ''}:${d.episode || ''}`;
+
+// Record (in Redis) whether a provider has this title, plus light metadata used
+// by the UI. `ok:false` means "definitively no source" (we hide it); we only
+// write that on a clean no-stream result, never on a thrown/transient error.
+async function recordAvailability(data, provider, entry) {
+  try {
+    const key = availKey(data);
+    await connection.hset(key, provider, JSON.stringify({ ...entry, at: Date.now() }));
+    await connection.expire(key, AVAIL_TTL_S);
+  } catch {
+    /* cache write is best-effort */
+  }
+}
 
 async function resolve(data) {
   const k = keyOf(data);
   const c = cache.get(k);
   if (c && Date.now() - c.at < CACHE_TTL_MS) return { ...c.value, cached: true };
 
-  for (const provider of PROVIDER_ORDER) {
+  // A specific `provider` forces just that one; otherwise cascade the default order.
+  const order =
+    data.provider && KNOWN_PROVIDERS.includes(data.provider) ? [data.provider] : PROVIDER_ORDER;
+  for (const provider of order) {
     try {
       const r = await extractStream(provider, data, { timeoutMs: 90000 });
       if (r.stream) {
+        const subs = r.stream.subtitles || [];
+        const langs = [...new Set(subs.map((s) => s.lang || s.label).filter(Boolean))];
         const value = {
           url: r.stream.url,
           headers: r.stream.headers,
-          subtitles: r.stream.subtitles,
+          subtitles: subs,
           type: r.stream.type || 'hls',
           resolver: provider,
         };
         cache.set(k, { at: Date.now(), value });
+        recordAvailability(data, provider, {
+          ok: true,
+          type: value.type,
+          subs: subs.length,
+          langs,
+        });
         return value;
       }
+      // resolved cleanly with no stream → this provider doesn't have the title.
+      recordAvailability(data, provider, { ok: false, type: null, subs: 0, langs: [] });
     } catch (e) {
       console.error(`[extract] ${provider} failed:`, e.message);
     }
@@ -80,6 +115,7 @@ async function selfTest() {
     bootedAt: new Date().toISOString(),
     display: process.env.DISPLAY || null,
     providers: PROVIDER_ORDER,
+    availableProviders: KNOWN_PROVIDERS,
     headlessOk: false,
     headedOk: false,
   };

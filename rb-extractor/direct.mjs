@@ -8,13 +8,18 @@
 import { resolveVidlink } from './vidlink-direct.mjs';
 import { resolveSpencer } from './spencerdevs-direct.mjs';
 import { resolveVidrock } from './vidrock-direct.mjs';
+import { resolveCinezo } from './cinezo-direct.mjs';
 
 // providerName -> async ({type,id,season,episode}) => stream|null
 const DIRECT_RESOLVERS = {
   'vidlink.pro': resolveVidlink,
   spencerdevs: resolveSpencer,
   vidrock: resolveVidrock,
+  cinezo: resolveCinezo,
 };
+
+/** Names of the browser-free direct providers. */
+export const DIRECT_PROVIDERS = Object.keys(DIRECT_RESOLVERS);
 
 export function hasDirect(name) {
   return Object.prototype.hasOwnProperty.call(DIRECT_RESOLVERS, name);

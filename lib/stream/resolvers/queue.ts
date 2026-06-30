@@ -65,6 +65,7 @@ export function queueResolver(): StreamResolver | null {
             id: params.media_id,
             season: params.season_number,
             episode: params.episode_number,
+            provider: params.provider, // undefined = Auto cascade on the worker
           },
           { removeOnComplete: 200, removeOnFail: 100 },
         );

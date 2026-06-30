@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import ProviderDropdown from '../ProviderDropdown';
 import JellyfinButton from '../JellyfinButton';
 import ShareButton from '../ShareButton';
 import TheaterToggle from '../TheaterToggle';
@@ -12,7 +11,6 @@ interface ActionButtonsProps {
 const ActionButtons: React.FC<ActionButtonsProps> = ({ media_type, media_id }) => {
   return (
     <div className="flex flex-shrink-0 flex-row gap-2 overflow-x-auto pb-2 text-sm">
-      <ProviderDropdown />
       <JellyfinButton />
       <Link
         href={`/protected/create-post/${media_type}/${media_id}`}

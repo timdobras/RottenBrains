@@ -3,7 +3,7 @@
 // headed). Videasy works with it too.
 import { chromium } from 'patchright';
 
-import { tryDirect, hasDirect } from './direct.mjs';
+import { tryDirect, hasDirect, DIRECT_PROVIDERS } from './direct.mjs';
 
 // A real Chrome UA; under headed+xvfb the Sec-CH-UA client hints match this
 // (no "HeadlessChrome"), which is what defeats the bot detection on these players.
@@ -74,6 +74,10 @@ const DRIVERS = {
     await poke(page, 14, { stop });
   },
 };
+
+// Every provider the worker can resolve — direct (browser-free) first, then the
+// browser drivers. Surfaced to the app so the UI can offer manual selection.
+export const KNOWN_PROVIDERS = [...new Set([...DIRECT_PROVIDERS, ...Object.keys(DRIVERS)])];
 
 // Run a promise but never let it block longer than ms (ad iframes can hang evaluate).
 function withTimeout(p, ms) {

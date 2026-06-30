@@ -3,7 +3,6 @@ import HomeMediaCardSkeleton from '@/components/features/media/MediaCardSkeleton
 import MediaCardServer from '@/components/features/media/MediaCardServer';
 import VideoEmbed from '@/components/features/watch/MediaEmbed';
 import TVShowDetails from '@/components/features/watch/TVSeasons';
-import WatchDuration from '@/components/features/watch/WatchDuration';
 import WatchPageDetails from '@/components/features/watch/WatchPageDetails';
 import WatchPageWrapper from '@/components/features/watch/WatchPageWrapper';
 import VideoContextSetter from '@/hooks/VideoContextSetter';
@@ -114,15 +113,6 @@ export default async function mediaPage({ params }: { params: Params }) {
         episode_number={episode_number}
         resumePosition={playbackPosition ?? undefined}
       />
-      {user && (
-        <WatchDuration
-          media_type={media_type}
-          media_id={media_id}
-          season_number={season_number}
-          episode_number={episode_number}
-          media_duration={episode.runtime || 45}
-        />
-      )}
       <WatchPageWrapper>
         <VideoEmbed />
         <div className="flex flex-col md:w-full">

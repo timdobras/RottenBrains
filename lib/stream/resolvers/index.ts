@@ -22,7 +22,11 @@ function buildChain(): StreamResolver[] {
 
 /** Try each resolver in order; return the first playable stream. */
 export async function resolveStream(params: ResolveParams): Promise<ExtractedStream | null> {
-  for (const resolver of buildChain()) {
+  const chain = buildChain();
+  // A forced provider is only meaningful to the queue/worker resolver; the other
+  // fallbacks ignore it and would return a different source, so skip them.
+  const resolvers = params.provider ? chain.filter((r) => r.name === 'queue') : chain;
+  for (const resolver of resolvers) {
     const result = await resolver.resolve(params);
     if (result?.url) return result;
   }

@@ -1,10 +1,8 @@
 'use client';
 
-import { createClient } from '@/lib/supabase/client';
 import { IUser } from '@/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
 import { logger } from '@/lib/logger';
 
 interface UserContextType {
@@ -15,31 +13,20 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-const fetchUser = async () => {
-  const supabase = createClient();
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
-
-  if (!authUser) {
+// Read the current user from the Better Auth session (server source of truth),
+// the SAME thing the server passes as `initialUser`. Previously this used the
+// Supabase client, which returned null post-migration and made the client UI
+// flip to logged-out/non-premium even with a valid Better Auth session.
+const fetchUser = async (): Promise<IUser | null> => {
+  try {
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data?.user ?? null) as IUser | null;
+  } catch (error) {
+    logger.error('Error fetching user data:', error);
     return null;
   }
-
-  const { data: userData, error } = await supabase
-    .from('users')
-    .select(
-      'id, name, username, email, image_url, backdrop_url, feed_genres, premium, bio, created_at'
-    )
-    .eq('id', authUser.id)
-    .single();
-
-  if (error) {
-    logger.error('Error fetching user data:', error);
-    throw error;
-  }
-
-  // IUser type is out of sync with the DB row; cast until reconciled
-  return userData as unknown as IUser;
 };
 
 const UserProvider = ({ children, initialUser }: { children: ReactNode; initialUser?: IUser }) => {
@@ -50,20 +37,6 @@ const UserProvider = ({ children, initialUser }: { children: ReactNode; initialU
     queryFn: fetchUser,
     initialData: initialUser,
   });
-
-  useEffect(() => {
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      logger.debug('Auth state changed:', event);
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [queryClient]);
 
   const refreshUser = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['user'] });

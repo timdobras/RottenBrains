@@ -37,6 +37,8 @@ export interface ResolveParams {
   media_id: string;
   season_number?: string;
   episode_number?: string;
+  /** Force a specific provider (e.g. 'vidlink.pro'); omit/undefined = Auto cascade. */
+  provider?: string;
 }
 
 export interface StreamResolver {

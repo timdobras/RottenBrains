@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { decodeSubtitle } from '@/lib/stream/decodeSubtitle';
 import { rewritePlaylist, looksLikePlaylist } from '@/lib/stream/hlsRewrite';
 import { publicOrigin } from '@/lib/stream/publicOrigin';
 import { assertPublicHttpUrl } from '@/lib/stream/ssrfGuard';
@@ -100,7 +101,9 @@ export async function GET(req: NextRequest) {
     upstreamUrl.pathname.toLowerCase().endsWith('.srt') ||
     (contentType?.toLowerCase().includes('subrip') ?? false);
   if (isSrt) {
-    const srt = await upstream.text();
+    // Decode with the real charset (many non-English subs are Windows-125x /
+    // GBK / Big5, not UTF-8) before converting SRT → VTT.
+    const srt = decodeSubtitle(Buffer.from(await upstream.arrayBuffer()));
     const vtt =
       'WEBVTT\n\n' +
       srt

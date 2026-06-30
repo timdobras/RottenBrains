@@ -17,6 +17,7 @@ import VPNDebugPanel from '@/components/features/navigation/VPNDebugPanel';
 import OfflineIndicator from '@/components/features/pwa/OfflineIndicator';
 import SplashScreen from '@/components/features/loaders/SplashScreen';
 import { OfflineModeIndicator } from '@/components/features/dev/OfflineModeIndicator';
+import { isVPNDetectionDisabled } from '@/lib/mocks/config';
 import { Toaster } from '@/components/ui/toaster';
 import PWAInstallBanner from '@/components/features/pwa/PWAInstallBanner';
 
@@ -105,7 +106,9 @@ export default async function NotProtectedLayout({
                 <OfflineModeIndicator />
                 <TopLoader />
                 {initialUser && <VPNWarningProduction />}
-                {initialUser && process.env.NODE_ENV === 'development' && <VPNDebugPanel />}
+                {initialUser &&
+                  process.env.NODE_ENV === 'development' &&
+                  !isVPNDetectionDisabled() && <VPNDebugPanel />}
                 <Navbar />
                 <MainContent>{children}</MainContent>
                 {modal}
