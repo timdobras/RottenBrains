@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 interface ModalProps {
   isOpen: boolean;
@@ -8,20 +11,26 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-      <div className="max-h-[80vh] w-full max-w-[95vw] overflow-y-auto rounded-lg bg-background shadow-lg drop-shadow-lg md:max-h-[50vh] md:max-w-[800px]">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent
+        showClose={false}
+        className="max-h-[80vh] w-full max-w-[95vw] gap-0 overflow-hidden p-0 md:max-h-[50vh] md:max-w-[800px]"
+      >
         <div className="flex items-center justify-between border-b border-foreground/20">
-          <h2 className="p-4 text-xl font-bold">{title}</h2>
-          <button onClick={onClose} className="p-4 text-xl font-semibold">
+          <DialogTitle className="p-4 text-xl font-bold">{title}</DialogTitle>
+          <button onClick={onClose} className="p-4 text-xl font-semibold" aria-label="Close">
             &times;
           </button>
         </div>
-        <div className="p-4">{children}</div>
-      </div>
-    </div>
+        <div className="overflow-y-auto p-4">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

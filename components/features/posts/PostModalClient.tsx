@@ -1,6 +1,6 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { Dialog } from '@base-ui/react/dialog';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
@@ -16,8 +16,10 @@ import PostModalSkeleton from './PostModalSkeleton';
  * (no network round-trip — we reuse the post + media data already in memory).
  * For cold soft-navigations with no seed, it falls back to a client fetch.
  *
- * Closing plays an exit animation first, then router.back() once it completes —
- * so the modal animates out smoothly instead of vanishing on navigation.
+ * Built on Base UI's Dialog: it provides the focus trap, scroll lock, Escape
+ * and outside-press handling. Closing flips `open` to false, Base UI plays the
+ * exit animation, then `onOpenChangeComplete` runs router.back() — so the modal
+ * animates out smoothly instead of vanishing on navigation.
  */
 const PostModalClient = ({ postId }: { postId: string }) => {
   const router = useRouter();
@@ -26,8 +28,6 @@ const PostModalClient = ({ postId }: { postId: string }) => {
   const seeded = getSeededPostData(postId);
   const [postMediaData, setPostMediaData] = useState<any>(seeded ?? null);
   const [loading, setLoading] = useState<boolean>(!seeded);
-  // Drives the enter/exit animation; flipping to false triggers the exit, and
-  // onExitComplete performs the actual navigation back.
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
@@ -47,84 +47,46 @@ const PostModalClient = ({ postId }: { postId: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId, user?.id]);
 
-  const handleClose = () => setOpen(false);
-
-  useEffect(() => {
-    // Position-preserving scroll lock: pin the background where it is (instead of
-    // letting it jump to top) and restore the exact scroll position on close.
-    const scrollY = window.scrollY;
-    const body = document.body;
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.overflow = 'hidden';
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-
-    return () => {
-      body.style.position = '';
-      body.style.top = '';
-      body.style.left = '';
-      body.style.right = '';
-      body.style.overflow = '';
-      window.scrollTo(0, scrollY);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, []);
-
   return (
-    <AnimatePresence onExitComplete={() => router.back()}>
-      {open && (
-        <motion.div
-          key="backdrop"
-          onClick={handleClose}
-          // Starts already blurred so it hands off seamlessly from loading.tsx
-          // (which keyframes the blur in). Only the exit is animated here.
-          initial={{ opacity: 1, backdropFilter: 'blur(6px)' }}
-          animate={{ opacity: 1, backdropFilter: 'blur(6px)' }}
-          exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2"
-        >
-          <motion.div
-            onClick={(e) => e.stopPropagation()}
-            // No enter animation: the zoom-in already played on loading.tsx, so the
-            // real panel just replaces the skeleton in place. Only the exit animates.
-            initial={{ opacity: 1, scale: 1, y: 0 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 6 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="relative h-[80vh] max-h-[90vh] w-full max-w-[95vw] overflow-hidden rounded-[16px] bg-background text-foreground shadow-lg md:aspect-[16/9] md:h-auto md:max-h-[90vh] md:w-[60vw]"
+    <Dialog.Root
+      open={open}
+      onOpenChange={setOpen}
+      onOpenChangeComplete={(isOpen) => {
+        // Navigate back only after the exit animation has finished.
+        if (!isOpen) router.back();
+      }}
+    >
+      <Dialog.Portal>
+        {/* Starts already blurred so it hands off seamlessly from loading.tsx
+            (which keyframes the blur in). Only the exit is animated here. */}
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[6px] transition-[opacity,backdrop-filter] duration-200 data-[ending-style]:opacity-0 data-[ending-style]:backdrop-blur-none" />
+        {/* No enter animation: the zoom-in already played on loading.tsx, so the
+            real panel just replaces the skeleton in place. Only the exit animates. */}
+        <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 h-[80vh] max-h-[90vh] w-full max-w-[95vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[16px] bg-background text-foreground shadow-lg outline-none transition duration-200 data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 md:aspect-[16/9] md:h-auto md:max-h-[90vh] md:w-[60vw]">
+          <Dialog.Title className="sr-only">Post</Dialog.Title>
+          <Dialog.Close
+            aria-label="Close"
+            className="absolute right-2 top-2 z-10 flex aspect-square h-8 items-center justify-center rounded-full bg-background/60 text-lg font-semibold backdrop-blur-sm"
           >
-            <button
-              onClick={handleClose}
-              aria-label="Close"
-              className="absolute right-2 top-2 z-10 flex aspect-square h-8 items-center justify-center rounded-full bg-background/60 text-lg font-semibold backdrop-blur-sm"
-            >
-              <p>&times;</p>
-            </button>
-            <div className="h-full w-full overflow-hidden">
-              {loading && !postMediaData ? (
-                <PostModalSkeleton />
-              ) : postMediaData ? (
-                <PostModalContent
-                  post_media_data={postMediaData}
-                  user_id={user?.id != null ? String(user.id) : undefined}
-                />
-              ) : (
-                <div className="flex h-full min-h-[300px] items-center justify-center">
-                  <span className="opacity-50">Post not found.</span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            <p>&times;</p>
+          </Dialog.Close>
+          <div className="h-full w-full overflow-hidden">
+            {loading && !postMediaData ? (
+              <PostModalSkeleton />
+            ) : postMediaData ? (
+              <PostModalContent
+                post_media_data={postMediaData}
+                user_id={user?.id != null ? String(user.id) : undefined}
+              />
+            ) : (
+              <div className="flex h-full min-h-[300px] items-center justify-center">
+                <span className="opacity-50">Post not found.</span>
+              </div>
+            )}
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 };
 

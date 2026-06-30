@@ -1,10 +1,8 @@
 'use client';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Dialog } from '@base-ui/react/dialog';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { ArrowLeft, Search } from 'lucide-react';
-import useHasMounted from '@/hooks/useHasMounted';
 import { useUser } from '@/hooks/UserContext';
 import { searchUsers } from '@/lib/client/searchUsers';
 import { searchMulti } from '@/lib/tmdb';
@@ -21,8 +19,6 @@ interface ModalProps {
   onClose: () => void;
 }
 export default function SearchModal({ isOpen, onClose }: ModalProps) {
-  const mounted = useHasMounted();
-
   const [searchQuery, setSearchQuery] = useState('');
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -42,28 +38,7 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
 
   const { user } = useUser();
 
-  useEffect(() => {
-    if (isOpen) {
-      document.documentElement.style.overflow = 'hidden'; // Prevent scrolling
-      document.documentElement.style.position = 'fixed'; // Keep position fixed
-      document.documentElement.style.width = '100%'; // Ensure full width
-      document.body.style.overflow = 'hidden'; // Prevent scrolling
-      document.body.style.position = 'fixed'; // Prevent body scroll
-      document.body.style.width = '100%';
-    } else {
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-    }
-
-    return () => {
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.position = '';
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-    };
-  }, [isOpen]);
+  // Scroll lock, Escape-to-close and focus trapping are handled by Base UI's Dialog.
 
   const handleItemSelect = (item: any) => {
     onClose();
@@ -85,41 +60,6 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
         console.warn('Unknown media_type', item.media_type);
     }
   };
-
-  // Prevent scrolling on background, but allow scrolling inside modal
-  useEffect(() => {
-    const preventScroll = (e: TouchEvent) => {
-      const modalContent = document.getElementById('modal-content');
-      if (modalContent && modalContent.contains(e.target as Node)) {
-        return; // Allow scrolling inside the modal content
-      }
-      e.preventDefault(); // Prevent background scrolling
-    };
-
-    if (isOpen) {
-      document.addEventListener('touchmove', preventScroll, { passive: false });
-    }
-
-    return () => {
-      document.removeEventListener('touchmove', preventScroll);
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
 
   const search = useMemo(
     () =>
@@ -229,34 +169,28 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
     };
   }, [searchQuery]);
 
-  if (!mounted) return null;
-
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+  return (
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/50 transition-opacity duration-200 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0" />
+        <Dialog.Popup
+          initialFocus={inputRef}
+          className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen flex-col bg-background outline-none transition duration-200 data-[starting-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[ending-style]:scale-[0.98] data-[ending-style]:opacity-0"
         >
-          {/* Modal Container */}
-          <motion.div
-            id="modal-content"
-            className="fixed relative left-0 top-0 flex h-[100dvh] w-screen flex-col bg-background"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <Dialog.Title className="sr-only">Search</Dialog.Title>
+          <div className="flex h-full w-full flex-col">
             <div className="flex h-14 w-full flex-shrink-0 flex-row gap-2 border-b border-foreground/10 px-2 py-2">
-              <button
-                onClick={onClose}
+              <Dialog.Close
+                aria-label="Close search"
                 className="flex aspect-square h-full items-center justify-center rounded-full transition-colors hover:bg-foreground/10"
               >
                 <ArrowLeft className="aspect-square h-6" />
-              </button>
+              </Dialog.Close>
               <div className="relative flex-1">
                 <input
                   ref={inputRef}
@@ -340,10 +274,9 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
                 </>
               )}
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

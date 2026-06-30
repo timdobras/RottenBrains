@@ -2,6 +2,7 @@
 import { Heart, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getPostComments } from '@/lib/db/client-actions';
 import AddComment from './AddComment';
@@ -95,52 +96,57 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
           <Link href={post_link} scroll={false} className="text-foreground">
             <MessageCircle className="max-h-[24px] min-h-[24px] min-w-[24px] max-w-[24px]" />
           </Link>
-          {state.isOpen && (
-            <div
+          <Dialog
+            open={state.isOpen}
+            onOpenChange={(o) => {
+              if (!o) setState((prevState) => ({ ...prevState, isOpen: false }));
+            }}
+          >
+            <DialogContent
               data-no-doubletap
-              className="fixed inset-0 z-50 flex justify-center bg-black bg-opacity-50"
+              showClose={false}
+              className="max-h-[90%] w-screen gap-0 overflow-hidden rounded-lg p-4 pt-16 md:h-auto md:max-h-[80%] md:max-w-4xl"
             >
-              <div className="relative max-h-[90%] w-screen rounded-lg bg-background p-4 pt-16 shadow-lg md:h-auto md:max-h-[80%] md:max-w-4xl">
-                <button
-                  onClick={togglePopup}
-                  className="absolute right-2 top-2 rounded-md bg-accent px-4 py-2 text-white"
-                >
-                  Close
-                </button>
-                <div className="flex h-3/4 flex-col overflow-y-auto">
-                  {state.loading ? (
-                    <div className="flex h-full items-center justify-center">
-                      <span>Loading...</span>
-                    </div>
-                  ) : state.comments?.length === 0 ? (
-                    <div className="flex h-full items-center justify-center">
-                      <span>No comments yet</span>
-                    </div>
-                  ) : (
-                    <div className="flex w-full flex-col gap-2">
-                      {state.comments.map((comment: any) => {
-                        if (comment.parent_id === null) {
-                          return (
-                            <div key={comment.id} className="w-full">
-                              <CommentCard
-                                comment={comment}
-                                post={post}
-                                user_id={user_id}
-                                fetchComments={fetchComments}
-                              />
-                            </div>
-                          );
-                        }
-                      })}
-                    </div>
-                  )}
-                </div>
-                <div className="absolute bottom-6 w-11/12">
-                  <AddComment post={post} user_id={user_id} fetchComments={fetchComments} />
-                </div>
+              <DialogTitle className="sr-only">Comments</DialogTitle>
+              <button
+                onClick={() => setState((prevState) => ({ ...prevState, isOpen: false }))}
+                className="absolute right-2 top-2 rounded-md bg-accent px-4 py-2 text-white"
+              >
+                Close
+              </button>
+              <div className="flex h-3/4 flex-col overflow-y-auto">
+                {state.loading ? (
+                  <div className="flex h-full items-center justify-center">
+                    <span>Loading...</span>
+                  </div>
+                ) : state.comments?.length === 0 ? (
+                  <div className="flex h-full items-center justify-center">
+                    <span>No comments yet</span>
+                  </div>
+                ) : (
+                  <div className="flex w-full flex-col gap-2">
+                    {state.comments.map((comment: any) => {
+                      if (comment.parent_id === null) {
+                        return (
+                          <div key={comment.id} className="w-full">
+                            <CommentCard
+                              comment={comment}
+                              post={post}
+                              user_id={user_id}
+                              fetchComments={fetchComments}
+                            />
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+              <div className="absolute bottom-6 w-11/12">
+                <AddComment post={post} user_id={user_id} fetchComments={fetchComments} />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         <p className="font-bold">{state.commentCount}</p>
       </div>

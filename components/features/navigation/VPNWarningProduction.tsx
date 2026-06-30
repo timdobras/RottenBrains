@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Collapsible } from '@base-ui/react/collapsible';
 import { WifiOff, Shield, X, Settings, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { logger } from '@/lib/logger';
@@ -140,6 +141,7 @@ const VPNWarningProduction = () => {
     <>
       {/* Main Warning Bar */}
       <div className="fixed left-0 right-0 top-0 z-[60] bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-sm">
+        <Collapsible.Root open={showDetails} onOpenChange={setShowDetails}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-yellow-500/20 p-1.5">
@@ -164,12 +166,9 @@ const VPNWarningProduction = () => {
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className="rounded-lg bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-100 hover:bg-yellow-500/30"
-            >
+            <Collapsible.Trigger className="rounded-lg bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-100 hover:bg-yellow-500/30">
               {showDetails ? 'Hide' : 'Details'}
-            </button>
+            </Collapsible.Trigger>
             <button
               onClick={handleDismiss}
               className="rounded-lg p-1 text-yellow-100/60 hover:bg-yellow-500/20 hover:text-yellow-100"
@@ -180,8 +179,8 @@ const VPNWarningProduction = () => {
           </div>
         </div>
 
-        {/* Details Dropdown */}
-        {showDetails && (
+        {/* Details disclosure */}
+        <Collapsible.Panel className="h-[var(--collapsible-panel-height)] overflow-hidden transition-[height] duration-200 data-[ending-style]:h-0 data-[starting-style]:h-0">
           <div className="border-t border-yellow-500/20 bg-black/40 px-4 py-3">
             <div className="mx-auto max-w-7xl">
               <div className="mb-3 flex items-start gap-2">
@@ -205,7 +204,8 @@ const VPNWarningProduction = () => {
               </div>
             </div>
           </div>
-        )}
+        </Collapsible.Panel>
+        </Collapsible.Root>
       </div>
 
       {/* Spacer */}

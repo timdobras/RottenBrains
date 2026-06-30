@@ -1,10 +1,8 @@
 'use client';
 
-import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import { Drawer } from '@base-ui/react/drawer';
 import { Heart, MessageCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import useHasMounted from '@/hooks/useHasMounted';
 import { useUser } from '@/hooks/UserContext';
 import { getCachedComments, setCachedComments } from '@/lib/client/commentCache';
 import { getLikedCommentIds } from '@/lib/client/commentLikes';
@@ -79,7 +77,6 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
   const [commentsLoading, setCommentsLoading] = useState<boolean>(initialComments === undefined);
   const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(new Set());
   const [showSheet, setShowSheet] = useState(false);
-  const mounted = useHasMounted();
   const commentsLoadingRef = useRef(false);
 
   // Post-level like
@@ -87,8 +84,6 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
   const [likes, setLikes] = useState<number>(post.total_likes || 0);
   const [likeAnimate, setLikeAnimate] = useState(false);
   const commentCount = post.total_comments || 0;
-
-  const dragControls = useDragControls();
 
   const ensureCommentsLoaded = useCallback(async () => {
     if (comments !== undefined || commentsLoadingRef.current) return;
@@ -159,33 +154,7 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
     [user_id]
   );
 
-  // Lock the page behind the mobile sheet (skipped inside the modal, which owns it).
-  useEffect(() => {
-    if (!lockBodyScroll) return;
-    if (showSheet) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [showSheet, lockBodyScroll]);
-
-  // Disable native pull-to-refresh ONLY while the sheet is open (so dragging it
-  // down doesn't refresh the page), leaving pull-to-refresh working everywhere else.
-  useEffect(() => {
-    if (!showSheet) return;
-    const html = document.documentElement;
-    const prevHtml = html.style.overscrollBehaviorY;
-    const prevBody = document.body.style.overscrollBehaviorY;
-    html.style.overscrollBehaviorY = 'none';
-    document.body.style.overscrollBehaviorY = 'none';
-    return () => {
-      html.style.overscrollBehaviorY = prevHtml;
-      document.body.style.overscrollBehaviorY = prevBody;
-    };
-  }, [showSheet]);
+  // Scroll lock, focus trapping and swipe-to-dismiss are handled by Base UI's Drawer.
 
   const handlePostLike = useCallback(async () => {
     if (!user_id) return;
@@ -263,70 +232,43 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
         </button>
       </div>
 
-      {/* Mobile: Instagram-style bottom sheet with drag-to-dismiss.
-          Portaled to <body> so the modal panel's transform doesn't trap the
-          fixed positioning, and so the dim/sheet cover the whole screen. */}
-      {mounted &&
-        createPortal(
-          <AnimatePresence>
-            {showSheet && (
-              <div className="md:hidden">
-            <motion.div
-              key="dim"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setShowSheet(false)}
-              className="fixed inset-0 z-40 bg-black/50"
-            />
-            <motion.div
-              key="sheet"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 34, stiffness: 320 }}
-              drag="y"
-              dragListener={false}
-              dragControls={dragControls}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 0.4 }}
-              onDragEnd={(_e, info) => {
-                if (info.offset.y > 120 || info.velocity.y > 600) setShowSheet(false);
-              }}
-              className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl"
-            >
-              {/* Grab handle + title — the only drag-initiating region, so the
-                  comment list below still scrolls normally. */}
-              <div
-                onPointerDown={(e) => dragControls.start(e)}
-                className="shrink-0 cursor-grab touch-none select-none active:cursor-grabbing"
-              >
-                <div className="flex justify-center pt-2.5">
-                  <div className="h-1.5 w-10 rounded-full bg-foreground/25" />
-                </div>
-                <div className="px-4 py-2 text-center text-sm font-semibold">Comments</div>
-                <div className="h-px w-full bg-foreground/10" />
+      {/* Mobile: Instagram-style bottom sheet with native swipe-to-dismiss. */}
+      <Drawer.Root
+        open={showSheet}
+        onOpenChange={setShowSheet}
+        swipeDirection="down"
+        modal={lockBodyScroll ? true : 'trap-focus'}
+      >
+        <Drawer.Portal>
+          <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 md:hidden" />
+          <Drawer.Popup className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none transition-transform duration-300 data-[starting-style]:translate-y-full data-[ending-style]:translate-y-full md:hidden">
+            {/* Grab handle + title. Base UI handles the swipe-to-dismiss; the
+                comment list below still scrolls normally. */}
+            <div className="shrink-0 select-none">
+              <div className="flex justify-center pt-2.5">
+                <div className="h-1.5 w-10 rounded-full bg-foreground/25" />
               </div>
+              <Drawer.Title className="px-4 py-2 text-center text-sm font-semibold">
+                Comments
+              </Drawer.Title>
+              <div className="h-px w-full bg-foreground/10" />
+            </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
-                {renderList()}
-              </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+              {renderList()}
+            </div>
 
-              <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
-                <AddComment
-                  post={post}
-                  user_id={user_id}
-                  fetchComments={fetchComments}
-                  fetchReplies={fetchReplies}
-                />
-              </div>
-            </motion.div>
-              </div>
-            )}
-          </AnimatePresence>,
-          document.body
-        )}
+            <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
+              <AddComment
+                post={post}
+                user_id={user_id}
+                fetchComments={fetchComments}
+                fetchReplies={fetchReplies}
+              />
+            </div>
+          </Drawer.Popup>
+        </Drawer.Portal>
+      </Drawer.Root>
     </div>
   );
 };

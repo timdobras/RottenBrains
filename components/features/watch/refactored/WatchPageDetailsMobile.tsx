@@ -1,7 +1,7 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useRef, useCallback } from 'react';
+import { Drawer } from '@base-ui/react/drawer';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import ActionButtons from './ActionButtons';
 import MediaCard from './MediaCard';
@@ -45,40 +45,6 @@ const WatchPageDetailsMobile: React.FC<WatchPageDetailsMobileProps> = ({
   episode_number,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
-  const [dragY, setDragY] = useState(0);
-  const dragStartY = useRef(0);
-  const isDragging = useRef(false);
-
-  const handleClose = useCallback(() => {
-    setShowDetails(false);
-    setDragY(0);
-  }, []);
-
-  // Swipe-to-dismiss handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    dragStartY.current = e.touches[0].clientY;
-    isDragging.current = true;
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    const currentY = e.touches[0].clientY;
-    const delta = currentY - dragStartY.current;
-    // Only allow dragging downward
-    if (delta > 0) {
-      setDragY(delta);
-    }
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    isDragging.current = false;
-    // If dragged more than 100px down, close the dialog
-    if (dragY > 100) {
-      handleClose();
-    } else {
-      setDragY(0);
-    }
-  }, [dragY, handleClose]);
 
   return (
     <section className="relative mx-auto flex w-full p-4 md:hidden md:p-0">
@@ -95,61 +61,42 @@ const WatchPageDetailsMobile: React.FC<WatchPageDetailsMobileProps> = ({
         <ActionButtons media_type={media_type} media_id={media_id} />
       </div>
 
-      <AnimatePresence>
-        {showDetails && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/50"
-              onClick={handleClose}
-            />
-            {/* Bottom sheet */}
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              style={{ translateY: dragY }}
-              className="small-screen-watch-margin-info-premium fixed left-0 top-0 z-50 flex h-full w-full flex-col overflow-y-auto bg-background text-foreground"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Media description"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              {/* Swipe handle indicator */}
-              <div className="flex w-full justify-center pb-1 pt-3">
-                <div className="h-1 w-10 rounded-full bg-foreground/20" />
-              </div>
-              <div className="flex w-full flex-row items-center justify-between border-b border-foreground/20">
-                <h2 className="p-4 text-lg font-semibold">Description</h2>
-                <button
-                  className="flex items-center justify-center p-4 text-foreground/70 transition-colors hover:text-foreground"
-                  onClick={handleClose}
-                  aria-label="Close description"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="flex flex-col gap-4 p-4">
-                <MediaInfo
-                  media={media}
-                  media_type={media_type}
-                  episode={episode}
-                  season_number={season_number}
-                  episode_number={episode_number}
-                  isDesktop={false}
-                />
-                <MediaCard media={media} media_type={media_type} />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Bottom sheet — Base UI Drawer provides scroll lock, focus trap, Escape,
+          outside-press and native swipe-to-dismiss (swipeDirection="down"). */}
+      <Drawer.Root open={showDetails} onOpenChange={setShowDetails} swipeDirection="down">
+        <Drawer.Portal>
+          <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+          <Drawer.Popup
+            aria-label="Media description"
+            className="small-screen-watch-margin-info-premium fixed left-0 top-0 z-50 flex h-full w-full flex-col overflow-y-auto bg-background text-foreground outline-none transition-transform duration-300 data-[ending-style]:translate-y-full data-[starting-style]:translate-y-full"
+          >
+            {/* Swipe handle indicator */}
+            <div className="flex w-full justify-center pb-1 pt-3">
+              <div className="h-1 w-10 rounded-full bg-foreground/20" />
+            </div>
+            <div className="flex w-full flex-row items-center justify-between border-b border-foreground/20">
+              <Drawer.Title className="p-4 text-lg font-semibold">Description</Drawer.Title>
+              <Drawer.Close
+                className="flex items-center justify-center p-4 text-foreground/70 transition-colors hover:text-foreground"
+                aria-label="Close description"
+              >
+                <X className="h-5 w-5" />
+              </Drawer.Close>
+            </div>
+            <div className="flex flex-col gap-4 p-4">
+              <MediaInfo
+                media={media}
+                media_type={media_type}
+                episode={episode}
+                season_number={season_number}
+                episode_number={episode_number}
+                isDesktop={false}
+              />
+              <MediaCard media={media} media_type={media_type} />
+            </div>
+          </Drawer.Popup>
+        </Drawer.Portal>
+      </Drawer.Root>
     </section>
   );
 };

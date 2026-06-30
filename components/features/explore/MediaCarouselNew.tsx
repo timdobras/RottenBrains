@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
+import { Popover } from '@base-ui/react/popover';
 import Link from 'next/link';
 import Slider from 'react-slick';
 import { ChevronDown, Play } from 'lucide-react';
@@ -30,12 +31,6 @@ const sliderSettings = {
 };
 
 const TopMovieCarousel = ({ movies }: any) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const toggleDropdown = () => {
-    setIsDropdownOpen((prev) => !prev);
-  };
-
   // Memoize genre arrays since they never change
   const movieGenres: Genre[] = useMemo(
     () =>
@@ -74,47 +69,46 @@ const TopMovieCarousel = ({ movies }: any) => {
                   <div className="relative h-full w-full bg-foreground/10">
                     <div className="absolute left-0 top-0 z-20 flex h-full w-full flex-col justify-between p-4 md:p-8">
                       <div className="flex flex-row gap-4">
-                        <div className="relative">
-                          <button
-                            onClick={toggleDropdown}
-                            className="flex flex-row items-center gap-2 rounded-full bg-black/20 px-3 py-1 backdrop-blur-xl"
-                          >
+                        <Popover.Root>
+                          <Popover.Trigger className="flex flex-row items-center gap-2 rounded-full bg-black/20 px-3 py-1 backdrop-blur-xl">
                             <p className="text-white">Categories</p>
                             <ChevronDown className="h-4 w-4 text-white" />
-                          </button>
-                          {isDropdownOpen && (
-                            <div className="backdrop-blur/xl custom-scrollbar absolute left-0 top-full z-50 mt-2 flex max-h-[60vh] w-max flex-col overflow-y-auto rounded-lg bg-background p-2 shadow-lg md:flex-row">
-                              <div>
-                                <h3 className="border-b border-foreground/10 px-4 py-2">Movies</h3>
-                                <ul className="grid grid-cols-2 gap-2 p-2 text-foreground">
-                                  {movieGenres.map((genre: any) => (
-                                    <Link
-                                      href={`/movie/${genre.id}`}
-                                      key={genre.id}
-                                      className="cursor-pointer rounded-[4px] px-2 py-1 hover:bg-foreground/10"
-                                    >
-                                      {genre.name}
-                                    </Link>
-                                  ))}
-                                </ul>
-                              </div>
-                              <div>
-                                <h3 className="border-b border-foreground/10 px-4 py-2">TV</h3>
-                                <ul className="grid grid-cols-2 gap-2 p-2 text-foreground">
-                                  {tvGenres.map((genre: any) => (
-                                    <Link
-                                      href={`/tv/${genre.id}`}
-                                      key={genre.id}
-                                      className="cursor-pointer rounded-[4px] px-2 py-1 hover:bg-foreground/10"
-                                    >
-                                      {genre.name}
-                                    </Link>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                          </Popover.Trigger>
+                          <Popover.Portal>
+                            <Popover.Positioner align="start" sideOffset={8} className="z-50">
+                              <Popover.Popup className="custom-scrollbar flex max-h-[60vh] w-max flex-col overflow-y-auto rounded-lg bg-background p-2 shadow-lg outline-none backdrop-blur-xl transition duration-150 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 md:flex-row">
+                                <div>
+                                  <h3 className="border-b border-foreground/10 px-4 py-2">Movies</h3>
+                                  <ul className="grid grid-cols-2 gap-2 p-2 text-foreground">
+                                    {movieGenres.map((genre: any) => (
+                                      <Link
+                                        href={`/movie/${genre.id}`}
+                                        key={genre.id}
+                                        className="cursor-pointer rounded-[4px] px-2 py-1 hover:bg-foreground/10"
+                                      >
+                                        {genre.name}
+                                      </Link>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div>
+                                  <h3 className="border-b border-foreground/10 px-4 py-2">TV</h3>
+                                  <ul className="grid grid-cols-2 gap-2 p-2 text-foreground">
+                                    {tvGenres.map((genre: any) => (
+                                      <Link
+                                        href={`/tv/${genre.id}`}
+                                        key={genre.id}
+                                        className="cursor-pointer rounded-[4px] px-2 py-1 hover:bg-foreground/10"
+                                      >
+                                        {genre.name}
+                                      </Link>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </Popover.Popup>
+                            </Popover.Positioner>
+                          </Popover.Portal>
+                        </Popover.Root>
                         <div className="self-start rounded-full bg-black/20 px-3 py-1 text-white backdrop-blur-xl">
                           🔥Now Popular
                         </div>

@@ -1,8 +1,10 @@
 'use client';
 
+import { Combobox } from '@base-ui/react/combobox';
+import { Popover } from '@base-ui/react/popover';
 import { ChevronDown } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { searchUsers } from '@/lib/client/searchUsers';
 import { searchMovies, searchMulti, searchPerson, searchTv } from '@/lib/tmdb';
 import { debounce, SearchCache } from '@/lib/utils/debounce';
@@ -20,7 +22,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, ref) => {
   const { onMediaSelect } = props;
   const categories = ['All', 'Movies', 'TV', 'People', 'Users'];
 
-  const [openSearchDialog, setOpenSearchDialog] = useState(true);
+  const [openSearchDialog, setOpenSearchDialog] = useState(false);
   const [openCategoryDialog, setOpenCategoryDialog] = useState(false);
 
   const [searchCategory, setSearchCategory] = useState('All');
@@ -30,13 +32,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, ref) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const categoryContainerRef = useRef<HTMLDivElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
-
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const router = useRouter();
 
@@ -44,19 +40,14 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, ref) => {
   const [prevPath, setPrevPath] = useState('');
 
   useEffect(() => {
-    if (prevPath && prevPath !== pathname) {
-      console.log('User navigated from', prevPath, 'to', pathname);
-    }
     setPrevPath(pathname);
     setOpenSearchDialog(false);
     setOpenCategoryDialog(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   const handleCategorySelect = (category: string) => {
-    // Update the state to the selected category
     setSearchCategory(category);
-
-    // If you want to close the category dialog automatically:
     setOpenCategoryDialog(false);
   };
 
@@ -148,7 +139,6 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, ref) => {
           setSearchResults(results);
           setOpenSearchDialog(true);
           setLoading(false);
-          setHighlightedIndex(0);
         } catch (error: any) {
           if (error.name !== 'AbortError') {
             console.error('Search error:', error);
@@ -161,137 +151,101 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, ref) => {
   );
 
   const handleItemSelect = (item: any) => {
-    setOpenSearchDialog(false); // Close the dialog on selection
+    if (!item) return;
+    setOpenSearchDialog(false);
     if (onMediaSelect) {
       onMediaSelect(item);
-    } else {
-      // Default navigation behavior if no callback is provided
-      switch (item.media_type) {
-        case 'user':
-          router.push(`/protected/user/${item.id}`);
-          break;
-        case 'movie':
-          router.push(`/protected/watch/movie/${item.id}`);
-          break;
-        case 'tv':
-          router.push(`/protected/watch/tv/${item.id}/1/1`);
-          break;
-        case 'person':
-          router.push(`/protected/person/${item.id}`);
-          break;
-        default:
-          console.warn('Unknown media_type', item.media_type);
-      }
+      return;
+    }
+    // Default navigation behavior if no callback is provided
+    switch (item.media_type) {
+      case 'user':
+        router.push(`/protected/user/${item.id}`);
+        break;
+      case 'movie':
+        router.push(`/protected/watch/movie/${item.id}`);
+        break;
+      case 'tv':
+        router.push(`/protected/watch/tv/${item.id}/1/1`);
+        break;
+      case 'person':
+        router.push(`/protected/person/${item.id}`);
+        break;
+      default:
+        console.warn('Unknown media_type', item.media_type);
     }
   };
 
-  useEffect(() => {
-    // 2. Listen for clicks on the entire document
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
-      ) {
-        setOpenSearchDialog(false);
-      }
-
-      if (
-        categoryContainerRef.current &&
-        !categoryContainerRef.current.contains(event.target as Node)
-      ) {
-        setOpenCategoryDialog(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Fire the debounced search whenever `query` changes
+  // Fire the debounced search whenever `query` or category changes
   useEffect(() => {
     search(searchQuery);
     return () => {
       search.cancel();
     };
-  }, [searchQuery, searchCategory]);
+  }, [searchQuery, searchCategory, search]);
 
-  // Scroll the selected item into view whenever highlightedIndex changes.
-  useEffect(() => {
-    const el = itemRefs.current[highlightedIndex];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [highlightedIndex, searchResults]);
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    // If no search results, ignore.
-    if (searchResults.length === 0) return;
-
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        setHighlightedIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        setHighlightedIndex((prev) => Math.max(prev - 1, 0));
-        break;
-      case 'Enter':
-        event.preventDefault();
-        const selectedItem = searchResults[highlightedIndex];
-        if (selectedItem) {
-          handleItemSelect(selectedItem);
-        }
-        break;
-      default:
-        break;
-    }
+  const renderCard = (res: any) => {
+    // Selection (pointer + keyboard) is owned by Combobox.Item, so the cards
+    // get a no-op onClick.
+    const noop = () => {};
+    if (res.media_type === 'user') return <UserSearchCard media={res} onClick={noop} />;
+    if (res.media_type === 'person') return <PersonSearchCard media={res} onClick={noop} />;
+    if (res.media_type === 'movie' || res.media_type === 'tv')
+      return <MediaSearchCard media={res} onClick={noop} />;
+    return null;
   };
 
   return (
     <div className="flex h-full w-full flex-row items-center gap-2">
-      <div ref={categoryContainerRef} className="relative h-full">
-        <button
-          className="relative flex h-full min-w-32 flex-row items-center justify-center gap-2 rounded-full bg-foreground/10 px-8 transition-all hover:bg-foreground/20"
-          onClick={() => setOpenCategoryDialog(!openCategoryDialog)}
-        >
+      {/* Category selector */}
+      <Popover.Root open={openCategoryDialog} onOpenChange={setOpenCategoryDialog}>
+        <Popover.Trigger className="relative flex h-full min-w-32 flex-row items-center justify-center gap-2 rounded-full bg-foreground/10 px-8 transition-all hover:bg-foreground/20">
           <p className="font-medium">{searchCategory}</p>
           <ChevronDown
             className={`transition-transform ${openCategoryDialog ? 'rotate-180' : ''}`}
           />
-        </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Positioner
+            side="bottom"
+            align="start"
+            sideOffset={8}
+            className="z-50 w-[var(--anchor-width)]"
+          >
+            <Popover.Popup className="w-full overflow-hidden rounded-[16px] bg-background text-foreground shadow-lg outline-none transition duration-150 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0">
+              <div className="flex w-full flex-col bg-foreground/10">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    className={`w-full p-3 text-left transition-colors hover:bg-foreground/20 ${
+                      category === searchCategory ? 'bg-primary/20 font-medium text-primary' : ''
+                    }`}
+                    onClick={() => handleCategorySelect(category)}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
 
-        <dialog
-          open={openCategoryDialog}
-          className="absolute left-0 top-full z-10 m-0 mt-2 w-full overflow-hidden rounded-[16px] bg-background text-foreground shadow-lg"
-        >
-          <div className="flex h-full w-full flex-col bg-foreground/10">
-            {categories.map((category) => (
-              <button
-                key={category}
-                className={`w-full p-3 text-left transition-colors hover:bg-foreground/20 ${
-                  category === searchCategory ? 'bg-primary/20 font-medium text-primary' : ''
-                }`}
-                onClick={() => handleCategorySelect(category)}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </dialog>
-      </div>
-
-      <div className="relative h-full w-full" ref={searchContainerRef}>
+      {/* Search input + results (typeahead) */}
+      <Combobox.Root
+        items={searchResults}
+        filter={null}
+        open={openSearchDialog}
+        onOpenChange={setOpenSearchDialog}
+        inputValue={searchQuery}
+        onInputValueChange={(value) => setSearchQuery(value)}
+        onValueChange={(item: any) => handleItemSelect(item)}
+        itemToStringLabel={(item: any) => item?.title || item?.name || item?.username || ''}
+      >
         <div className="relative h-full w-full">
-          <input
+          <Combobox.Input
             ref={ref}
-            type="text"
             placeholder={`Search for ${searchCategory.toLowerCase()}...`}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
             onFocus={() => searchQuery.length >= 2 && setOpenSearchDialog(true)}
             className="h-full w-full rounded-full bg-foreground/10 px-4 pr-10 text-foreground transition-all focus:bg-foreground/15 focus:outline focus:outline-2 focus:outline-primary"
           />
@@ -302,75 +256,68 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>((props, ref) => {
           )}
         </div>
 
-        {openSearchDialog && (
-          <dialog
-            open
-            className="absolute left-0 top-full m-0 mt-2 h-screen max-h-[500px] w-full overflow-hidden rounded-[16px] bg-background text-foreground shadow-xl"
+        <Combobox.Portal>
+          <Combobox.Positioner
+            side="bottom"
+            align="start"
+            sideOffset={8}
+            className="z-50 w-[var(--anchor-width)]"
           >
-            <div className="h-full w-full overflow-y-auto bg-foreground/10">
-              {loading && searchResults.length === 0 ? (
-                <div className="flex h-32 w-full items-center justify-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-primary"></div>
-                    <p className="text-sm text-foreground/60">Searching...</p>
+            <Combobox.Popup className="max-h-[500px] w-full overflow-hidden rounded-[16px] bg-background text-foreground shadow-xl outline-none">
+              <div className="max-h-[500px] w-full overflow-y-auto bg-foreground/10">
+                {loading && searchResults.length === 0 ? (
+                  <div className="flex h-32 w-full items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-foreground/20 border-t-primary"></div>
+                      <p className="text-sm text-foreground/60">Searching...</p>
+                    </div>
                   </div>
-                </div>
-              ) : error ? (
-                <div className="flex h-32 w-full items-center justify-center">
-                  <div className="flex flex-col items-center gap-2 text-red-500">
-                    <p className="text-sm">{error}</p>
+                ) : error ? (
+                  <div className="flex h-32 w-full items-center justify-center">
+                    <div className="flex flex-col items-center gap-2 text-red-500">
+                      <p className="text-sm">{error}</p>
+                    </div>
                   </div>
-                </div>
-              ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
-                <div className="flex h-32 w-full items-center justify-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-sm font-medium text-foreground/80">No results found</p>
-                    <p className="text-xs text-foreground/50">Try a different search term</p>
+                ) : searchResults.length === 0 && searchQuery.length >= 2 ? (
+                  <div className="flex h-32 w-full items-center justify-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-sm font-medium text-foreground/80">No results found</p>
+                      <p className="text-xs text-foreground/50">Try a different search term</p>
+                    </div>
                   </div>
-                </div>
-              ) : searchQuery.length < 2 ? (
-                <div className="flex h-32 w-full items-center justify-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-sm text-foreground/60">
-                      Type at least 2 characters to search
-                    </p>
+                ) : searchQuery.length < 2 ? (
+                  <div className="flex h-32 w-full items-center justify-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-sm text-foreground/60">
+                        Type at least 2 characters to search
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <>
-                  <div className="sticky top-0 bg-background/80 px-4 py-2 backdrop-blur-sm">
-                    <p className="text-xs font-medium text-foreground/60">
-                      {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  {searchResults.map((res, i) => {
-                    const isSelected = i === highlightedIndex;
-                    return (
-                      <div
-                        key={`${res.media_type}-${res.id}`}
-                        ref={(el) => {
-                          itemRefs.current[i] = el;
-                        }}
-                        className={`transition-colors ${isSelected ? 'bg-foreground/20' : 'hover:bg-foreground/10'}`}
-                      >
-                        {res.media_type === 'user' ? (
-                          <UserSearchCard media={res} onClick={() => handleItemSelect(res)} />
-                        ) : res.media_type === 'person' ? (
-                          <PersonSearchCard media={res} onClick={() => handleItemSelect(res)} />
-                        ) : (
-                          (res.media_type === 'movie' || res.media_type === 'tv') && (
-                            <MediaSearchCard media={res} onClick={() => handleItemSelect(res)} />
-                          )
-                        )}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          </dialog>
-        )}
-      </div>
+                ) : (
+                  <>
+                    <div className="sticky top-0 bg-background/80 px-4 py-2 backdrop-blur-sm">
+                      <p className="text-xs font-medium text-foreground/60">
+                        {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <Combobox.List>
+                      {(res: any) => (
+                        <Combobox.Item
+                          key={`${res.media_type}-${res.id}`}
+                          value={res}
+                          className="cursor-pointer transition-colors data-[highlighted]:bg-foreground/20"
+                        >
+                          {renderCard(res)}
+                        </Combobox.Item>
+                      )}
+                    </Combobox.List>
+                  </>
+                )}
+              </div>
+            </Combobox.Popup>
+          </Combobox.Positioner>
+        </Combobox.Portal>
+      </Combobox.Root>
     </div>
   );
 });
