@@ -532,7 +532,11 @@ export default function CustomPlayer({
               const t = Number(e.target.value);
               setScrubTime(t);
               setSeeking(true);
-              seek(t);
+              // While dragging, only move the thumb — do NOT seek on every tick
+              // (that fired a seek storm: dozens of hls segment loads through the
+              // proxy, thrashing playback). Keyboard/click (no active pointer
+              // drag) seek immediately; a pointer drag seeks once on release.
+              if (!draggingRef.current) seek(t);
             }}
             onPointerDown={() => {
               draggingRef.current = true;
@@ -540,12 +544,20 @@ export default function CustomPlayer({
               setShow(true);
             }}
             onPointerUp={(e) => {
+              // commit the single seek to the final dragged position
+              seek(Number(e.currentTarget.value));
               draggingRef.current = false;
               setDragging(false);
               // hand focus back to the player so space / c / f keybinds keep
               // working — a focused range input otherwise swallows them.
               e.currentTarget.blur();
               // keep showing the target until 'seeked' fires (handled above)
+            }}
+            onPointerCancel={(e) => {
+              // interrupted drag: still commit the seek so it doesn't get stuck
+              if (draggingRef.current) seek(Number(e.currentTarget.value));
+              draggingRef.current = false;
+              setDragging(false);
             }}
             onKeyDown={() => setShow(true)}
             aria-label="seek"

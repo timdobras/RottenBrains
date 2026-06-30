@@ -4,6 +4,7 @@ import {
   type SerwistGlobalConfig,
   CacheFirst,
   ExpirationPlugin,
+  NetworkOnly,
   Serwist,
   StaleWhileRevalidate,
 } from 'serwist';
@@ -22,6 +23,15 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // Never let the SW cache/handle our own API. Critical for /api/stream/proxy:
+    // it serves media (range/206 + streamed) responses that the Cache API can't
+    // store, which made the default catch-all throw "ServiceWorker intercepted
+    // the request and encountered an unexpected error" on every chunk. Dynamic
+    // API responses (auth, extract, …) shouldn't be cached anyway → NetworkOnly.
+    {
+      matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/'),
+      handler: new NetworkOnly(),
+    },
     // Cache TMDB API responses
     {
       matcher: ({ url }) => url.origin === 'https://api.themoviedb.org',
