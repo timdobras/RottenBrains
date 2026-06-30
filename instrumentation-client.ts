@@ -21,7 +21,16 @@ Sentry.init({
   replaysSessionSampleRate: 0.1, // 10% of sessions
   replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
 
-  integrations: [Sentry.replayIntegration(), Sentry.browserTracingIntegration()],
+  integrations: [
+    Sentry.replayIntegration(),
+    Sentry.browserTracingIntegration(),
+    // Forward browser console.warn/console.error into Sentry Logs.
+    Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
+  ],
+
+  // Capture structured logs (Logs product) + user IP for richer context.
+  enableLogs: true,
+  sendDefaultPii: true,
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,

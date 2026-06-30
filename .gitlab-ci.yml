@@ -47,6 +47,10 @@ build-image:
       --build-arg NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
       --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
       --build-arg NEXT_PUBLIC_TMDB_API_KEY=$NEXT_PUBLIC_TMDB_API_KEY
+      --build-arg SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
+      --build-arg SENTRY_ORG=sentry
+      --build-arg SENTRY_PROJECT=rotten-brains
+      --build-arg SENTRY_RELEASE=rotten-brains@$CI_COMMIT_SHORT_SHA
       -t $IMAGE_TAG -t $IMAGE_TAG_SHA .
     - docker push $IMAGE_TAG
     - docker push $IMAGE_TAG_SHA
@@ -94,7 +98,10 @@ build-extractor:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker build -t $EXTRACTOR_IMAGE:latest -t $EXTRACTOR_IMAGE:$CI_COMMIT_SHORT_SHA ./rb-extractor
+    - >-
+      docker build
+      --build-arg SENTRY_RELEASE=rotten-brains-extractor@$CI_COMMIT_SHORT_SHA
+      -t $EXTRACTOR_IMAGE:latest -t $EXTRACTOR_IMAGE:$CI_COMMIT_SHORT_SHA ./rb-extractor
     # Smoke-test the freshly-built image BEFORE pushing: parse the worker entry
     # and import its full module graph (lib.mjs -> direct.mjs -> every resolver)
     # INSIDE the prod image. Catches missing files / missing deps / syntax errors
@@ -192,4 +199,39 @@ sentry-release:
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
   needs: ['deploy-to-coolify']
+  allow_failure: true
+
+# -------------------------------------------------------
+# Sentry release for the rb-extractor worker (project
+# rotten-brains-extractor). Only runs when rb-extractor
+# changed — mirrors build/deploy-extractor's path gate.
+# -------------------------------------------------------
+sentry-release-extractor:
+  stage: notify
+  tags:
+    - shell
+  variables:
+    SENTRY_URL: https://sentry.timdobras.com
+    SENTRY_ORG: sentry
+  before_script:
+    - mkdir -p "$HOME/.local/bin"
+    - |
+      if ! command -v sentry-cli >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/sentry-cli" ]; then
+        curl -sL -o "$HOME/.local/bin/sentry-cli" \
+          "https://github.com/getsentry/sentry-cli/releases/download/3.4.2/sentry-cli-Linux-x86_64"
+        chmod +x "$HOME/.local/bin/sentry-cli"
+      fi
+    - export PATH="$HOME/.local/bin:$PATH"
+    - sentry-cli --version
+  script:
+    - VERSION="rotten-brains-extractor@${CI_COMMIT_SHORT_SHA}"
+    - sentry-cli releases new "$VERSION" -p rotten-brains-extractor
+    - sentry-cli releases set-commits "$VERSION" --auto --ignore-missing
+    - sentry-cli releases finalize "$VERSION"
+    - sentry-cli releases deploys "$VERSION" new -e production -n "coolify-deploy-$CI_PIPELINE_ID"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      changes:
+        - rb-extractor/**/*
+  needs: ['deploy-extractor']
   allow_failure: true

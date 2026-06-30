@@ -17,6 +17,19 @@ Sentry.init({
       (process.env.NODE_ENV === 'production' ? '0.1' : '1.0'),
   ),
 
+  integrations: [
+    // Instrument the RottenBrains Postgres (db-server 10.10.20.7:5438) — Prisma
+    // queries (and raw `$queryRaw` RPCs) show up as DB spans under Performance /
+    // Insights → Queries, with slow queries and DB errors attributed to a span.
+    Sentry.prismaIntegration(),
+    // Forward server-side console.warn/console.error into Sentry Logs.
+    Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
+  ],
+
+  // Capture structured logs (Logs product) + request/user IP for richer context.
+  enableLogs: true,
+  sendDefaultPii: true,
+
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 });

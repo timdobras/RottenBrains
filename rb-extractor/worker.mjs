@@ -1,5 +1,8 @@
+import './instrument.mjs'; // MUST be first — installs Sentry before bullmq/ioredis/http
+
 import http from 'node:http';
 
+import * as Sentry from '@sentry/node';
 import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { chromium } from 'patchright';
@@ -94,17 +97,32 @@ async function resolve(data) {
 
 const worker = new Worker(
   QUEUE_NAME,
-  async (job) => {
-    const t0 = Date.now();
-    const result = await resolve(job.data);
-    if (!result) throw new Error('no_source'); // job fails; producer treats as "no stream"
-    console.log(`[job ${job.id}] ${keyOf(job.data)} -> ${result.resolver} in ${Date.now() - t0}ms${result.cached ? ' (cache)' : ''}`);
-    return result;
-  },
+  async (job) =>
+    // One transaction per extract job — gives per-job timing + ties any error
+    // (and the auto-instrumented http/redis spans) to that job in Sentry.
+    Sentry.startSpan(
+      { name: 'stream-extract', op: 'queue.process', attributes: { 'job.id': String(job.id), 'extract.key': keyOf(job.data) } },
+      async () => {
+        const t0 = Date.now();
+        const result = await resolve(job.data);
+        if (!result) throw new Error('no_source'); // job fails; producer treats as "no stream"
+        console.log(`[job ${job.id}] ${keyOf(job.data)} -> ${result.resolver} in ${Date.now() - t0}ms${result.cached ? ' (cache)' : ''}`);
+        return result;
+      },
+    ),
   { connection, concurrency: Number(process.env.CONCURRENCY || 1) },
 );
 
-worker.on('failed', (job, err) => console.error(`[job ${job?.id}] failed:`, err.message));
+worker.on('failed', (job, err) => {
+  console.error(`[job ${job?.id}] failed:`, err.message);
+  // 'no_source' is an expected outcome (no provider had the title) — capture it
+  // as a warning so it's trackable without polluting the error stream.
+  Sentry.captureException(err, {
+    level: err?.message === 'no_source' ? 'warning' : 'error',
+    tags: { component: 'rb-extractor', queue: QUEUE_NAME },
+    extra: { jobId: job?.id, data: job?.data },
+  });
+});
 worker.on('ready', () => console.log(`rb-extractor worker ready on queue "${QUEUE_NAME}" (providers: ${PROVIDER_ORDER.join(',')})`));
 
 // Boot self-test → Redis. Since we can't shell into the container, this is how
@@ -135,8 +153,12 @@ async function selfTest() {
   }
   try { await connection.set('rb-extractor:status', JSON.stringify(status), 'EX', 86400); } catch {}
   console.log('self-test:', JSON.stringify(status));
+  // Surface a degraded boot (no browser at all) to Sentry — it's silent otherwise.
+  if (!status.headlessOk && !status.headedOk) {
+    Sentry.captureMessage('rb-extractor boot: no usable browser', { level: 'error', extra: status });
+  }
 }
-selfTest();
+selfTest().catch((e) => Sentry.captureException(e, { tags: { component: 'rb-extractor', phase: 'self-test' } }));
 
 // Minimal HTTP server purely for the Coolify healthcheck (workers have no port).
 http
@@ -154,6 +176,7 @@ http
 const shutdown = async () => {
   await worker.close();
   await connection.quit();
+  await Sentry.close(2000); // flush buffered events before exit
   process.exit(0);
 };
 process.on('SIGTERM', shutdown);

@@ -8,4 +8,5 @@ Xvfb :99 -screen 0 1280x720x24 -nolisten tcp >/tmp/xvfb.log 2>&1 &
 export DISPLAY=:99
 sleep 1
 echo "entrypoint: DISPLAY=$DISPLAY (xvfb pid $!)"
-exec node worker.mjs
+# --import loads Sentry before bullmq/ioredis/http so OTel auto-instrumentation patches them.
+exec node --import ./instrument.mjs worker.mjs

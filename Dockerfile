@@ -37,6 +37,20 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_TMDB_API_KEY=$NEXT_PUBLIC_TMDB_API_KEY
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
+# Sentry source-map upload + release tagging at build time. The auth token is a
+# protected CI variable; org/project/release come from CI. All optional — a
+# build without them just skips source-map upload (no failure). The NEXT_PUBLIC_
+# release mirrors it into the client bundle so browser events carry the release.
+ARG SENTRY_AUTH_TOKEN
+ARG SENTRY_ORG=sentry
+ARG SENTRY_PROJECT=rotten-brains
+ARG SENTRY_RELEASE
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
+ENV SENTRY_ORG=$SENTRY_ORG
+ENV SENTRY_PROJECT=$SENTRY_PROJECT
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
+ENV NEXT_PUBLIC_SENTRY_RELEASE=$SENTRY_RELEASE
+
 # Regenerate the Prisma client against the full schema (idempotent).
 RUN npx prisma generate
 RUN npm run build

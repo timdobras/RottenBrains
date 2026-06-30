@@ -50,6 +50,17 @@ const sentryConfig = {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   sentryUrl: 'https://sentry.timdobras.com/',
+  // Token for source-map upload during `next build`. Without it the plugin
+  // silently skips upload and Sentry shows minified stack traces. Provided as a
+  // build-arg in CI (see Dockerfile + .gitlab-ci.yml).
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Tie uploaded source maps + the runtime SDK to the same release the CI
+  // `sentry-release` job registers (rotten-brains@<sha>). Injected at build so
+  // both client and server events carry it without a runtime env var.
+  release: { name: process.env.SENTRY_RELEASE },
+  // The plugin phones home to sentry.io by default — AdGuard blocks that host,
+  // which stalls the build. We don't want plugin telemetry anyway.
+  telemetry: false,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

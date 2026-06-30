@@ -12,13 +12,18 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 # patchright (stealth) uses its own patched Chromium — install it explicitly.
 RUN npx patchright install chromium
-# All worker modules (entry, integration layer, direct resolvers, helpers) +
-# entrypoint. Glob-copied so adding a new resolver .mjs can never silently break
-# the image again (a missing cinezo-direct.mjs crash-looped the worker).
+# All worker modules (entry, integration layer, direct resolvers, helpers,
+# instrument.mjs) + entrypoint. Glob-copied so adding a new resolver .mjs can
+# never silently break the image again (a missing cinezo-direct.mjs crash-looped
+# the worker).
 COPY *.mjs entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
 ENV PORT=8790
+# Release identifier for Sentry — CI passes rotten-brains-extractor@<sha> so
+# captured events/traces are tied to the deployed commit. Empty in local builds.
+ARG SENTRY_RELEASE=
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
 # Direct (browser-free, ~1s) resolvers first, then Videasy (headless) and
 # VidSrc.fyi (headed, patchright+xvfb, beats Turnstile) as browser fallbacks.
 ENV PROVIDERS="vidlink.pro,spencerdevs,vidrock,Videasy,VidSrc.fyi"

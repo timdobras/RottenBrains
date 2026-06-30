@@ -1,4 +1,9 @@
+import './instrument.mjs'; // MUST be first — installs Sentry before http loads
+
 import http from 'node:http';
+
+import * as Sentry from '@sentry/node';
+
 import { extractStream } from './lib.mjs';
 
 // Order of providers to try. Videasy is the only one that resolves cleanly
@@ -75,6 +80,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(result));
   } catch (e) {
+    Sentry.captureException(e, { tags: { component: 'rb-extractor', mode: 'http' }, extra: { params } });
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: String(e.message || e) }));
   }

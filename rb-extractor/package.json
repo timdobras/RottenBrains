@@ -5,9 +5,10 @@
   "type": "module",
   "description": "Headless-browser HLS extractor microservice for RottenBrains native player",
   "scripts": {
-    "start": "node worker.mjs"
+    "start": "node --import ./instrument.mjs worker.mjs"
   },
   "dependencies": {
+    "@sentry/node": "^10.62.0",
     "bullmq": "^5.34.0",
     "ioredis": "^5.4.2",
     "libsodium-wrappers": "^0.7.15",
