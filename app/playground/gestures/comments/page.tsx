@@ -71,8 +71,8 @@ export default function CommentsDemo() {
 
       <Drawer.Root open={open} onOpenChange={setOpen}>
         <Drawer.Portal>
-          <Drawer.Overlay className="absolute inset-0 z-40 bg-black/50" />
-          <Drawer.Content className="absolute inset-x-0 bottom-0 z-50 flex h-[80%] flex-col rounded-t-2xl border-t border-border bg-background outline-none">
+          <Drawer.Overlay className="fixed inset-0 z-[300] bg-black/50" />
+          <Drawer.Content className="fixed inset-x-0 bottom-0 z-[300] mx-auto flex h-[80%] max-w-[390px] flex-col rounded-t-2xl border-t border-border bg-background outline-none">
             <div className="mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/40" />
             <div className="flex items-center justify-between px-4 py-3">
               <Drawer.Title className="font-semibold">

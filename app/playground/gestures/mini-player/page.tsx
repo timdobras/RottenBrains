@@ -162,6 +162,13 @@ export default function MiniPlayerDemo() {
           className="absolute inset-0 z-30"
           style={{ y: dismissY }}
         >
+          {/* Opaque watch backdrop — covers the home feed when expanded,
+              cross-dissolves to reveal it as you minimize. */}
+          <motion.div
+            className="pointer-events-none absolute inset-0 bg-background"
+            style={{ opacity: detailsOpacity }}
+          />
+
           {/* Details panel (below the video) — fades out on minimize */}
           <motion.div
             className="absolute inset-x-0 bottom-0 overflow-y-auto px-4 pb-[calc(56px+env(safe-area-inset-bottom))]"
