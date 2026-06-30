@@ -12,9 +12,10 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 # patchright (stealth) uses its own patched Chromium — install it explicitly.
 RUN npx patchright install chromium
-COPY lib.mjs server.mjs worker.mjs entrypoint.sh ./
-# Browser-free direct resolvers + their integration layer.
-COPY direct.mjs vidlink-direct.mjs spencerdevs-direct.mjs vidrock-direct.mjs ./
+# All worker modules (entry, integration layer, direct resolvers, helpers) +
+# entrypoint. Glob-copied so adding a new resolver .mjs can never silently break
+# the image again (a missing cinezo-direct.mjs crash-looped the worker).
+COPY *.mjs entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
 ENV PORT=8790
