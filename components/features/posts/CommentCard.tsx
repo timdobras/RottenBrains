@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { getCommentReplies } from '@/lib/db/client-actions';
 import { getRelativeTime } from '@/lib/utils';
@@ -20,7 +21,9 @@ const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
     };
 
     fetchReplies();
-  }, [replies]);
+    // Fetch once per comment — depending on `replies` re-ran this every time
+    // setReplies returned a fresh array, causing an infinite re-fetch loop.
+  }, [comment.id]);
 
   if (!creator) {
     return <p>loading...</p>;
@@ -44,12 +47,12 @@ const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
     <div className="flex w-full flex-col gap-1 rounded-[8px] bg-foreground/10 p-2">
       <div className="flex w-full flex-row gap-4">
         <div>
-          <img
-            src={creator.image_url}
+          <Image
+            src={creator.image_url || '/assets/images/logo_new_black.svg'}
             alt="User avatar"
             width={40}
             height={40}
-            className="min-h-[40px] min-w-[40px] rounded-full"
+            className="min-h-[40px] min-w-[40px] rounded-full object-cover"
           />
         </div>
         <div className="flex w-full flex-col gap-1">

@@ -40,7 +40,9 @@ const FollowButton: React.FC<SaveButtonProps> = ({ user_to_follow_id }) => {
     };
 
     fetchData();
-  }, [user_to_follow_id, handleFollow]);
+    // Depend on the user id, not the unmemoized handleFollow (which is recreated
+    // every render and re-ran this fetch on each render).
+  }, [user?.id, user_to_follow_id]);
 
   if (userId! === null) {
     return null; // Return null or a loading indicator until user data is fetched
