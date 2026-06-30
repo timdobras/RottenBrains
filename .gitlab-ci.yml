@@ -95,6 +95,14 @@ build-extractor:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - docker build -t $EXTRACTOR_IMAGE:latest -t $EXTRACTOR_IMAGE:$CI_COMMIT_SHORT_SHA ./rb-extractor
+    # Smoke-test the freshly-built image BEFORE pushing: parse the worker entry
+    # and import its full module graph (lib.mjs -> direct.mjs -> every resolver)
+    # INSIDE the prod image. Catches missing files / missing deps / syntax errors
+    # that "works on dev" (host files all present) silently hides — e.g. a
+    # resolver not COPY'd into the image. Failure here blocks push + deploy.
+    - |
+      docker run --rm --entrypoint sh "$EXTRACTOR_IMAGE:$CI_COMMIT_SHORT_SHA" -c \
+        "node --check worker.mjs && node --input-type=module -e \"import('./lib.mjs').then(()=>console.log('extractor module graph OK')).catch(e=>{console.error(e);process.exit(1)})\""
     - docker push $EXTRACTOR_IMAGE:latest
     - docker push $EXTRACTOR_IMAGE:$CI_COMMIT_SHORT_SHA
   after_script:
