@@ -1,15 +1,11 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import React, { useEffect, useState } from 'react';
+import useHasMounted from '@/hooks/useHasMounted';
 
 export default function NavThemeSwitch() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useHasMounted();
 
   // Cycle through the themes: light → dark → system → light …
   const toggleTheme = () => {

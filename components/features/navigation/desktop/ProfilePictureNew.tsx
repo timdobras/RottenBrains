@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
+import useHasMounted from '@/hooks/useHasMounted';
 import { useUser } from '@/hooks/UserContext';
 import { signOut } from '@/lib/auth-client';
 import { User, History, Settings, LogOut, Sun, Moon, Monitor } from 'lucide-react';
@@ -28,13 +29,9 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
   const { theme, setTheme } = useTheme();
 
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
 
   const pathname = usePathname();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     setOpen(false);

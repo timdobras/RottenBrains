@@ -1,33 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Modal from '@/components/features/profile/Modal';
+import useHasMounted from '@/hooks/useHasMounted';
+import useLocalStorage from '@/hooks/useLocalStorage';
 
 const LegalConsent: React.FC = () => {
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-
-  useEffect(() => {
-    const consent = localStorage.getItem('legalConsent');
-    if (!consent) {
-      setIsVisible(true);
-    }
-  }, []);
+  const mounted = useHasMounted();
+  const [consent, setConsent] = useLocalStorage<string>('legalConsent', '');
+  // Dismiss (X / backdrop) hides for this session only; Accept persists.
+  const [dismissed, setDismissed] = useState(false);
 
   const handleAccept = () => {
-    localStorage.setItem('legalConsent', 'true');
-    setIsVisible(false);
+    setConsent('true');
   };
 
   const handleDismiss = () => {
-    setIsVisible(false); // Simply hide the popup without saving consent
+    setDismissed(true);
   };
 
-  if (!isVisible) return null;
+  if (!mounted || consent || dismissed) return null;
 
   return (
     <Modal
-      isOpen={isVisible}
+      isOpen={true}
       onClose={() => {
         handleDismiss();
       }}

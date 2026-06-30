@@ -84,7 +84,7 @@ const PreviewTrailer: React.FC<PreviewTrailerProps> = ({
     });
     if (origin) params.set('origin', origin);
     return `https://www.youtube.com/embed/${trailerInfo.key}?${params.toString()}`;
-  }, [trailerInfo?.key]);
+  }, [trailerInfo]);
 
   // Send a command to the YouTube player via the IFrame API.
   const command = useCallback((func: string, args: unknown[] = []) => {

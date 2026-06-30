@@ -65,7 +65,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
 
   const genreIds: bigint[] = useMemo(
     () => media?.genres?.map((genre: any) => genre.id) || [],
-    [media?.genres]
+    [media]
   );
 
   // Date-based badges - computed client-side only to avoid hydration mismatch

@@ -1,29 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import useHasMounted from '@/hooks/useHasMounted';
+import useLocalStorage from '@/hooks/useLocalStorage';
 
 const CookieConsent: React.FC = () => {
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-
-  useEffect(() => {
-    const consent = localStorage.getItem('cookieConsent');
-    if (!consent) {
-      setIsVisible(true);
-    }
-  }, []);
-
-  const handleAccept = () => {
-    localStorage.setItem('cookieConsent', 'true');
-    setIsVisible(false);
-  };
+  const mounted = useHasMounted();
+  const [consent, setConsent] = useLocalStorage<string>('cookieConsent', '');
 
   const handleDismiss = () => {
-    localStorage.setItem('cookieConsent', 'true');
-    setIsVisible(false); // Simply hide the popup without saving consent
+    setConsent('true');
   };
 
-  if (!isVisible) return null;
+  // Render nothing until mounted (avoids hydration mismatch) or once accepted.
+  if (!mounted || consent) return null;
 
   return (
     <div className="max-w-screen fixed bottom-4 right-4 z-50 ml-4 overflow-hidden rounded-[8px] bg-background text-foreground drop-shadow-md md:max-w-xl">

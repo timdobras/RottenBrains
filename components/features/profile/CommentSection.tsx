@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useHasMounted from '@/hooks/useHasMounted';
 import { useUser } from '@/hooks/UserContext';
 import { getCachedComments, setCachedComments } from '@/lib/client/commentCache';
 import { getLikedCommentIds } from '@/lib/client/commentLikes';
@@ -46,6 +47,41 @@ const collectCommentIds = (comments: any[] | undefined): string[] => {
   return ids;
 };
 
+// Post-level like button (module scope so it isn't recreated each render).
+const HeartButton = ({
+  size = 24,
+  liked,
+  animate,
+  onClick,
+}: {
+  size?: number;
+  liked: boolean;
+  animate: boolean;
+  onClick: () => void;
+}) => (
+  <button onClick={onClick} className={animate ? 'pop' : ''} aria-label="Like post">
+    {liked ? (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 -960 960 960"
+        width={size}
+        height={size}
+        className="fill-accent"
+      >
+        <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
+      </svg>
+    ) : (
+      <img
+        src="/assets/icons/heart-outline.svg"
+        alt=""
+        width={size}
+        height={size}
+        className="invert-on-dark"
+      />
+    )}
+  </button>
+);
+
 const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any) => {
   const post = post_data.post;
   const comment_data = post_data.comments;
@@ -60,11 +96,8 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
   const [commentsLoading, setCommentsLoading] = useState<boolean>(initialComments === undefined);
   const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(new Set());
   const [showSheet, setShowSheet] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
   const commentsLoadingRef = useRef(false);
-
-  // Portal target only exists on the client.
-  useEffect(() => setMounted(true), []);
 
   // Post-level like
   const [liked, setLiked] = useState<boolean>(!!current_user?.has_liked);
@@ -209,37 +242,18 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
     );
   };
 
-  const HeartButton = ({ size = 24 }: { size?: number }) => (
-    <button onClick={handlePostLike} className={likeAnimate ? 'pop' : ''} aria-label="Like post">
-      {liked ? (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 -960 960 960"
-          width={size}
-          height={size}
-          className="fill-accent"
-        >
-          <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Z" />
-        </svg>
-      ) : (
-        <img
-          src="/assets/icons/heart-outline.svg"
-          alt=""
-          width={size}
-          height={size}
-          className="invert-on-dark"
-        />
-      )}
-    </button>
-  );
-
   return (
     <div className="flex h-full w-full flex-col">
       {/* Desktop: inline comments column */}
       <div className="hidden min-h-0 flex-1 md:flex md:flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto p-3">{renderList()}</div>
         <div className="flex items-center gap-2 border-t border-foreground/10 px-3 py-2">
-          <HeartButton size={22} />
+          <HeartButton
+            size={22}
+            liked={liked}
+            animate={likeAnimate}
+            onClick={handlePostLike}
+          />
           <span className="text-sm font-semibold">{likes}</span>
         </div>
         <AddComment
@@ -253,7 +267,7 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
       {/* Mobile: action bar (opens the sheet) */}
       <div className="flex w-full items-center gap-5 border-t border-foreground/10 p-3 md:hidden">
         <div className="flex items-center gap-2">
-          <HeartButton />
+          <HeartButton liked={liked} animate={likeAnimate} onClick={handlePostLike} />
           <span className="font-semibold">{likes}</span>
         </div>
         <button

@@ -1,7 +1,8 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import useHasMounted from '@/hooks/useHasMounted';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,11 +11,9 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, children }: ModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
 
   useEffect(() => {
-    setMounted(true);
-
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {

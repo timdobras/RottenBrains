@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
 import { useSidebar } from '@/hooks/SidebarContext';
+import useHasMounted from '@/hooks/useHasMounted';
 import useLocalStorage from '@/hooks/useLocalStorage';
 import { useUser } from '@/hooks/UserContext';
 import NotificationButton from '../../notifications/NotificationButton';
@@ -14,13 +14,9 @@ const Navbar = ({ children }: any) => {
   const pathname = usePathname();
   const { user } = useUser();
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
 
   const { isSidebarOpen, toggleSidebar } = useSidebar(); // Destructure from context
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!mounted) {
     return null;

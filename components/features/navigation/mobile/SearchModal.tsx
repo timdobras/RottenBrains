@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import useHasMounted from '@/hooks/useHasMounted';
 import { useUser } from '@/hooks/UserContext';
 import { searchUsers } from '@/lib/client/searchUsers';
 import { searchMulti } from '@/lib/tmdb';
@@ -19,7 +20,7 @@ interface ModalProps {
   onClose: () => void;
 }
 export default function SearchModal({ isOpen, onClose }: ModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -39,10 +40,6 @@ export default function SearchModal({ isOpen, onClose }: ModalProps) {
   const [prevPath, setPrevPath] = useState('');
 
   const { user } = useUser();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (isOpen) {

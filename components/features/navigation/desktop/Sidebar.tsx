@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
 import { useSidebar } from '@/hooks/SidebarContext';
+import useHasMounted from '@/hooks/useHasMounted';
 import useLocalStorage from '@/hooks/useLocalStorage';
 import { useUser } from '@/hooks/UserContext';
 import {
@@ -31,13 +31,8 @@ import NavLink from './NavLink';
 
 const Sidebar = () => {
   const { isSidebarOpen, toggleSidebar } = useSidebar(); // Client-only state from context
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
   const { user } = useUser();
-
-  useEffect(() => {
-    // This effect only runs on the client, setting mounted to true
-    setMounted(true);
-  }, []);
 
   // Until the component is mounted on the client, render nothing
   if (!mounted) {

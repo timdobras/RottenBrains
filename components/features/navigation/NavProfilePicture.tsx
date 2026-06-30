@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import useHasMounted from '@/hooks/useHasMounted';
 import { useUser } from '@/hooks/UserContext';
 import { signOut } from '@/lib/auth-client';
 import { useToast } from '../../ui/use-toast';
@@ -28,13 +29,9 @@ const ProfilePictureNew: React.FC<ProfilePictureNewProps> = ({ imageSize = 'h-8'
   const { theme, setTheme } = useTheme();
 
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
 
   const pathname = usePathname();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     setOpen(false);

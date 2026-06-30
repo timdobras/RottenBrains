@@ -38,6 +38,18 @@ interface JellyfinSettingsProps {
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
 
+// Connection status indicator (module scope so it isn't recreated each render).
+const StatusDot = ({ connectionState }: { connectionState: ConnectionState }) => {
+  const colors: Record<ConnectionState, string> = {
+    disconnected: 'bg-foreground/30',
+    connecting: 'bg-yellow-500',
+    connected: 'bg-green-500',
+    error: 'bg-red-500',
+  };
+
+  return <span className={`inline-block h-2.5 w-2.5 rounded-full ${colors[connectionState]}`} />;
+};
+
 const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
   // Form state
   const [serverUrl, setServerUrl] = useState('');
@@ -260,18 +272,6 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
     }
   };
 
-  // Connection status indicator
-  const StatusDot = () => {
-    const colors = {
-      disconnected: 'bg-foreground/30',
-      connecting: 'bg-yellow-500',
-      connected: 'bg-green-500',
-      error: 'bg-red-500',
-    };
-
-    return <span className={`inline-block h-2.5 w-2.5 rounded-full ${colors[connectionState]}`} />;
-  };
-
   return (
     <div className="space-y-6">
       {/* Connection Status Header */}
@@ -282,7 +282,7 @@ const JellyfinSettings = ({ userId }: JellyfinSettingsProps) => {
             <div>
               <p className="text-sm text-foreground/70">Jellyfin Server</p>
               <div className="flex items-center gap-2">
-                <StatusDot />
+                <StatusDot connectionState={connectionState} />
                 <p className="text-sm">
                   {connectionState === 'connected' && (serverName || existingConfig?.server_url)}
                   {connectionState === 'connecting' && 'Connecting...'}
