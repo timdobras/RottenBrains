@@ -73,8 +73,13 @@ export default function VideoShell() {
   // isn't mounted (e.g. while mini, where the overlay is hidden).
   const [placeholderRect, setPlaceholderRect] = useState<DOMRect | null>(null);
 
-  const { position, size, isDragging, setIsDragging, setTempPosition, handleDragEnd } =
+  const { position, size, sizeMode, toggleSizeMode, isDragging, setIsDragging, setTempPosition, handleDragEnd } =
     useMiniplayerState();
+  const sizeModeRef = useRef(sizeMode);
+  sizeModeRef.current = sizeMode;
+  // Double-tap tracking for the mini (mobile): single tap = expand, double = resize.
+  const lastMiniTapRef = useRef(0);
+  const miniTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const router = useRouter();
   const shellElRef = useRef<HTMLDivElement | null>(null);
@@ -449,7 +454,9 @@ export default function VideoShell() {
           setIsDragging(true);
         }
         e.preventDefault();
-        setTempPosition({ x: s.posX + dx, y: s.posY + dy });
+        // Large mini stays horizontally centered — only drag it vertically.
+        const nx = sizeModeRef.current === 'large' ? s.posX : s.posX + dx;
+        setTempPosition({ x: nx, y: s.posY + dy });
         return;
       }
 
@@ -482,14 +489,29 @@ export default function VideoShell() {
         if (s.active) {
           handleDragEnd(s.posX + (e.clientX - s.startX), s.posY + (e.clientY - s.startY));
           setIsDragging(false);
-        } else {
-          // tap: mobile → expand; desktop → play/pause
-          if (isMobileRef.current) {
-            maximize();
+        } else if (isMobileRef.current) {
+          // Mobile tap: single = expand, double = toggle mini size. Defer the
+          // single-tap expand briefly so a second tap can cancel it into a resize.
+          const now = e.timeStamp;
+          if (now - lastMiniTapRef.current < 300) {
+            lastMiniTapRef.current = 0;
+            if (miniTapTimerRef.current) {
+              clearTimeout(miniTapTimerRef.current);
+              miniTapTimerRef.current = null;
+            }
+            toggleSizeMode();
           } else {
-            const v = shellElRef.current?.querySelector('video');
-            if (v) v.paused ? v.play().catch(() => {}) : v.pause();
+            lastMiniTapRef.current = now;
+            if (miniTapTimerRef.current) clearTimeout(miniTapTimerRef.current);
+            miniTapTimerRef.current = setTimeout(() => {
+              miniTapTimerRef.current = null;
+              maximize();
+            }, 300);
           }
+        } else {
+          // Desktop tap: play/pause (instant, no double-tap).
+          const v = shellElRef.current?.querySelector('video');
+          if (v) v.paused ? v.play().catch(() => {}) : v.pause();
         }
         return;
       }
@@ -514,7 +536,7 @@ export default function VideoShell() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [setIsDragging, setTempPosition, handleDragEnd, progress, animateTo, minimize, maximize]);
+  }, [setIsDragging, setTempPosition, handleDragEnd, progress, animateTo, minimize, maximize, toggleSizeMode]);
 
   // ── bail conditions ──
   if (!mounted) return null;
@@ -543,6 +565,11 @@ export default function VideoShell() {
           boxShadow: SHADOW,
           touchAction: 'none',
           cursor: isDragging ? 'grabbing' : 'grab',
+          // Animate the double-tap resize + edge snap; instant while dragging so it
+          // tracks the finger.
+          transition: isDragging
+            ? 'none'
+            : 'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease',
         }
       : phase === 'morph'
         ? {
@@ -601,9 +628,9 @@ export default function VideoShell() {
       )}
       <motion.div
         ref={shellElRef}
-        // Full/morph: the box background matches the page (no black box on the
-        // watch page). Mini: black, since it's a floating video window.
-        className={`overflow-hidden ${phase === 'mini' ? 'bg-black' : 'bg-background'}`}
+        // Always black: letterbox bars (non-16/9 content, fullscreen) stay black
+        // regardless of theme, not the page color.
+        className="overflow-hidden bg-black"
         onPointerDown={onShellPointerDown}
         style={style}
       >

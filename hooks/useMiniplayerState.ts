@@ -30,6 +30,11 @@ const MAX_WIDTH = 900;
 const ASPECT_RATIO = 16 / 9;
 const EDGE_PADDING = 8;
 const MOBILE_BOTTOM_PADDING = 72; // Account for mobile nav
+// "Large" mini: near-full-width with a gap on each side, centered horizontally.
+const LARGE_SIDE_PADDING = 12;
+const LARGE_MAX_WIDTH = 1000;
+
+export type MiniplayerSizeMode = 'small' | 'large';
 
 const MOBILE_DEFAULTS: PersistedState = {
   edge: 'bottom-right',
@@ -60,6 +65,12 @@ export function useMiniplayerState() {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [tempPosition, setTempPosition] = useState<{ x: number; y: number } | null>(null);
+  // Double-tapping the mini toggles between the small corner size and a larger,
+  // horizontally-centered size (still draggable up/down).
+  const [sizeMode, setSizeMode] = useState<MiniplayerSizeMode>('small');
+  const toggleSizeMode = useCallback(() => {
+    setSizeMode((m) => (m === 'small' ? 'large' : 'small'));
+  }, []);
 
   // The miniplayer is no longer user-resizable: its size is a fixed per-platform
   // value (mobile = 50vw, reactive to viewport; desktop = the default width), so
@@ -75,10 +86,13 @@ export function useMiniplayerState() {
     };
   }, []);
   // Size scales with the viewport (no fixed px → not weird on tiny laptops vs
-  // 4K). Mobile ≈ 50vw; desktop ≈ 24vw, each clamped to a sane range.
-  const width = isMobile
+  // 4K). Small: mobile ≈ 50vw, desktop ≈ 24vw. Large: near-full-width with a side
+  // gap, capped, centered (position handled below).
+  const smallWidth = isMobile
     ? Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, vpWidth * 0.5)))
     : Math.round(Math.min(520, Math.max(300, vpWidth * 0.24)));
+  const largeWidth = Math.round(Math.min(LARGE_MAX_WIDTH, vpWidth - LARGE_SIDE_PADDING * 2));
+  const width = sizeMode === 'large' ? largeWidth : smallWidth;
   const size = useMemo(() => ({ width, height: Math.round(width / ASPECT_RATIO) }), [width]);
 
   // Calculate actual position from edge
@@ -86,6 +100,13 @@ export function useMiniplayerState() {
     (edge: MiniplayerEdge, size: MiniplayerSize): { x: number; y: number } => {
       const viewport = getViewportDimensions();
       const bottomPadding = isMobile ? MOBILE_BOTTOM_PADDING : EDGE_PADDING;
+
+      // Large: always horizontally centered; only the top/bottom edge matters.
+      if (sizeMode === 'large') {
+        const x = Math.round((viewport.width - size.width) / 2);
+        const isTop = edge === 'top-left' || edge === 'top-right';
+        return { x, y: isTop ? EDGE_PADDING : viewport.height - size.height - bottomPadding };
+      }
 
       switch (edge) {
         case 'top-left':
@@ -102,7 +123,7 @@ export function useMiniplayerState() {
           };
       }
     },
-    [isMobile]
+    [isMobile, sizeMode]
   );
 
   // Calculate nearest edge from position
@@ -110,18 +131,21 @@ export function useMiniplayerState() {
     (x: number, y: number, size: MiniplayerSize): MiniplayerEdge => {
       const viewport = getViewportDimensions();
 
-      const centerX = x + size.width / 2;
       const centerY = y + size.height / 2;
-
-      const isLeft = centerX < viewport.width / 2;
       const isTop = centerY < viewport.height / 2;
+
+      // Large: only top vs bottom (X is always centered), so ignore left/right.
+      if (sizeMode === 'large') return isTop ? 'top-right' : 'bottom-right';
+
+      const centerX = x + size.width / 2;
+      const isLeft = centerX < viewport.width / 2;
 
       if (isTop && isLeft) return 'top-left';
       if (isTop && !isLeft) return 'top-right';
       if (!isTop && isLeft) return 'bottom-left';
       return 'bottom-right';
     },
-    []
+    [sizeMode]
   );
 
   // Handle drag end with snapping
@@ -175,6 +199,8 @@ export function useMiniplayerState() {
     position: tempPosition || currentPosition,
     size,
     edge: persistedState.edge,
+    sizeMode,
+    toggleSizeMode,
     isDragging,
     isResizing,
     setIsDragging,

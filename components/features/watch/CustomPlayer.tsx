@@ -373,7 +373,16 @@ export default function CustomPlayer({
 
   // fullscreen sync
   useEffect(() => {
-    const onFs = () => setFs(document.fullscreenElement === wrapRef.current);
+    const onFs = () => {
+      const isFs = document.fullscreenElement === wrapRef.current;
+      setFs(isFs);
+      // Release the landscape lock when leaving fullscreen so the page returns to
+      // its normal orientation.
+      if (!isFs) {
+        const so = screen.orientation as ScreenOrientation & { unlock?: () => void };
+        so?.unlock?.();
+      }
+    };
     document.addEventListener('fullscreenchange', onFs);
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
@@ -448,8 +457,28 @@ export default function CustomPlayer({
     setLevel(idx);
   }, []);
   const toggleFs = useCallback(() => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else wrapRef.current?.requestFullscreen().catch(() => {});
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+      return;
+    }
+    const el = wrapRef.current;
+    const v = videoRef.current as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+    if (el?.requestFullscreen) {
+      el.requestFullscreen()
+        .then(() => {
+          // Lock to landscape so a portrait phone shows the video full-bleed
+          // horizontally instead of a small letterboxed portrait frame.
+          const so = screen.orientation as ScreenOrientation & {
+            lock?: (o: string) => Promise<void>;
+          };
+          so?.lock?.('landscape').catch(() => {});
+        })
+        .catch(() => {});
+    } else if (v?.webkitEnterFullscreen) {
+      // iOS Safari: no element fullscreen — use the video's native fullscreen,
+      // which rotates to landscape on its own.
+      v.webkitEnterFullscreen();
+    }
   }, []);
   const togglePip = useCallback(async () => {
     const v = videoRef.current;
@@ -639,10 +668,9 @@ export default function CustomPlayer({
   return (
     <div
       ref={wrapRef}
-      // Full: background matches the page (no black box on the watch page). Mini:
-      // black floating window. The video fills a content-aspect box, so this only
-      // shows while loading / any letterbox.
-      className={`group relative h-full w-full overflow-hidden ${mini ? 'bg-black' : 'bg-background'} ${className}`}
+      // Always black so letterbox bars (non-16/9 content, fullscreen) stay black
+      // regardless of theme.
+      className={`group relative h-full w-full overflow-hidden bg-black ${className}`}
       // Hide the cursor along with the controls during playback; any mousemove
       // calls poke() which shows both again.
       style={{ cursor: !mini && !controlsOn ? 'none' : undefined }}
@@ -654,10 +682,9 @@ export default function CustomPlayer({
         ref={videoRef}
         playsInline
         crossOrigin="anonymous"
-        // object-contain: show the video at its true aspect ratio, centered in
-        // the container. Background matches the page in full (mini: black), so any
-        // letterbox blends into the page instead of a black bar.
-        className={`h-full w-full object-contain ${mini ? 'bg-black' : 'bg-background'}`}
+        // object-contain: show the video at its true aspect ratio, centered in the
+        // container; letterbox area stays black.
+        className="h-full w-full bg-black object-contain"
         // mini: the shell routes taps (expand). full desktop: tap toggles play.
         // full mobile: tap reveals the controls (the big center button plays/pauses).
         onClick={mini ? undefined : mobile ? poke : togglePlay}
@@ -673,9 +700,7 @@ export default function CustomPlayer({
           Always inside the player frame, so it's never just a black box. */}
       {!error && !noSource && (!src || waiting || (seeking && !dragging)) && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          {/* white on the black mini window; theme foreground on the page-colored
-              full player (a white spinner would be invisible in light mode). */}
-          <Loader2 className={`h-10 w-10 animate-spin ${mini ? 'text-white/80' : 'text-foreground/70'}`} />
+          <Loader2 className="h-10 w-10 animate-spin text-white/80" />
         </div>
       )}
 
