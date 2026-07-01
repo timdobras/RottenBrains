@@ -39,11 +39,10 @@ export default function WatchOverlay({ children }: { children: React.ReactNode }
   });
 
   // Staged reveal: the CONTENT (details below the player) drops out fast — slides
-  // down WITH the player (y = playerY) and fades over progress 0→0.2. Then the
-  // solid theme BACKGROUND that was covering the origin page fades over 0.2→0.8,
-  // dissolving through to the page behind. (Maximize runs this in reverse.)
+  // down WITH the player (y = playerY) and fades over progress 0→0.2. The solid
+  // theme BACKGROUND that covers the origin is WatchBackdrop (fades 0.2→0.8) — a
+  // single shared layer, so it isn't double-painted here.
   const contentOpacity = useTransform(progress, [0, 0.2], [1, 0]);
-  const bgOpacity = useTransform(progress, [0.2, 0.8], [1, 0]);
 
   // If a soft navigation leaves the watch route while still in full mode (e.g.
   // tapping a cast/related link inside the overlay), drop to mini so the kept-
@@ -80,13 +79,8 @@ export default function WatchOverlay({ children }: { children: React.ReactNode }
       className="fixed inset-0 z-30 overflow-y-auto overscroll-contain"
       style={{ display: docked ? 'none' : undefined }}
     >
-      {/* Background surface — fades out as the player docks, revealing the origin. */}
-      <motion.div
-        className="pointer-events-none fixed inset-0 bg-background"
-        style={{ opacity: bgOpacity }}
-      />
-      {/* Content sits above the background; slides down with the player and fades
-          out fast. Inert unless (near) full. */}
+      {/* Background is WatchBackdrop (shared, fades 0.2→0.8). Content sits above
+          it; slides down with the player and fades out fast. Inert unless (near) full. */}
       <motion.div
         className="relative"
         style={{ opacity: contentOpacity, y: playerY, pointerEvents: interactive ? undefined : 'none' }}
