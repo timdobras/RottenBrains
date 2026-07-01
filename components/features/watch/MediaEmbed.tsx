@@ -30,12 +30,12 @@ const VideoEmbed = () => {
       }`}
     >
       <div
-        className={`w-full bg-black ${isTheater ? 'mx-auto flex items-center justify-center' : ''}`}
+        className={`w-full ${isTheater ? 'mx-auto flex items-center justify-center bg-black' : 'bg-background'}`}
       >
         <div
           id="video-inline-placeholder"
-          className={`relative w-full overflow-hidden bg-black ${
-            isTheater ? 'max-h-[calc(100vh-4rem)]' : 'bg-foreground/10 md:rounded-[8px]'
+          className={`relative w-full overflow-hidden ${
+            isTheater ? 'bg-black max-h-[calc(100vh-4rem)]' : 'bg-background md:rounded-[8px]'
           }`}
           style={{
             aspectRatio: String(ratio),

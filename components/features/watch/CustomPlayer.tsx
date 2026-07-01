@@ -572,7 +572,10 @@ export default function CustomPlayer({
   return (
     <div
       ref={wrapRef}
-      className={`group relative h-full w-full overflow-hidden bg-black ${className}`}
+      // Full: background matches the page (no black box on the watch page). Mini:
+      // black floating window. The video fills a content-aspect box, so this only
+      // shows while loading / any letterbox.
+      className={`group relative h-full w-full overflow-hidden ${mini ? 'bg-black' : 'bg-background'} ${className}`}
       // Hide the cursor along with the controls during playback; any mousemove
       // calls poke() which shows both again.
       style={{ cursor: !mini && !controlsOn ? 'none' : undefined }}
@@ -585,8 +588,9 @@ export default function CustomPlayer({
         playsInline
         crossOrigin="anonymous"
         // object-contain: show the video at its true aspect ratio, centered in
-        // the container (4/3 in a 16/9 box → full height, pillarboxed).
-        className="h-full w-full bg-black object-contain"
+        // the container. Background matches the page in full (mini: black), so any
+        // letterbox blends into the page instead of a black bar.
+        className={`h-full w-full object-contain ${mini ? 'bg-black' : 'bg-background'}`}
         // in mini the shell routes taps (play/pause on desktop, expand on mobile)
         onClick={mini ? undefined : togglePlay}
         controlsList="nodownload"

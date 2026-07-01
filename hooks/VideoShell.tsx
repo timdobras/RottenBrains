@@ -172,6 +172,7 @@ export default function VideoShell() {
   // there's no idle layer to repaint.
   const x = useMotionValue(0);
   const scale = useMotionValue(1);
+  const radius = useMotionValue(0);
   // y is the shared store MotionValue (playerY) so the watch content can slide by
   // the exact same vertical amount during the morph.
   const y = playerY;
@@ -183,13 +184,19 @@ export default function VideoShell() {
       x.set(0);
       y.set(0);
       scale.set(1);
+      radius.set(0);
       return;
     }
     const s = mini.width / full.width;
+    const scaleNow = 1 + (s - 1) * v;
     x.set((mini.left - full.left) * v);
     y.set((mini.top - full.top) * v);
-    scale.set(1 + (s - 1) * v);
-  }, [progress, x, y, scale]);
+    scale.set(scaleNow);
+    // Visual corner radius goes 0 (full) → 14px (mini), matching BOTH rest states.
+    // Divide by the live scale so, once the transform shrinks the box, the RENDERED
+    // radius lands exactly on those px values (no mismatch with the mini's 14px).
+    radius.set(scaleNow > 0 ? (14 * v) / scaleNow : 14 * v);
+  }, [progress, x, y, scale, radius]);
 
   // Recompute the transform on every progress tick AND whenever the rects change
   // (mini repositioning at rest, full-mode scroll/resize).
@@ -548,7 +555,7 @@ export default function VideoShell() {
             x,
             y,
             scale,
-            borderRadius: 12,
+            borderRadius: radius,
             zIndex: 99999,
             boxShadow: SHADOW,
             willChange: 'transform',
@@ -592,7 +599,14 @@ export default function VideoShell() {
           <Loader2 className="h-8 w-8 animate-spin text-foreground/50" />
         </div>
       )}
-      <motion.div ref={shellElRef} className="overflow-hidden bg-black" onPointerDown={onShellPointerDown} style={style}>
+      <motion.div
+        ref={shellElRef}
+        // Full/morph: the box background matches the page (no black box on the
+        // watch page). Mini: black, since it's a floating video window.
+        className={`overflow-hidden ${phase === 'mini' ? 'bg-black' : 'bg-background'}`}
+        onPointerDown={onShellPointerDown}
+        style={style}
+      >
         <div className="absolute inset-0 overflow-hidden">
           {!premium ? (
             <div className="flex h-full w-full items-center justify-center bg-black px-4 text-center text-white">
