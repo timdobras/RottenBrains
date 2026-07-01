@@ -10,7 +10,6 @@ import {
   Minimize,
   Minimize2,
   Pause,
-  PictureInPicture2,
   Play,
   Settings,
   Volume1,
@@ -390,6 +389,64 @@ export default function CustomPlayer({
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
 
+  // Auto Picture-in-Picture: when the user switches away (another tab, or
+  // backgrounds the browser on mobile) WHILE something is playing, pop the video
+  // into a floating PiP window so it keeps going; when they return, close PiP so
+  // the video is back in the page (mini or watch page) where it belongs. There's
+  // no PiP button — this is the only PiP entry point.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    const enterPip = async () => {
+      try {
+        if (
+          !v.paused &&
+          !v.disablePictureInPicture &&
+          document.pictureInPictureEnabled &&
+          document.pictureInPictureElement !== v
+        ) {
+          await v.requestPictureInPicture();
+        }
+      } catch {
+        /* not allowed (no gesture) / unsupported — ignore */
+      }
+    };
+    const exitPip = async () => {
+      try {
+        if (document.pictureInPictureElement === v) await document.exitPictureInPicture();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') enterPip();
+      else exitPip();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // Chrome's sanctioned auto-PiP: the browser fires this action itself (no user
+    // gesture required) when the user switches away while media is playing.
+    const ms = navigator.mediaSession as MediaSession | undefined;
+    const setAuto = (handler: (() => void) | null) => {
+      try {
+        (ms?.setActionHandler as ((a: string, h: (() => void) | null) => void) | undefined)?.(
+          'enterpictureinpicture',
+          handler,
+        );
+      } catch {
+        /* action unsupported */
+      }
+    };
+    setAuto(() => enterPip());
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      setAuto(null);
+    };
+  }, []);
+
   // Scale caption font to the player size (~4.5% of height), so it looks right
   // whether the player is small, large, or fullscreen.
   useEffect(() => {
@@ -495,16 +552,6 @@ export default function CustomPlayer({
       onMinimize?.();
     }
   }, [onMinimize]);
-  const togglePip = useCallback(async () => {
-    const v = videoRef.current;
-    if (!v) return;
-    try {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture();
-      else await v.requestPictureInPicture();
-    } catch {
-      /* unsupported */
-    }
-  }, []);
 
   // auto-hide controls
   const poke = useCallback(() => {
@@ -679,8 +726,6 @@ export default function CustomPlayer({
     </DropdownMenuContent>
   );
 
-  const hasPip = typeof document !== 'undefined' && 'pictureInPictureEnabled' in document;
-
   return (
     <div
       ref={wrapRef}
@@ -817,15 +862,6 @@ export default function CustomPlayer({
                   </DropdownMenuTrigger>
                   {settingsMenuContent}
                 </DropdownMenu>
-                {hasPip && (
-                  <button
-                    onClick={togglePip}
-                    className="grid h-14 w-14 place-items-center rounded-full"
-                    aria-label="picture in picture"
-                  >
-                    <PictureInPicture2 className="h-5 w-5" />
-                  </button>
-                )}
               </div>
             </div>
 
@@ -969,11 +1005,6 @@ export default function CustomPlayer({
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
-            {typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && (
-              <button className={btn} onClick={togglePip} aria-label="picture in picture">
-                <PictureInPicture2 className="h-5 w-5" />
-              </button>
-            )}
             {onMinimize && (
               <button className={btn} onClick={handleMinimize} aria-label="minimize to miniplayer">
                 <Minimize2 className="h-5 w-5" />
