@@ -60,7 +60,7 @@ const SPRING = { type: 'spring' as const, stiffness: 400, damping: 40 };
  * to a mini player docked bottom-right.
  */
 export default function VideoShell() {
-  const { state, setState, progress } = useVideo();
+  const { state, setState, progress, playerY } = useVideo();
   const { media_type, media_id, season_number, episode_number, mode, resumePosition } = state;
 
   const isMobile = useIsMobile();
@@ -162,8 +162,10 @@ export default function VideoShell() {
   // transform is applied at all, so native fullscreen/PiP behave normally and
   // there's no idle layer to repaint.
   const x = useMotionValue(0);
-  const y = useMotionValue(0);
   const scale = useMotionValue(1);
+  // y is the shared store MotionValue (playerY) so the watch content can slide by
+  // the exact same vertical amount during the morph.
+  const y = playerY;
 
   const applyTransform = useCallback(() => {
     const v = progress.get();

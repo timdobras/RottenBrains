@@ -37,10 +37,15 @@ const VideoContext = createContext<{
   // A MotionValue (not React state) so the drag updates it at 60fps with no
   // re-renders.
   progress: MotionValue<number>;
+  // The player's live vertical translation in px (0 at full → travel at mini),
+  // published by VideoShell so the watch content can slide down by the SAME amount
+  // as the player during the morph.
+  playerY: MotionValue<number>;
 }>({
   state: { mode: 'mini' },
   setState: () => {},
   progress: undefined as unknown as MotionValue<number>,
+  playerY: undefined as unknown as MotionValue<number>,
 });
 
 export function useVideo() {
@@ -51,8 +56,12 @@ export default function VideoProvider({ children }: { children: React.ReactNode 
   const [state, setState] = useState<VideoState>({ mode: 'mini' });
   // Starts at 1 (mini/hidden) — no player is open on first load.
   const progress = useMotionValue(1);
+  const playerY = useMotionValue(0);
 
-  const value = useMemo(() => ({ state, setState, progress }), [state, progress]);
+  const value = useMemo(
+    () => ({ state, setState, progress, playerY }),
+    [state, progress, playerY],
+  );
 
   return <VideoContext.Provider value={value}>{children}</VideoContext.Provider>;
 }

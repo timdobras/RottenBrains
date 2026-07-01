@@ -20,7 +20,7 @@ import { useVideo } from '@/hooks/VideoProvider';
  */
 export default function WatchOverlay({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { state, setState, progress } = useVideo();
+  const { state, setState, progress, playerY } = useVideo();
 
   // Displayed while the surface is anything but fully docked. Threshold state off
   // `progress` so a mid-flight minimize keeps the (fading) content visible, and it
@@ -38,8 +38,12 @@ export default function WatchOverlay({ children }: { children: React.ReactNode }
     setInteractive((prev) => (prev === next ? prev : next));
   });
 
-  const bgOpacity = useTransform(progress, [0, 1], [1, 0]);
-  const contentOpacity = useTransform(progress, [0, 0.85], [1, 0]);
+  // Staged reveal: the CONTENT (details below the player) drops out fast — slides
+  // down WITH the player (y = playerY) and fades over progress 0→0.2. Then the
+  // solid theme BACKGROUND that was covering the origin page fades over 0.2→0.8,
+  // dissolving through to the page behind. (Maximize runs this in reverse.)
+  const contentOpacity = useTransform(progress, [0, 0.2], [1, 0]);
+  const bgOpacity = useTransform(progress, [0.2, 0.8], [1, 0]);
 
   // If a soft navigation leaves the watch route while still in full mode (e.g.
   // tapping a cast/related link inside the overlay), drop to mini so the kept-
@@ -81,10 +85,11 @@ export default function WatchOverlay({ children }: { children: React.ReactNode }
         className="pointer-events-none fixed inset-0 bg-background"
         style={{ opacity: bgOpacity }}
       />
-      {/* Content sits above the background; inert unless (near) full. */}
+      {/* Content sits above the background; slides down with the player and fades
+          out fast. Inert unless (near) full. */}
       <motion.div
         className="relative"
-        style={{ opacity: contentOpacity, pointerEvents: interactive ? undefined : 'none' }}
+        style={{ opacity: contentOpacity, y: playerY, pointerEvents: interactive ? undefined : 'none' }}
       >
         {children}
       </motion.div>
