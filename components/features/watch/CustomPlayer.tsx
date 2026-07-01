@@ -3,6 +3,7 @@
 import Hls from 'hls.js';
 import {
   Captions,
+  ChevronDown,
   Loader2,
   Maximize,
   Maximize2,
@@ -569,6 +570,72 @@ export default function CustomPlayer({
     </div>
   );
 
+  // Shared dropdown CONTENTS (same for desktop + mobile full layouts; only the
+  // trigger button differs). Only one layout renders at a time, so reusing the
+  // element is safe.
+  const subtitlesMenuContent = (
+    <DropdownMenuContent container={wrapRef.current} side="top" align="end" className={menuCls}>
+      <DropdownMenuLabel className={menuLabelCls}>Subtitles</DropdownMenuLabel>
+      <DropdownMenuRadioGroup value={String(subIdx)} onValueChange={(v) => setSubIdx(Number(v))}>
+        <DropdownMenuRadioItem value="-1" className={radioCls}>Off</DropdownMenuRadioItem>
+        {subtitles.map((s, i) => (
+          <DropdownMenuRadioItem key={i} value={String(i)} className={radioCls}>
+            <span className="block w-full truncate">{s.label}</span>
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+    </DropdownMenuContent>
+  );
+
+  const settingsMenuContent = (
+    <DropdownMenuContent container={wrapRef.current} side="top" align="end" className={menuCls}>
+      {onSelectProvider && (
+        <>
+          <DropdownMenuLabel className={menuLabelCls}>
+            Provider{probing ? ' · checking…' : ''}
+          </DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={currentProvider || ''} onValueChange={(v) => onSelectProvider(v)}>
+            <DropdownMenuRadioItem value="" className={radioCls}>Auto</DropdownMenuRadioItem>
+            {(providers ?? []).map((p) => (
+              <DropdownMenuRadioItem key={p.name} value={p.name} className={radioCls}>
+                <span className="flex w-full items-center justify-between gap-3">
+                  <span className="truncate">{p.label ?? p.name}</span>
+                  <span className="shrink-0 text-[10px] text-white/45">
+                    {p.type}
+                    {p.subs ? ` · ${p.langs && p.langs > 1 ? `${p.langs} langs` : `${p.subs} sub`}` : ''}
+                  </span>
+                </span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          {probing && (!providers || providers.length === 0) && (
+            <div className="px-2 py-1 text-[10px] text-white/40">checking sources…</div>
+          )}
+          <DropdownMenuSeparator className="bg-white/10" />
+        </>
+      )}
+      <DropdownMenuLabel className={menuLabelCls}>Quality</DropdownMenuLabel>
+      <DropdownMenuRadioGroup value={String(level)} onValueChange={(v) => setQuality(Number(v))}>
+        <DropdownMenuRadioItem value="-1" className={radioCls}>Auto</DropdownMenuRadioItem>
+        {levels.map((l, i) => (
+          <DropdownMenuRadioItem key={i} value={String(i)} className={radioCls}>
+            {l.height ? `${l.height}p` : `${Math.round(l.bitrate / 1000)}k`}
+          </DropdownMenuRadioItem>
+        ))}
+        {levels.length === 0 && <div className="px-2 py-1 text-xs text-white/40">single stream</div>}
+      </DropdownMenuRadioGroup>
+      <DropdownMenuSeparator className="bg-white/10" />
+      <DropdownMenuLabel className={menuLabelCls}>Speed</DropdownMenuLabel>
+      <DropdownMenuRadioGroup value={String(rate)} onValueChange={(v) => setSpeed(Number(v))}>
+        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
+          <DropdownMenuRadioItem key={r} value={String(r)} className={radioCls}>{r}×</DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+    </DropdownMenuContent>
+  );
+
+  const hasPip = typeof document !== 'undefined' && 'pictureInPictureEnabled' in document;
+
   return (
     <div
       ref={wrapRef}
@@ -591,8 +658,9 @@ export default function CustomPlayer({
         // the container. Background matches the page in full (mini: black), so any
         // letterbox blends into the page instead of a black bar.
         className={`h-full w-full object-contain ${mini ? 'bg-black' : 'bg-background'}`}
-        // in mini the shell routes taps (play/pause on desktop, expand on mobile)
-        onClick={mini ? undefined : togglePlay}
+        // mini: the shell routes taps (expand). full desktop: tap toggles play.
+        // full mobile: tap reveals the controls (the big center button plays/pauses).
+        onClick={mini ? undefined : mobile ? poke : togglePlay}
         controlsList="nodownload"
       >
         {subtitles.map((s, i) => (
@@ -648,7 +716,95 @@ export default function CustomPlayer({
       {/* full-mode controls. During a morph: hidden INSTANTLY (duration-0). On
           settle: fades back in over 300ms. transition-opacity stays present so the
           duration/opacity swap animates reliably. */}
-      {!mini && (
+      {!mini &&
+        (mobile ? (
+          // ===== MOBILE full-player controls =====
+          <div
+            className={`absolute inset-0 transition-opacity ${
+              morphing ? 'duration-0' : 'duration-300'
+            } ${!morphing && controlsOn ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+          >
+            {/* tap empty space to hide controls (the video's onClick reveals them
+                again while they're hidden). A downward drag still bubbles to the
+                shell to minimize. */}
+            <div className="absolute inset-0" onClick={() => setShow(false)} />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
+
+            {/* top-left: minimize (chevron down) */}
+            {onMinimize && (
+              <button
+                onClick={onMinimize}
+                aria-label="minimize to miniplayer"
+                className="absolute left-1 top-1 grid h-11 w-11 place-items-center rounded-full text-white"
+              >
+                <ChevronDown className="h-7 w-7" />
+              </button>
+            )}
+
+            {/* top-right: subtitles + settings + pip */}
+            <div className="absolute right-0.5 top-1 flex items-center text-white">
+              {subtitles.length > 0 && (
+                <DropdownMenu open={subsOpen} onOpenChange={(o) => { setSubsOpen(o); poke(); }}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`grid h-11 w-11 place-items-center rounded-full ${subIdx >= 0 ? 'text-red-400' : ''}`}
+                      aria-label="subtitles"
+                    >
+                      <Captions className="h-6 w-6" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  {subtitlesMenuContent}
+                </DropdownMenu>
+              )}
+              <DropdownMenu open={settingsOpen} onOpenChange={(o) => { setSettingsOpen(o); poke(); }}>
+                <DropdownMenuTrigger asChild>
+                  <button className="grid h-11 w-11 place-items-center rounded-full" aria-label="settings">
+                    <Settings className="h-6 w-6" />
+                  </button>
+                </DropdownMenuTrigger>
+                {settingsMenuContent}
+              </DropdownMenu>
+              {hasPip && (
+                <button
+                  onClick={togglePip}
+                  className="grid h-11 w-11 place-items-center rounded-full"
+                  aria-label="picture in picture"
+                >
+                  <PictureInPicture2 className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            {/* center: big play/pause */}
+            {!waiting && (
+              <button
+                onClick={togglePlay}
+                aria-label="play/pause"
+                className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-transform active:scale-95"
+              >
+                {playing ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8 translate-x-0.5" />}
+              </button>
+            )}
+
+            {/* bottom: times (left) + fullscreen (right), then full-width scrubber */}
+            <div className="absolute inset-x-0 bottom-0">
+              <div className="flex items-center justify-between px-3 pb-0.5">
+                <span className="text-xs tabular-nums text-white/90">
+                  {fmt(displayTime)} <span className="text-white/50">/ {fmt(duration)}</span>
+                </span>
+                <button
+                  onClick={toggleFs}
+                  aria-label="fullscreen"
+                  className="grid h-9 w-9 place-items-center rounded-full text-white"
+                >
+                  {fs ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                </button>
+              </div>
+              <div className="px-3 pb-2">{scrubberEl}</div>
+            </div>
+          </div>
+        ) : (
+      // ===== DESKTOP full-player controls =====
       <div
         className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 transition-opacity ${
           morphing ? 'duration-0' : 'duration-300'
@@ -777,7 +933,7 @@ export default function CustomPlayer({
           )}
         </div>
       </div>
-      )}
+        ))}
 
       {/* ===== miniplayer overlay (chrome + controls live here; the shell owns
               the window box + drag + tap routing). Wrapped so the whole chrome
