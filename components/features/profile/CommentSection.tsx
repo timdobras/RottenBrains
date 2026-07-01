@@ -1,7 +1,6 @@
 'use client';
 
-import { Drawer } from '@base-ui/react/drawer';
-import { Drawer as VaulDrawer } from 'vaul';
+import { Drawer } from 'vaul';
 import { Heart, MessageCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
@@ -11,12 +10,6 @@ import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/db/client-actions';
 import AddComment from './AddCommentModal';
 import CommentCard from './CommentCardModal';
-
-// A/B trial: which library powers the mobile comment sheet.
-// 'vaul'   → Vaul (testing whether it feels smoother than Base UI)
-// 'baseui' → the original @base-ui/react drawer
-// Flip this one constant (and redeploy) to switch back.
-const MOBILE_SHEET: 'vaul' | 'baseui' = 'vaul';
 
 const CommentsSkeleton = () => (
   <div className="relative flex w-full flex-col gap-4 overflow-hidden p-3">
@@ -70,7 +63,7 @@ const HeartButton = ({
   </button>
 );
 
-const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any) => {
+const CommentSection = ({ post_data, current_user }: any) => {
   const post = post_data.post;
   const comment_data = post_data.comments;
   const postId = post.id;
@@ -161,7 +154,7 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
     [user_id]
   );
 
-  // Scroll lock, focus trapping and swipe-to-dismiss are handled by Base UI's Drawer.
+  // Scroll lock and swipe-to-dismiss are handled by Vaul's Drawer.
 
   const handlePostLike = useCallback(async () => {
     if (!user_id) return;
@@ -239,101 +232,44 @@ const CommentSection = ({ post_data, current_user, lockBodyScroll = true }: any)
         </button>
       </div>
 
-      {/* Mobile: Instagram-style bottom sheet with native swipe-to-dismiss.
-          Shared inner content; only the drawer library differs (see MOBILE_SHEET). */}
-      {(() => {
-        const grabHandle = (
-          <div className="flex justify-center pt-2.5">
-            <div className="h-1.5 w-10 rounded-full bg-foreground/25" />
-          </div>
-        );
-        const list = (
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-            {renderList()}
-          </div>
-        );
-        const composer = (
-          <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
-            <AddComment
-              post={post}
-              user_id={user_id}
-              fetchComments={fetchComments}
-              fetchReplies={fetchReplies}
-              // Focus the input as the sheet opens so the keyboard comes up
-              // ready to type. (iOS may only raise the keyboard on the first
-              // tap — see note; Android raises it immediately.)
-              autoFocus
-            />
-          </div>
-        );
-
-        if (MOBILE_SHEET === 'vaul') {
-          return (
-            <VaulDrawer.Root
-              open={showSheet}
-              onOpenChange={setShowSheet}
-              modal={!!lockBodyScroll}
-              // No cooldown after scrolling: pulling down while the list is at
-              // the top transfers straight into closing the sheet (native feel),
-              // instead of rubber-banding for ~100ms first.
-              scrollLockTimeout={0}
-            >
-              <VaulDrawer.Portal>
-                <VaulDrawer.Overlay className="fixed inset-0 z-40 bg-black/50 md:hidden" />
-                <VaulDrawer.Content
-                  className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none md:hidden"
-                  // Focus the comment input as the sheet opens so the keyboard
-                  // is ready to type. Radix would otherwise focus the content
-                  // container; we redirect it to the text input.
-                  onOpenAutoFocus={(e: any) => {
-                    e.preventDefault();
-                    const root = e.currentTarget as HTMLElement;
-                    (
-                      root?.querySelector(
-                        'input[type="text"]'
-                      ) as HTMLInputElement | null
-                    )?.focus();
-                  }}
-                >
-                  <div className="shrink-0 select-none">
-                    {grabHandle}
-                    <VaulDrawer.Title className="px-4 py-2 text-center text-sm font-semibold">
-                      Comments
-                    </VaulDrawer.Title>
-                    <div className="h-px w-full bg-foreground/10" />
-                  </div>
-                  {list}
-                  {composer}
-                </VaulDrawer.Content>
-              </VaulDrawer.Portal>
-            </VaulDrawer.Root>
-          );
-        }
-
-        return (
-          <Drawer.Root
-            open={showSheet}
-            onOpenChange={setShowSheet}
-            swipeDirection="down"
-            modal={lockBodyScroll ? true : 'trap-focus'}
-          >
-            <Drawer.Portal>
-              <Drawer.Backdrop className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 md:hidden" />
-              <Drawer.Popup className="surface-elevated fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-[20px] text-foreground shadow-2xl outline-none transition-transform duration-300 data-[starting-style]:translate-y-full data-[ending-style]:translate-y-full md:hidden">
-                <div className="shrink-0 select-none">
-                  {grabHandle}
-                  <Drawer.Title className="px-4 py-2 text-center text-sm font-semibold">
-                    Comments
-                  </Drawer.Title>
-                  <div className="h-px w-full bg-foreground/10" />
-                </div>
-                {list}
-                {composer}
-              </Drawer.Popup>
-            </Drawer.Portal>
-          </Drawer.Root>
-        );
-      })()}
+      {/* Mobile: Vaul bottom sheet — mirrors the working playground drawer.
+          repositionInputs disabled because our composer input otherwise activates
+          Vaul's input/scroll machinery, which interferes with drag-to-close. */}
+      <Drawer.Root
+        open={showSheet}
+        onOpenChange={setShowSheet}
+        scrollLockTimeout={0}
+        repositionInputs={false}
+      >
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 z-[300] bg-black/50 md:hidden" />
+          <Drawer.Content className="surface-elevated fixed inset-x-0 bottom-0 z-[300] flex h-[85vh] flex-col rounded-t-2xl border-t border-border text-foreground outline-none md:hidden">
+            <div className="mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/40" />
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <Drawer.Title className="font-semibold">
+                Comments · {commentCount}
+              </Drawer.Title>
+              <button
+                onClick={() => setShowSheet(false)}
+                className="text-sm text-muted-foreground"
+              >
+                Close
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-1">
+              {renderList()}
+            </div>
+            <div className="shrink-0 border-t border-foreground/10 pb-[env(safe-area-inset-bottom)]">
+              <AddComment
+                post={post}
+                user_id={user_id}
+                fetchComments={fetchComments}
+                fetchReplies={fetchReplies}
+              />
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
     </div>
   );
 };
