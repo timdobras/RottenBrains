@@ -1,4 +1,6 @@
-import { getWatchTime } from '@/lib/db/queries';
+// client-actions (not server-only queries.ts): fetchMediaData is pulled into
+// client bundles via lib/client/index.ts + fetchPostByIdClient.ts.
+import { getWatchTime } from '@/lib/db/client-actions';
 import { getEpisodeDetails, getMediaDetails } from '../tmdb';
 
 export async function fetchMediaData(
