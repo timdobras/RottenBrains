@@ -1,6 +1,6 @@
 'use client';
 
-import { animate, motion, useMotionValue, useMotionValueEvent, type MotionValue } from 'framer-motion';
+import { animate, motion, useMotionValue, useMotionValueEvent, type MotionStyle, type MotionValue } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react';
@@ -108,6 +108,13 @@ export default function VideoShell() {
   }
   const display = lastStreamRef.current;
 
+  // Intrinsic video aspect (width/height); the mini window restores its original
+  // content-fit sizing from this (16/9 default until metadata loads).
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
+  useEffect(() => {
+    setAspectRatio(16 / 9);
+  }, [media_id, media_type, season_number, episode_number]);
+
   // ── geometry ──
   // Full-mode box: the measured placeholder, else the geometry estimate. Computed
   // even in mini (placeholder absent) so the morph transform always has a stable
@@ -132,12 +139,14 @@ export default function VideoShell() {
   const isOverlayRef = useRef(state.isOverlay);
   isOverlayRef.current = state.isOverlay;
 
-  // Motion outputs. The box stays at fullRect (React layout); these transforms
-  // (top-left origin) slide + shrink it toward miniRect as progress → 1.
+  // Motion outputs — ONLY used during the in-between morph. The box stays at
+  // fullRect (React layout); these compositor-only transforms (top-left origin)
+  // slide + shrink it toward miniRect as progress → 1. At rest (full or mini) no
+  // transform is applied at all, so native fullscreen/PiP behave normally and
+  // there's no idle layer to repaint.
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const scale = useMotionValue(1);
-  const radius = useMotionValue(0);
 
   const applyTransform = useCallback(() => {
     const v = progress.get();
@@ -146,16 +155,13 @@ export default function VideoShell() {
       x.set(0);
       y.set(0);
       scale.set(1);
-      radius.set(0);
       return;
     }
     const s = mini.width / full.width;
     x.set((mini.left - full.left) * v);
     y.set((mini.top - full.top) * v);
     scale.set(1 + (s - 1) * v);
-    // ~14px visual corner radius when fully mini (pre-scale, so it survives the shrink)
-    radius.set(v * (14 / Math.max(s, 0.01)));
-  }, [progress, x, y, scale, radius]);
+  }, [progress, x, y, scale]);
 
   // Recompute the transform on every progress tick AND whenever the rects change
   // (mini repositioning at rest, full-mode scroll/resize).
@@ -167,17 +173,22 @@ export default function VideoShell() {
     applyTransform();
   }, [applyTransform, fullRect?.top, fullRect?.left, fullRect?.width, fullRect?.height, miniRect.top, miniRect.left, miniRect.width, miniRect.height]);
 
-  // `atFull` (progress ≈ 0) toggles the player's z-index/shadow and — crucially —
-  // the CustomPlayer chrome (full controls vs mini chrome). `snapping` is true
-  // only while a spring animation (button / drag-release) is in flight — it
-  // raises a transient click-shield so content shifting under the pointer can't be
-  // activated (e.g. a tap-maximize's delayed synthetic click). It is NOT set
-  // during a manual drag, so the shield never blocks the gesture itself.
-  const [atFull, setAtFull] = useState(progress.get() < 0.5);
+  // Rendering phase derived from progress:
+  //   'full' (rest, docked in the page) · 'mini' (rest, floating window) · 'morph'
+  //   (in between). ONLY 'morph' applies the transform; both rest states render as
+  //   plain boxes. Crucially the CustomPlayer chrome (full controls ⇄ mini chrome)
+  //   swaps on the 'mini' boundary — at the very end of the animation, NOT halfway
+  //   — so we never re-render the whole player mid-morph (that was the hitch).
+  // `snapping` is true only while a spring (button / drag-release) is in flight —
+  // it raises a transient click-shield so shifting content under the pointer can't
+  // be activated. NOT set during a manual drag, so it never blocks the gesture.
+  const phaseOf = (v: number): 'full' | 'morph' | 'mini' =>
+    v >= 0.999 ? 'mini' : v <= 0.001 ? 'full' : 'morph';
+  const [phase, setPhase] = useState<'full' | 'morph' | 'mini'>(phaseOf(progress.get()));
   const [snapping, setSnapping] = useState(false);
   useMotionValueEvent(progress, 'change', (v) => {
-    const nextFull = v < 0.5;
-    setAtFull((prev) => (prev === nextFull ? prev : nextFull));
+    const next = phaseOf(v);
+    setPhase((prev) => (prev === next ? prev : next));
     if (v < 0.01 || v > 0.99) setSnapping((prev) => (prev ? false : prev));
   });
 
@@ -306,8 +317,11 @@ export default function VideoShell() {
   // replaced by the overlay route as it loads; re-querying every frame locks onto
   // whichever placeholder is currently mounted and survives that swap.
   useEffect(() => {
-    if (!mounted || mode !== 'full') {
-      setPlaceholderRect(null);
+    // Only track at FULL REST. During the morph the base rect is captured/stable,
+    // and running getBoundingClientRect every frame there forces a reflow per
+    // frame that fights the compositor animation (a big source of the hitching).
+    if (!mounted || phase !== 'full') {
+      if (phase === 'mini') setPlaceholderRect(null);
       return;
     }
     let raf = 0;
@@ -378,7 +392,7 @@ export default function VideoShell() {
   );
 
   useEffect(() => {
-    const THRESHOLD = 6;
+    const THRESHOLD = 8;
     const onMove = (e: PointerEvent) => {
       const s = dragRef.current;
       if (!s) return;
@@ -396,15 +410,12 @@ export default function VideoShell() {
         return;
       }
 
-      // full → minimize drag
+      // full → minimize drag. Any DOWNWARD swipe minimizes: we just wait until
+      // there's enough downward travel (dy past the threshold). Horizontal or
+      // upward gestures never reach that and are ignored — and the scrubber has
+      // its own handler (excluded at pointerdown), so it's unaffected.
       if (!s.active) {
-        if (Math.hypot(dx, dy) < THRESHOLD) return;
-        // Only claim clearly-downward, vertical-dominant gestures; anything else
-        // (horizontal, upward) is abandoned so scrubbing/selection still works.
-        if (dy <= 0 || Math.abs(dy) <= Math.abs(dx)) {
-          dragRef.current = null;
-          return;
-        }
+        if (dy < THRESHOLD) return;
         s.active = true;
         animRef.current?.stop();
       }
@@ -469,11 +480,56 @@ export default function VideoShell() {
   if (!container) return null;
   if (!fullRect) return null;
 
-  // z-index: at full rest the player sits just above the (z-30) overlay but below
-  // any page chrome; while transitioning or mini it must ride above everything so
-  // it floats over the origin page. Shadow only when it's a floating window.
-  const elevated = !atFull;
-  const zIndex = elevated ? 99999 : state.isOverlay ? 40 : 1;
+  // Per-phase box. 'morph' is the ONLY state with a transform (compositor-only
+  // translate+scale, layer-promoted via will-change); 'full' and 'mini' render as
+  // plain boxes — so native fullscreen/PiP work at full, and the mini window keeps
+  // its original design + content-fit aspect. touch-action:none in every phase so
+  // the browser never steals the vertical swipe (no pull-to-refresh / scroll
+  // fight) — our handler owns the drag-to-minimize.
+  const SHADOW = '0 4px 20px rgba(0,0,0,0.5)';
+  const style: MotionStyle =
+    phase === 'mini'
+      ? {
+          position: 'fixed',
+          top: position.y,
+          left: position.x,
+          width: size.width,
+          height: Math.round(size.width / aspectRatio),
+          zIndex: 99999,
+          borderRadius: 14,
+          boxShadow: SHADOW,
+          touchAction: 'none',
+          cursor: isDragging ? 'grabbing' : 'grab',
+        }
+      : phase === 'morph'
+        ? {
+            position: 'fixed',
+            top: fullRect.top,
+            left: fullRect.left,
+            width: fullRect.width,
+            height: fullRect.height,
+            transformOrigin: 'top left',
+            x,
+            y,
+            scale,
+            borderRadius: 12,
+            zIndex: 99999,
+            boxShadow: SHADOW,
+            willChange: 'transform',
+            touchAction: 'none',
+          }
+        : {
+            // full, at rest — no transform, so fullscreen/PiP behave normally
+            position: 'fixed',
+            top: fullRect.top,
+            left: fullRect.left,
+            width: fullRect.width,
+            height: fullRect.height,
+            zIndex: state.isOverlay ? 40 : 1,
+            borderRadius: 0,
+            boxShadow: 'none',
+            touchAction: 'none',
+          };
 
   return ReactDOM.createPortal(
     <>
@@ -500,62 +556,38 @@ export default function VideoShell() {
           <Loader2 className="h-8 w-8 animate-spin text-foreground/50" />
         </div>
       )}
-      <motion.div
-      ref={shellElRef}
-      className="overflow-hidden bg-black"
-      onPointerDown={onShellPointerDown}
-      style={{
-        position: 'fixed',
-        top: fullRect.top,
-        left: fullRect.left,
-        width: fullRect.width,
-        height: fullRect.height,
-        transformOrigin: 'top left',
-        x,
-        y,
-        scale,
-        borderRadius: radius,
-        zIndex,
-        boxShadow: elevated ? '0 4px 20px rgba(0,0,0,0.5)' : 'none',
-        // Mini: the floating window sits over the scrollable origin page, so it
-        // must own its touch gestures (reposition drag) rather than scroll the
-        // page. Full: the player is a fixed portal with the body scroll-locked, so
-        // nothing scrolls behind it anyway — leave touch-action default so the
-        // scrubber still works on touch, while our own handler claims the
-        // downward drag-to-minimize (preventDefault, no scroll to fight).
-        touchAction: mode === 'mini' ? 'none' : undefined,
-        cursor: mode === 'mini' ? (isDragging ? 'grabbing' : 'grab') : undefined,
-      }}
-    >
-      <div className="absolute inset-0 overflow-hidden">
-        {!premium ? (
-          <div className="flex h-full w-full items-center justify-center bg-black px-4 text-center text-white">
-            {atFull ? 'You need to be a premium user to watch videos.' : 'Premium required'}
-          </div>
-        ) : (
-          <CustomPlayer
-            // key excludes mode + provider → no remount on toggle/switch
-            key={`${media_type}-${media_id}-${season_number ?? ''}-${episode_number ?? ''}`}
-            src={display.src}
-            type={display.type}
-            subtitles={display.subtitles}
-            startTime={resumePosition ?? 0}
-            autoPlay
-            mini={!atFull}
-            providers={stream.providers}
-            currentProvider={stream.currentProvider}
-            onSelectProvider={stream.onSelectProvider}
-            resolving={stream.resolving}
-            probing={stream.probing}
-            onProgress={onProgress}
-            mobile={isMobile}
-            noSource={stream.status === 'error' && !display.src}
-            onExpand={maximize}
-            onClose={closePlayer}
-            onMinimize={minimize}
-          />
-        )}
-      </div>
+      <motion.div ref={shellElRef} className="overflow-hidden bg-black" onPointerDown={onShellPointerDown} style={style}>
+        <div className="absolute inset-0 overflow-hidden">
+          {!premium ? (
+            <div className="flex h-full w-full items-center justify-center bg-black px-4 text-center text-white">
+              {phase !== 'mini' ? 'You need to be a premium user to watch videos.' : 'Premium required'}
+            </div>
+          ) : (
+            <CustomPlayer
+              // key excludes mode + provider → no remount on toggle/switch
+              key={`${media_type}-${media_id}-${season_number ?? ''}-${episode_number ?? ''}`}
+              src={display.src}
+              type={display.type}
+              subtitles={display.subtitles}
+              startTime={resumePosition ?? 0}
+              autoPlay
+              // Chrome swaps to mini only at rest (phase 'mini') — never mid-morph.
+              mini={phase === 'mini'}
+              providers={stream.providers}
+              currentProvider={stream.currentProvider}
+              onSelectProvider={stream.onSelectProvider}
+              resolving={stream.resolving}
+              probing={stream.probing}
+              onProgress={onProgress}
+              onAspectRatio={setAspectRatio}
+              mobile={isMobile}
+              noSource={stream.status === 'error' && !display.src}
+              onExpand={maximize}
+              onClose={closePlayer}
+              onMinimize={minimize}
+            />
+          )}
+        </div>
       </motion.div>
     </>,
     container,
