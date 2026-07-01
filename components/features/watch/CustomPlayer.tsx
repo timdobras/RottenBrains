@@ -740,11 +740,14 @@ export default function CustomPlayer({
         </div>
       )}
 
-      {/* captions — rendered by us so they can sit above the controls when shown */}
+      {/* captions — rendered by us so they can sit above the controls when shown.
+          Mini: always pinned near the bottom (the tiny window has no tall controls
+          bar to clear, and 4.5rem would shove them to the top). Full: lift above
+          the controls bar when it's showing. */}
       {cueText && (
         <div
           className="pointer-events-none absolute inset-x-0 flex justify-center px-[5%] transition-[bottom] duration-200 ease-out"
-          style={{ bottom: controlsOn ? '4.5rem' : '1.25rem' }}
+          style={{ bottom: mini ? '0.35rem' : controlsOn ? '4.5rem' : '1.25rem' }}
         >
           <span
             className="whitespace-pre-line rounded bg-black/70 px-2 py-0.5 text-center leading-snug text-white"
