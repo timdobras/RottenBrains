@@ -42,9 +42,16 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
   // Gated on `progress` (≈0 = fully full), NOT `mode`, so the origin is revealed
   // *during* the minimize morph — the player shrinks toward its dock over the
   // origin page cross-dissolving in, instead of the page popping in only at the end.
-  const [atFull, setAtFull] = useState(progress.get() < 0.02);
+  // Reveal the origin a few frames INTO the minimize morph, not on frame 1.
+  // Revealing it flips content-visibility and paints the (visible) origin page —
+  // doing that on the very first frame competed with the transform start and made
+  // minimize feel "late" (the player froze ~100ms before moving). At 0.12 the
+  // player's compositor transform gets a couple of cheap frames first (motion
+  // starts immediately), then the origin cross-dissolves in.
+  const REVEAL_AT = 0.12;
+  const [atFull, setAtFull] = useState(progress.get() < REVEAL_AT);
   useMotionValueEvent(progress, 'change', (v) => {
-    const next = v < 0.02;
+    const next = v < REVEAL_AT;
     setAtFull((prev) => (prev === next ? prev : next));
   });
   const hideOrigin = atFull && !!state.isOverlay;

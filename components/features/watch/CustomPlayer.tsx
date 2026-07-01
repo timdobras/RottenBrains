@@ -79,13 +79,14 @@ interface CustomPlayerProps {
   onClose?: () => void;
   /** Full player: shrink to the miniplayer (and go home). */
   onMinimize?: () => void;
-  /** True while the player is mid-morph (being dragged or animating between full
-   *  and mini). Hides the chrome INSTANTLY; it fades back in (~250ms) once the
-   *  morph settles. */
-  morphing?: boolean;
   /** Human title of what's playing — shown in the fullscreen chrome (top-left). */
   title?: string;
 }
+// NOTE: the "hide chrome instantly while morphing" behavior is no longer a prop.
+// It's driven by CSS: the shell adds a `.rb-morphing` class during the morph and
+// `.rb-morphing .rb-player-chrome { opacity:0 }` (globals.css) hides these chrome
+// layers — so morphing no longer re-renders this 1,100-line component at the
+// start of a minimize (that re-render was the main "minimize feels late" cost).
 
 function fmt(t: number): string {
   if (!Number.isFinite(t) || t < 0) return '0:00';
@@ -121,7 +122,6 @@ export default function CustomPlayer({
   onExpand,
   onClose,
   onMinimize,
-  morphing = false,
   title,
 }: CustomPlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -843,9 +843,9 @@ export default function CustomPlayer({
         (mobile ? (
           // ===== MOBILE full-player controls =====
           <div
-            className={`absolute inset-0 transition-opacity ${
-              morphing ? 'duration-0' : 'duration-300'
-            } ${!morphing && controlsOn ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            className={`rb-player-chrome absolute inset-0 transition-opacity duration-300 ${
+              controlsOn ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
           >
             {/* tap empty space to hide controls (the video's onClick reveals them
                 again while they're hidden). touch-none so a downward drag here is
@@ -929,9 +929,9 @@ export default function CustomPlayer({
         ) : (
       // ===== DESKTOP full-player controls =====
       <div
-        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 transition-opacity ${
-          morphing ? 'duration-0' : 'duration-300'
-        } ${!morphing && controlsOn ? 'opacity-100' : 'opacity-0'}`}
+        className={`rb-player-chrome absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 transition-opacity duration-300 ${
+          controlsOn ? 'opacity-100' : 'opacity-0'
+        }`}
       >
         <div className="mb-1.5">{scrubberEl}</div>
 

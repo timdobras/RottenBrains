@@ -612,3 +612,13 @@
 }
 
 /* .bottombar, .bottombar-inner, .bottombar-link removed -- dead code, safe-area handling now in NavBottom component */
+
+/* Persistent player: during the full<->mini morph, the shell gets `.rb-morphing`.
+   Hide the full-mode chrome (controls/scrubber) instantly via CSS so toggling it
+   doesn't re-render the heavy CustomPlayer at the start of a minimize. It fades
+   back in (its own transition-opacity) once the morph settles and the class drops. */
+.rb-morphing .rb-player-chrome {
+  opacity: 0 !important;
+  transition: none !important;
+  pointer-events: none !important;
+}

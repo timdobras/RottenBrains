@@ -191,7 +191,6 @@ export default function VideoShell() {
   // there's no idle layer to repaint.
   const x = useMotionValue(0);
   const scale = useMotionValue(1);
-  const radius = useMotionValue(0);
   // y is the shared store MotionValue (playerY) so the watch content can slide by
   // the exact same vertical amount during the morph.
   const y = playerY;
@@ -203,7 +202,6 @@ export default function VideoShell() {
       x.set(0);
       y.set(0);
       scale.set(1);
-      radius.set(0);
       return;
     }
     const s = mini.width / full.width;
@@ -211,11 +209,12 @@ export default function VideoShell() {
     x.set((mini.left - full.left) * v);
     y.set((mini.top - full.top) * v);
     scale.set(scaleNow);
-    // Visual corner radius goes 0 (full) → 14px (mini), matching BOTH rest states.
-    // Divide by the live scale so, once the transform shrinks the box, the RENDERED
-    // radius lands exactly on those px values (no mismatch with the mini's 14px).
-    radius.set(scaleNow > 0 ? (14 * v) / scaleNow : 14 * v);
-  }, [progress, x, y, scale, radius]);
+    // NOTE: border-radius is intentionally NOT animated here. Animating it each
+    // frame forced a repaint of the whole (growing) player every frame — the main
+    // cause of ~30fps during maximize. Corners stay square through the morph and
+    // round only at the mini rest state (a quick CSS transition, below), so the
+    // morph itself is pure translate+scale on the compositor.
+  }, [progress, x, y, scale]);
 
   // Recompute the transform on every progress tick AND whenever the rects change
   // (mini repositioning at rest, full-mode scroll/resize).
@@ -629,11 +628,16 @@ export default function VideoShell() {
           cursor: isDragging ? 'grabbing' : 'grab',
           // Animate the double-tap resize + edge snap; instant while dragging (track
           // the finger) AND on the handoff frame (miniSettled false) so the box
-          // doesn't animate in from the full position.
-          transition:
+          // doesn't animate in from the full position. border-radius always eases,
+          // so the corners round smoothly when the player docks (0 during morph → 14).
+          transition: [
             isDragging || !miniSettled
-              ? 'none'
+              ? null
               : 'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease',
+            'border-radius 0.18s ease',
+          ]
+            .filter(Boolean)
+            .join(', '),
         }
       : phase === 'morph'
         ? {
@@ -646,7 +650,10 @@ export default function VideoShell() {
             x,
             y,
             scale,
-            borderRadius: radius,
+            // Constant (not animated) so the morph is a pure compositor transform.
+            // Rounds to the mini's 14px via a cheap CSS transition once docked.
+            borderRadius: 0,
+            transition: 'border-radius 0.18s ease',
             zIndex: 99999,
             boxShadow: SHADOW,
             willChange: 'transform',
@@ -696,8 +703,10 @@ export default function VideoShell() {
       <motion.div
         ref={shellElRef}
         // Always black: letterbox bars (non-16/9 content, fullscreen) stay black
-        // regardless of theme, not the page color.
-        className="overflow-hidden bg-black"
+        // regardless of theme, not the page color. `rb-morphing` (during the
+        // morph) hides the player chrome via CSS instead of a prop, so the heavy
+        // CustomPlayer doesn't re-render at the start of a minimize.
+        className={`overflow-hidden bg-black${phase === 'morph' ? ' rb-morphing' : ''}`}
         onPointerDown={onShellPointerDown}
         style={style}
       >
@@ -716,9 +725,9 @@ export default function VideoShell() {
               startTime={resumePosition ?? 0}
               autoPlay
               // Chrome swaps to mini only at rest (phase 'mini') — never mid-morph.
+              // (Morph chrome-hide is CSS-driven via the shell's `rb-morphing`
+              // class, so it no longer re-renders this component mid-transition.)
               mini={phase === 'mini'}
-              // Hide the chrome instantly during the morph; it fades back in on settle.
-              morphing={phase === 'morph'}
               providers={stream.providers}
               currentProvider={stream.currentProvider}
               onSelectProvider={stream.onSelectProvider}
