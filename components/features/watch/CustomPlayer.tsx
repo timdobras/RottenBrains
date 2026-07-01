@@ -524,7 +524,7 @@ export default function CustomPlayer({
   // Shared scrubber (full + mini). Visual track + buffered + progress + handle,
   // with a transparent native range input on top for click/drag/keyboard.
   const scrubberEl = (
-    <div className="group/bar relative flex h-3.5 items-center">
+    <div className="group/bar relative flex h-5 items-center">
       <div className="relative h-1 w-full rounded-full bg-white/25 transition-[height] group-hover/bar:h-1.5">
         <div className="absolute inset-y-0 left-0 rounded-full bg-white/30" style={{ width: `${bufPct}%` }} />
         <div className="absolute inset-y-0 left-0 rounded-full bg-red-500" style={{ width: `${pct}%` }} />
@@ -735,7 +735,7 @@ export default function CustomPlayer({
               <button
                 onClick={onMinimize}
                 aria-label="minimize to miniplayer"
-                className="absolute left-1 top-1 grid h-11 w-11 place-items-center rounded-full text-white"
+                className="absolute left-1 top-1 grid h-14 w-14 place-items-center rounded-full text-white"
               >
                 <ChevronDown className="h-7 w-7" />
               </button>
@@ -747,7 +747,7 @@ export default function CustomPlayer({
                 <DropdownMenu open={subsOpen} onOpenChange={(o) => { setSubsOpen(o); poke(); }}>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className={`grid h-11 w-11 place-items-center rounded-full ${subIdx >= 0 ? 'text-red-400' : ''}`}
+                      className={`grid h-14 w-14 place-items-center rounded-full ${subIdx >= 0 ? 'text-red-400' : ''}`}
                       aria-label="subtitles"
                     >
                       <Captions className="h-6 w-6" />
@@ -758,7 +758,7 @@ export default function CustomPlayer({
               )}
               <DropdownMenu open={settingsOpen} onOpenChange={(o) => { setSettingsOpen(o); poke(); }}>
                 <DropdownMenuTrigger asChild>
-                  <button className="grid h-11 w-11 place-items-center rounded-full" aria-label="settings">
+                  <button className="grid h-14 w-14 place-items-center rounded-full" aria-label="settings">
                     <Settings className="h-6 w-6" />
                   </button>
                 </DropdownMenuTrigger>
@@ -767,7 +767,7 @@ export default function CustomPlayer({
               {hasPip && (
                 <button
                   onClick={togglePip}
-                  className="grid h-11 w-11 place-items-center rounded-full"
+                  className="grid h-14 w-14 place-items-center rounded-full"
                   aria-label="picture in picture"
                 >
                   <PictureInPicture2 className="h-5 w-5" />
@@ -780,7 +780,7 @@ export default function CustomPlayer({
               <button
                 onClick={togglePlay}
                 aria-label="play/pause"
-                className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-transform active:scale-95"
+                className="absolute left-1/2 top-1/2 grid h-20 w-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white transition-transform active:scale-95"
               >
                 {playing ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8 translate-x-0.5" />}
               </button>
@@ -795,7 +795,7 @@ export default function CustomPlayer({
                 <button
                   onClick={toggleFs}
                   aria-label="fullscreen"
-                  className="grid h-9 w-9 place-items-center rounded-full text-white"
+                  className="grid h-12 w-12 place-items-center rounded-full text-white"
                 >
                   {fs ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                 </button>
