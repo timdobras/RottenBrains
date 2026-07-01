@@ -15,11 +15,11 @@ const DEFAULT_SIZES: ResolutionStep[] = [
   { key: 'high', size: API_CONFIG.TMDB_IMAGE_SIZES.BACKDROP_LARGE },
 ];
 
-/** 3-step for hero/featured: thumbnail -> large -> original */
+/** 2-step for hero/featured: thumbnail -> large. Capped at w1280 (dropped the
+ *  `original` step, which pulled multi-MB backdrops as the LCP element). */
 const HERO_SIZES: ResolutionStep[] = [
   { key: 'low', size: API_CONFIG.TMDB_IMAGE_SIZES.BACKDROP_SMALL },
-  { key: 'med', size: API_CONFIG.TMDB_IMAGE_SIZES.BACKDROP_LARGE },
-  { key: 'high', size: API_CONFIG.TMDB_IMAGE_SIZES.BACKDROP_ORIGINAL },
+  { key: 'high', size: API_CONFIG.TMDB_IMAGE_SIZES.BACKDROP_LARGE },
 ];
 
 interface ProgressiveImageProps {
@@ -31,8 +31,14 @@ interface ProgressiveImageProps {
    * Defaults to true.
    */
   active?: boolean;
-  /** Use 3-step hero resolution (w300 -> w1280 -> original) instead of 2-step */
+  /** Use hero resolution ladder (w300 -> w1280) instead of the 2-step default */
   hero?: boolean;
+  /**
+   * LCP image (e.g. the first hero slide): render the high-quality src
+   * immediately with fetchpriority=high — skipping the low→high JS ladder so
+   * it's in the DOM on first paint and the browser prioritizes it.
+   */
+  priority?: boolean;
   className?: string;
 }
 
@@ -41,6 +47,7 @@ export default function ProgressiveImage({
   alt,
   active = true,
   hero = false,
+  priority = false,
   className,
 }: ProgressiveImageProps) {
   // Track which resolution steps have been loaded, storing the URL for each
@@ -48,7 +55,8 @@ export default function ProgressiveImage({
   const sizes = hero ? HERO_SIZES : DEFAULT_SIZES;
 
   useEffect(() => {
-    if (!active) return;
+    // Priority images render their src directly (below), so skip the JS ladder.
+    if (!active || priority) return;
 
     let cancelled = false;
 
@@ -78,7 +86,24 @@ export default function ProgressiveImage({
     return () => {
       cancelled = true;
     };
-  }, [active, backdropPath, sizes]);
+  }, [active, backdropPath, sizes, priority]);
+
+  // Priority (LCP) path: render the top-quality src straight away with
+  // fetchpriority=high — in the DOM on first paint, no low→high JS ladder.
+  if (priority) {
+    const topSize = sizes[sizes.length - 1].size;
+    const url = `https://image.tmdb.org/t/p/${topSize}${backdropPath}`;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt={alt}
+        fetchPriority="high"
+        decoding="async"
+        className={cn('absolute inset-0 h-full w-full object-cover', className)}
+      />
+    );
+  }
 
   // Only render <img> tags for steps that have actually been loaded.
   // This prevents the browser from firing network requests for higher-res

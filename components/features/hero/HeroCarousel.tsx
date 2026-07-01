@@ -155,6 +155,9 @@ export default function HeroCarousel({ media, children }: HeroCarouselProps) {
                   alt={m.title || m.name || ''}
                   active={i === current}
                   hero
+                  // First slide is the LCP element — load it eagerly at high
+                  // priority instead of via the progressive JS ladder.
+                  priority={i === 0}
                 />
               </div>
             );

@@ -43,16 +43,17 @@ const VPNWarningProduction = () => {
       if (response.ok) {
         const data = await response.json();
 
-        console.log('VPN Status (Production):', {
+        // logger.debug is a no-op in production — this used to be a console.log
+        // firing on every 60s check for every logged-in user.
+        logger.debug('VPN Status:', {
           currentIP: data.currentIP,
           isKnownIP: data.isKnownIP,
           detectionMethod: data.detectionMethod,
-          timestamp: new Date().toISOString(),
         });
 
         // Don't show warning for localhost
         if (data.currentIP === 'localhost' || data.detectionMethod === 'localhost') {
-          console.log('Running on localhost - VPN detection disabled');
+          logger.debug('Running on localhost - VPN detection disabled');
           setVpnStatus(null);
           setLoading(false);
           setRefreshing(false);
@@ -97,8 +98,10 @@ const VPNWarningProduction = () => {
       }
     };
 
-    // Check periodically
+    // Check periodically — but skip while the tab is backgrounded (the
+    // visibility handler above re-checks on focus, so we don't miss changes).
     const interval = setInterval(() => {
+      if (document.hidden) return;
       checkVPNStatus(true);
     }, 60 * 1000); // Every minute
 

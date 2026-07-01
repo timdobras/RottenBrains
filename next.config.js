@@ -14,6 +14,12 @@ const nextConfig = {
   // React Compiler (stable in Next 16) — auto-memoizes components. Relies on
   // Babel so dev/build compile is a bit slower; runtime re-renders are reduced.
   reactCompiler: true,
+  experimental: {
+    // Barrel-optimize heavy grab-bag packages used app-wide so only the icons/
+    // helpers actually referenced land in the bundle (avoids pulling the whole
+    // module graph through the barrel index).
+    optimizePackageImports: ['lucide-react', 'date-fns', '@base-ui/react'],
+  },
   images: {
     // MinIO (minios3.timdobras.com) resolves to a private LAN IP (10.10.99.16 —
     // the Traefik edge, via the AdGuard *.timdobras.com rewrite) from inside the
@@ -99,4 +105,12 @@ const sentryConfig = {
 const configWithSerwist =
   process.env.NODE_ENV === 'production' ? withSerwist(nextConfig) : nextConfig;
 
-module.exports = withSentryConfig(configWithSerwist, sentryConfig);
+// Bundle analyzer, opt-in via `ANALYZE=true npm run build`. Required lazily so
+// the package is only needed when actually analyzing (prod/CI builds without
+// the devDependency still work).
+const withBundleAnalyzer =
+  process.env.ANALYZE === 'true'
+    ? require('@next/bundle-analyzer')({ enabled: true })
+    : (/** @type {import('next').NextConfig} */ config) => config;
+
+module.exports = withBundleAnalyzer(withSentryConfig(configWithSerwist, sentryConfig));

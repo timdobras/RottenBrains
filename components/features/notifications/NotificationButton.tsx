@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import React, { FC, useCallback, useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
@@ -14,13 +15,17 @@ import {
   getUnreadNotificationCount,
   markNotificationsRead,
 } from '@/lib/db/client-actions';
-import CommentCard from './CommentCard';
-import FollowCard from './FollowCard';
-import LikeCard from './LikeCard';
-import NewEpisodeCard from './NewEpisodeCard';
 import NotificationSkeleton from './NotificationSkeleton';
-import PostCard from './PostCard';
-import ReplyCard from './ReplyCard';
+
+// The per-type notification cards are only needed once the dropdown is opened
+// and notifications load — lazy-load them so they don't sit in the shared
+// bundle behind the always-mounted navbar button.
+const CommentCard = dynamic(() => import('./CommentCard'));
+const FollowCard = dynamic(() => import('./FollowCard'));
+const LikeCard = dynamic(() => import('./LikeCard'));
+const NewEpisodeCard = dynamic(() => import('./NewEpisodeCard'));
+const PostCard = dynamic(() => import('./PostCard'));
+const ReplyCard = dynamic(() => import('./ReplyCard'));
 
 interface NotificationButtonProps {
   user_id: string;
@@ -49,6 +54,9 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
     if (!user_id) return;
 
     const fetchUnreadCount = async () => {
+      // Skip the poll while the tab is backgrounded — no point hitting the DB
+      // for a badge nobody's looking at. We refetch on visibility regain below.
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const count = await getUnreadNotificationCount(user_id);
         setUnreadCount(count >= 9 ? 9 : count);
@@ -60,7 +68,15 @@ const NotificationButton: FC<NotificationButtonProps> = ({ user_id }) => {
     fetchUnreadCount();
     // Poll for new notifications (replaces the dropped Supabase realtime channel).
     const interval = setInterval(fetchUnreadCount, 30_000);
-    return () => clearInterval(interval);
+    // Catch up immediately when the tab comes back to the foreground.
+    const onVisible = () => {
+      if (!document.hidden) fetchUnreadCount();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [user_id]);
 
   useEffect(() => {
