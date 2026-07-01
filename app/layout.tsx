@@ -61,6 +61,10 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover' as const,
+  // Keep the layout viewport anchored when the on-screen keyboard opens, so
+  // fixed bottom sheets stay put instead of the whole page shifting up. The
+  // comment sheet lifts only its composer above the keyboard itself.
+  interactiveWidget: 'resizes-visual' as const,
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0f0f0f' },
