@@ -13,6 +13,7 @@ interface CommentCardProps {
   user_id?: string;
   fetchComments?: () => Promise<void> | void;
   fetchReplies?: (parentId: string) => Promise<void> | void;
+  onCommentAdded?: (total: number) => void;
   likedCommentIds?: Set<string>;
   isReply?: boolean;
 }
@@ -23,6 +24,7 @@ const CommentCard = ({
   user_id,
   fetchComments,
   fetchReplies,
+  onCommentAdded,
   likedCommentIds,
   isReply,
 }: CommentCardProps) => {
@@ -98,6 +100,7 @@ const CommentCard = ({
               user_id={user_id}
               fetchComments={fetchComments}
               fetchReplies={fetchReplies}
+              onCommentAdded={onCommentAdded}
               parent_id={comment.id}
               autoFocus
               placeholder={`Reply to ${creator.username}…`}
@@ -124,6 +127,7 @@ const CommentCard = ({
                     user_id={user_id}
                     fetchComments={fetchComments}
                     fetchReplies={fetchReplies}
+                    onCommentAdded={onCommentAdded}
                     likedCommentIds={likedCommentIds}
                     isReply
                   />

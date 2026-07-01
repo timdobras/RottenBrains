@@ -38,12 +38,16 @@ function isUniqueViolation(error: unknown): boolean {
  *
  * Identity is resolved server-side (RLS equivalent: `user_id = auth.uid()`), so
  * the comment is always authored as the authenticated user.
+ *
+ * Returns the post's new `total_comments` (post-increment, authoritative) so the
+ * caller can update its displayed count without a full reload. Replies count too
+ * — every comment row bumps the same counter.
  */
 export async function addComment(params: {
   postId: string;
   content: string;
   parentId?: string | null;
-}): Promise<void> {
+}): Promise<{ total_comments: number }> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('You must be logged in to comment');
 
@@ -51,7 +55,7 @@ export async function addComment(params: {
   if (!content) throw new Error('Comment content is required');
 
   try {
-    await prisma.$transaction([
+    const [, updatedPost] = await prisma.$transaction([
       prisma.comments.create({
         data: {
           post_id: params.postId,
@@ -63,8 +67,11 @@ export async function addComment(params: {
       prisma.posts.update({
         where: { id: params.postId },
         data: { total_comments: { increment: 1 } },
+        select: { total_comments: true },
       }),
     ]);
+    // bigint → number for the JSON/client boundary.
+    return { total_comments: Number(updatedPost.total_comments ?? 0) };
   } catch (error) {
     logger.error('Database error in addComment:', error);
     handleAppError(error, 'addComment');

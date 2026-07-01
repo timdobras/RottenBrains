@@ -9,6 +9,7 @@ interface AddCommentProps {
   user_id?: string;
   fetchComments?: () => Promise<void> | void;
   fetchReplies?: (parentId: string) => Promise<void> | void;
+  onCommentAdded?: (total: number) => void;
   parent_id?: string;
   autoFocus?: boolean;
   placeholder?: string;
@@ -19,6 +20,7 @@ const AddComment: React.FC<AddCommentProps> = ({
   user_id,
   fetchComments,
   fetchReplies,
+  onCommentAdded,
   parent_id,
   autoFocus,
   placeholder,
@@ -40,7 +42,8 @@ const AddComment: React.FC<AddCommentProps> = ({
     setSubmitting(true);
     setContent(''); // optimistic clear
     try {
-      await addComment({ postId, content: text, parentId: parent_id });
+      const { total_comments } = await addComment({ postId, content: text, parentId: parent_id });
+      onCommentAdded?.(total_comments);
 
       if (parent_id) await fetchReplies?.(parent_id);
       else await fetchComments?.();
