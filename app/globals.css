@@ -110,6 +110,20 @@
     background-image: linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
   }
 
+  /* Mobile comment sheet scroll area: neutralise the native image/link drag and
+     text-selection/callout gestures that real comment cards (unlike the plain
+     playground divs) carry — those fire pointercancel and break Vaul's
+     swipe-to-dismiss when a drag starts on top of them. */
+  .comment-sheet-scroll {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .comment-sheet-scroll img,
+  .comment-sheet-scroll a {
+    -webkit-user-drag: none;
+  }
+
   /* Skeleton shimmer: a light band sweeping across, instead of an opacity pulse. */
   @keyframes skeleton-shimmer {
     0% {

@@ -1,8 +1,8 @@
 'use client';
 
+import { Drawer } from 'vaul';
 import { Heart, MessageCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import BottomSheet from '@/components/features/common/BottomSheet';
 import { useUser } from '@/hooks/UserContext';
 import { getCachedComments, setCachedComments } from '@/lib/client/commentCache';
 import { getLikedCommentIds } from '@/lib/client/commentLikes';
@@ -83,7 +83,31 @@ const CommentSection = ({ post_data, current_user }: any) => {
   const [liked, setLiked] = useState<boolean>(!!current_user?.has_liked);
   const [likes, setLikes] = useState<number>(post.total_likes || 0);
   const [likeAnimate, setLikeAnimate] = useState(false);
-  const commentCount = post.total_comments || 0;
+  // Displayed count is seeded from the post's DB counter and bumped to the
+  // authoritative post-increment total each time a comment/reply is added, so it
+  // stays in sync without a full reload.
+  const [commentCount, setCommentCount] = useState<number>(post.total_comments || 0);
+  const handleCommentAdded = useCallback((total: number) => setCommentCount(total), []);
+
+  // Keyboard height (visualViewport) — lifts only the composer above the
+  // keyboard while the sheet frame stays anchored (interactiveWidget:resizes-visual).
+  const [kb, setKb] = useState(0);
+  useEffect(() => {
+    if (!showSheet || typeof window === 'undefined' || !window.visualViewport) {
+      setKb(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    const onResize = () =>
+      setKb(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, [showSheet]);
 
   const ensureCommentsLoaded = useCallback(async () => {
     if (comments !== undefined || commentsLoadingRef.current) return;
@@ -187,6 +211,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
             user_id={user_id}
             fetchComments={fetchComments}
             fetchReplies={fetchReplies}
+            onCommentAdded={handleCommentAdded}
             likedCommentIds={likedCommentIds}
           />
         ))}
@@ -232,24 +257,56 @@ const CommentSection = ({ post_data, current_user }: any) => {
         </button>
       </div>
 
-      {/* Mobile: custom bottom sheet — deterministic scroll↔drag handoff,
-          keyboard lifts only the composer, frame stays anchored. */}
-      <BottomSheet
+      {/* Mobile: Vaul bottom sheet — same as the working playground drawer, with
+          real comments + composer. Card image/link drag is neutralised (see
+          .comment-sheet-scroll) so it doesn't cancel the swipe. Keyboard lifts
+          only the composer via paddingBottom; the frame stays anchored. */}
+      <Drawer.Root
         open={showSheet}
-        onClose={() => setShowSheet(false)}
-        title={`Comments · ${commentCount}`}
-        autoFocusSelector='input[type="text"]'
-        footer={
-          <AddComment
-            post={post}
-            user_id={user_id}
-            fetchComments={fetchComments}
-            fetchReplies={fetchReplies}
-          />
-        }
+        onOpenChange={setShowSheet}
+        scrollLockTimeout={0}
+        repositionInputs={false}
       >
-        {renderList()}
-      </BottomSheet>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 z-[300] bg-black/50 md:hidden" />
+          <Drawer.Content
+            className="surface-elevated fixed inset-x-0 bottom-0 z-[300] flex h-[85vh] flex-col rounded-t-2xl border-t border-border text-foreground outline-none md:hidden"
+            style={{ paddingBottom: kb }}
+            onOpenAutoFocus={(e: any) => {
+              e.preventDefault();
+              (
+                e.currentTarget?.querySelector(
+                  'input[type="text"]'
+                ) as HTMLInputElement | null
+              )?.focus();
+            }}
+          >
+            <div className="mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/40" />
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <Drawer.Title className="font-semibold">
+                Comments · {commentCount}
+              </Drawer.Title>
+              <button
+                onClick={() => setShowSheet(false)}
+                className="text-sm text-muted-foreground"
+              >
+                Close
+              </button>
+            </div>
+            <div className="comment-sheet-scroll min-h-0 flex-1 overflow-y-auto px-3 pt-1">
+              {renderList()}
+            </div>
+            <div className="shrink-0 border-t border-foreground/10 pb-[env(safe-area-inset-bottom)]">
+              <AddComment
+                post={post}
+                user_id={user_id}
+                fetchComments={fetchComments}
+                fetchReplies={fetchReplies}
+              />
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
     </div>
   );
 };
