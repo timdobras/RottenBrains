@@ -823,7 +823,7 @@ export default function CustomPlayer({
             {/* top bar: [chevron + title] on the left (title truncates, fullscreen
                 only), settings cluster on the right — one flex row so the title
                 shrinks/ellipsizes and never runs under the right-side controls. */}
-            <div className="absolute inset-x-0 top-0 flex items-center gap-1 p-1 text-white">
+            <div className="absolute inset-x-0 top-0 flex touch-none items-center gap-1 p-1 text-white">
               <div className="flex min-w-0 flex-1 items-center gap-1">
                 {onMinimize && (
                   <button
@@ -870,7 +870,7 @@ export default function CustomPlayer({
               <button
                 onClick={togglePlay}
                 aria-label="play/pause"
-                className="absolute left-1/2 top-1/2 grid h-20 w-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white transition-transform active:scale-95"
+                className="absolute left-1/2 top-1/2 grid h-20 w-20 -translate-x-1/2 -translate-y-1/2 touch-none place-items-center rounded-full bg-black/45 text-white transition-transform active:scale-95"
               >
                 {playing ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8 translate-x-0.5" />}
               </button>
@@ -878,7 +878,7 @@ export default function CustomPlayer({
 
             {/* bottom: times (left) + fullscreen (right), then full-width scrubber */}
             <div className="absolute inset-x-0 bottom-0">
-              <div className="flex items-center justify-between px-3 pb-0.5">
+              <div className="flex touch-none items-center justify-between px-3 pb-0.5">
                 <span className="text-xs tabular-nums text-white/90">
                   {fmt(displayTime)} <span className="text-white/50">/ {fmt(duration)}</span>
                 </span>
