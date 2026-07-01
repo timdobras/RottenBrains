@@ -605,7 +605,9 @@ export default function CustomPlayer({
           Always inside the player frame, so it's never just a black box. */}
       {!error && !noSource && (!src || waiting || (seeking && !dragging)) && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          <Loader2 className="h-10 w-10 animate-spin text-white/80" />
+          {/* white on the black mini window; theme foreground on the page-colored
+              full player (a white spinner would be invisible in light mode). */}
+          <Loader2 className={`h-10 w-10 animate-spin ${mini ? 'text-white/80' : 'text-foreground/70'}`} />
         </div>
       )}
 
