@@ -2,11 +2,12 @@
 
 import { animate, motion, useMotionValue, useMotionValueEvent, type MotionStyle, type MotionValue } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import React, { memo, useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import ReactDOM from 'react-dom';
 
-import CustomPlayer, { type CustomPlayerSubtitle } from '@/components/features/watch/CustomPlayer';
+import type { CustomPlayerSubtitle } from '@/components/features/watch/CustomPlayer';
 import useIsMobile from '@/hooks/useIsMobile';
 import { getHrefFromMedia } from '@/lib/utils';
 
@@ -39,6 +40,15 @@ function estimateFullRect(isMobile: boolean, aspectRatio: number) {
 }
 
 type Rect = { top: number; left: number; width: number; height: number };
+
+// Code-split the player (and its ~150KB-gz hls.js dependency) OUT of the shared
+// app-shell bundle. VideoShell is mounted in the root layout on every route, but
+// the actual player is only needed once a title is opened — so load it lazily
+// instead of shipping hls.js + the 1,100-line CustomPlayer to the landing/login
+// pages. ssr:false because the player is a purely client-side, portaled widget.
+const CustomPlayer = dynamic(() => import('@/components/features/watch/CustomPlayer'), {
+  ssr: false,
+});
 
 // Memoized so the shell's per-transition state ticks (phase, shield) don't
 // re-render the heavy player mid-morph — it only re-renders when its own props
@@ -380,35 +390,68 @@ export default function VideoShell() {
   // replaced by the overlay route as it loads; re-querying every frame locks onto
   // whichever placeholder is currently mounted and survives that swap.
   useEffect(() => {
-    // Only track at FULL REST. During the morph the base rect is captured/stable,
-    // and running getBoundingClientRect every frame there forces a reflow per
-    // frame that fights the compositor animation (a big source of the hitching).
+    // Only track at FULL REST. During the morph the base rect is captured/stable.
     if (!mounted || phase !== 'full') {
       if (phase === 'mini') setPlaceholderRect(null);
       return;
     }
+
+    // Event-driven remeasure instead of a per-frame getBoundingClientRect loop.
+    // The old loop forced a synchronous reflow 60×/sec for the ENTIRE viewing
+    // session (a major idle-jank source). The placeholder rect only actually
+    // changes when the page scrolls, the viewport resizes, or content growth
+    // reflows the layout — so we measure on exactly those, coalesced to one
+    // rAF. getElementById is re-run each measure so we lock onto whichever
+    // placeholder the overlay route currently has mounted.
     let raf = 0;
-    const tick = () => {
+    const measure = () => {
       const el = document.getElementById('video-inline-placeholder');
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
-          setPlaceholderRect((prev) =>
-            prev &&
-            prev.top === rect.top &&
-            prev.left === rect.left &&
-            prev.width === rect.width &&
-            prev.height === rect.height
-              ? prev
-              : rect,
-          );
-        }
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setPlaceholderRect((prev) =>
+          prev &&
+          prev.top === rect.top &&
+          prev.left === rect.left &&
+          prev.width === rect.width &&
+          prev.height === rect.height
+            ? prev
+            : rect,
+        );
       }
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [mounted, mode]);
+    const schedule = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        measure();
+      });
+    };
+
+    // A short settling burst catches the overlay route mounting the placeholder
+    // and late async content (images) shifting it, without polling forever.
+    let settleRaf = 0;
+    let settles = 0;
+    const settle = () => {
+      measure();
+      if (++settles < 30) settleRaf = requestAnimationFrame(settle);
+    };
+    settle();
+
+    // Steady state: remeasure only when things actually move.
+    window.addEventListener('scroll', schedule, { passive: true, capture: true });
+    window.addEventListener('resize', schedule, { passive: true });
+    const ro = new ResizeObserver(schedule);
+    ro.observe(document.body);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      cancelAnimationFrame(settleRaf);
+      window.removeEventListener('scroll', schedule, { capture: true } as EventListenerOptions);
+      window.removeEventListener('resize', schedule);
+      ro.disconnect();
+    };
+  }, [mounted, phase]);
 
   // ── pointer: mini reposition-drag + full drag-to-minimize ──
   // A single pointerdown → window move/up cycle, branching on the current mode.

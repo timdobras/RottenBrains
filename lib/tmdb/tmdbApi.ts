@@ -1,5 +1,4 @@
 import { isOfflineMode } from '@/lib/mocks/config';
-import { getMockTMDBData } from '@/lib/mocks/tmdb';
 import { logger } from '@/lib/logger';
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
@@ -33,8 +32,12 @@ export const fetchFromApi = async (
   append_to_response?: string,
   cached: boolean = true // Control cache dynamically
 ): Promise<any> => {
-  // Check offline mode first - return mock data if enabled
+  // Check offline mode first - return mock data if enabled.
+  // Dynamic import so the ~9.8MB mock dataset (lib/mocks/tmdb) is code-split into
+  // a lazy chunk and never shipped in the production client bundle — it only
+  // loads when NEXT_PUBLIC_OFFLINE_MODE=true.
   if (isOfflineMode()) {
+    const { getMockTMDBData } = await import('@/lib/mocks/tmdb');
     return getMockTMDBData(endpoint, append_to_response);
   }
 

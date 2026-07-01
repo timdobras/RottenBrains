@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { EnrichedMediaItem } from '@/lib/tmdb/types';
 import { ErrorBoundary } from '@/components/common/ErrorBoundry';
 import BrandRow from '@/components/features/home/BrandRow';
@@ -5,77 +6,31 @@ import ContinueWatchingSection from '@/components/features/home/ContinueWatching
 import UpNextSection from '@/components/features/home/UpNextSection';
 import FollowedPostsSection from '@/components/features/home/FollowedPostsSection';
 import GenreRow from '@/components/features/home/GenreRow';
-import MediaRow from '@/components/features/home/MediaRow';
+import PopularRow from '@/components/features/home/PopularRow';
+import MediaRowSkeleton from '@/components/features/home/MediaRowSkeleton';
 import HeroCarousel from '@/components/features/hero/HeroCarousel';
 import { STUDIOS, NETWORKS } from '@/lib/constants';
 import movieGenresJson from '@/lib/constants/movie_genres.json';
 import tvGenresJson from '@/lib/constants/tv_genres.json';
-import { logger } from '@/lib/logger';
 import { getCurrentUser } from '@/lib/db/queries';
-import {
-  getPopular,
-  getMovieDetails,
-  getTVDetails,
-  getPopularMovies,
-  getPopularTVShows,
-} from '@/lib/tmdb';
-
-/**
- * Enrich a TMDB result with full details (images, genres, runtime, etc.).
- * Failures are caught so one bad item doesn't break the whole page.
- */
-async function enrichItem(item: EnrichedMediaItem): Promise<EnrichedMediaItem> {
-  try {
-    const details =
-      item.media_type === 'movie' ? await getMovieDetails(item.id) : await getTVDetails(item.id);
-    return {
-      ...item,
-      images: details?.images,
-      genres: details?.genres,
-      runtime: details?.runtime,
-      number_of_episodes: details?.number_of_episodes,
-      number_of_seasons: details?.number_of_seasons,
-      release_date: details?.release_date || item.release_date,
-      first_air_date: details?.first_air_date || item.first_air_date,
-    };
-  } catch (error) {
-    logger.error(`Failed to enrich media item ${item.id}:`, error);
-    return item;
-  }
-}
+import { getPopular } from '@/lib/tmdb';
+import { enrichItem } from '@/lib/tmdb/enrich';
 
 export default async function Page() {
-  const [trending, currentUser, popularMoviesRes, popularTVRes] = await Promise.all([
-    getPopular(),
-    getCurrentUser(),
-    getPopularMovies(),
-    getPopularTVShows(),
-  ]);
+  const [trending, currentUser] = await Promise.all([getPopular(), getCurrentUser()]);
 
   // TMDB APIs return untyped data; cast to our enriched type
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: EnrichedMediaItem[] = (trending?.results ?? []) as any[];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawMovies: EnrichedMediaItem[] = (popularMoviesRes?.results ?? []).map((m: any) => ({
-    ...m,
-    media_type: 'movie',
-  }));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawTV: EnrichedMediaItem[] = (popularTVRes?.results ?? []).map((m: any) => ({
-    ...m,
-    media_type: 'tv',
-  }));
-
   // Top 10 trending with backdrop images for the hero carousel
   const top = results.filter((m) => m.backdrop_path).slice(0, 10);
 
-  // Enrich all items in parallel
-  const [heroMedia, popularMovies, popularTV] = await Promise.all([
-    Promise.all(top.map(enrichItem)),
-    Promise.all(rawMovies.map(enrichItem)),
-    Promise.all(rawTV.map(enrichItem)),
-  ]);
+  // Only the hero is enriched on the critical path (it's the LCP element and
+  // needs logos/images up front). The two "Popular" rows enrich themselves
+  // inside <Suspense> below, so their ~40 detail calls stream in and no longer
+  // block the hero + shell first paint.
+  const heroMedia = await Promise.all(top.map(enrichItem));
 
   const userId = currentUser ? String(currentUser.id) : undefined;
 
@@ -109,8 +64,10 @@ export default async function Page() {
           </ErrorBoundary>
         )}
 
-        {/* Popular Movies */}
-        <MediaRow title="Popular Movies" items={popularMovies} userId={userId} />
+        {/* Popular Movies — streams behind Suspense (self-fetches + enriches) */}
+        <Suspense fallback={<MediaRowSkeleton title="Popular Movies" />}>
+          <PopularRow title="Popular Movies" type="movie" userId={userId} />
+        </Suspense>
 
         {/* Movie Genres */}
         <GenreRow title="Movie Genres" genres={movieGenresJson.genres} mediaType="movie" />
@@ -118,8 +75,10 @@ export default async function Page() {
         {/* Studios */}
         <BrandRow title="Studios" brands={STUDIOS} type="studio" />
 
-        {/* Popular TV Shows */}
-        <MediaRow title="Popular TV Shows" items={popularTV} userId={userId} />
+        {/* Popular TV Shows — streams behind Suspense (self-fetches + enriches) */}
+        <Suspense fallback={<MediaRowSkeleton title="Popular TV Shows" />}>
+          <PopularRow title="Popular TV Shows" type="tv" userId={userId} />
+        </Suspense>
 
         {/* TV Show Genres */}
         <GenreRow title="TV Show Genres" genres={tvGenresJson.genres} mediaType="tv" />

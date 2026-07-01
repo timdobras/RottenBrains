@@ -161,6 +161,13 @@ export default function CustomPlayer({
   startTimeRef.current = startTime;
   // synchronous drag flag so timeupdate doesn't fight the scrubber mid-drag
   const draggingRef = useRef(false);
+  // Whether the time UI (scrubber/time readout) is actually on screen. When it's
+  // hidden — full-screen watching with the controls faded out — we skip the
+  // per-timeupdate setCurrent/setBuffered so the whole 1,100-line player doesn't
+  // re-render ~4×/sec for a scrubber nobody can see. Read at event time so the
+  // []-dep media-events effect stays subscribed once. (Mini always shows a
+  // scrubber, so it stays live — see the assignment near controlsOn.)
+  const timeUIRef = useRef(true);
   // debounce rapid seeks (double-clicks, arrow-key spam, quick scrubs) into a
   // single video.currentTime change so hls isn't asked to re-seek many times.
   const seekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -273,14 +280,20 @@ export default function CustomPlayer({
       });
     const onTime = () => {
       lastTimeRef.current = v.currentTime;
-      // while dragging/awaiting a seek, the scrubber shows the target, not the
-      // (stale) live position — so don't let timeupdate yank it back.
-      if (!draggingRef.current) setCurrent(v.currentTime);
-      if (v.buffered.length) {
-        for (let i = 0; i < v.buffered.length; i++) {
-          if (v.currentTime >= v.buffered.start(i) && v.currentTime <= v.buffered.end(i)) {
-            setBuffered(v.buffered.end(i));
-            break;
+      // Only push scrubber/buffered state into React while the time UI is
+      // visible (see timeUIRef) — otherwise we'd re-render the whole player 4×/s
+      // for hidden chrome. lastTimeRef + emit() below still run every tick so
+      // resume and progress tracking are unaffected.
+      if (timeUIRef.current) {
+        // while dragging/awaiting a seek, the scrubber shows the target, not the
+        // (stale) live position — so don't let timeupdate yank it back.
+        if (!draggingRef.current) setCurrent(v.currentTime);
+        if (v.buffered.length) {
+          for (let i = 0; i < v.buffered.length; i++) {
+            if (v.currentTime >= v.buffered.start(i) && v.currentTime <= v.buffered.end(i)) {
+              setBuffered(v.buffered.end(i));
+              break;
+            }
           }
         }
       }
@@ -604,6 +617,26 @@ export default function CustomPlayer({
   const pct = duration ? (displayTime / duration) * 100 : 0;
   const bufPct = duration ? (buffered / duration) * 100 : 0;
   const controlsOn = show || !playing || dragging || settingsOpen || subsOpen;
+  // Mini always shows a scrubber; full only shows it when controls are up. Keep
+  // this in a ref for the []-dep timeupdate handler above.
+  timeUIRef.current = controlsOn || mini;
+  // When the scrubber becomes visible again, sync it to the live position once
+  // (updates were skipped while it was hidden, so `current` may be stale).
+  useEffect(() => {
+    if (!(controlsOn || mini)) return;
+    const v = videoRef.current;
+    if (!v) return;
+    if (!draggingRef.current) setCurrent(v.currentTime);
+    if (v.buffered.length) {
+      const t = v.currentTime;
+      for (let i = 0; i < v.buffered.length; i++) {
+        if (t >= v.buffered.start(i) && t <= v.buffered.end(i)) {
+          setBuffered(v.buffered.end(i));
+          break;
+        }
+      }
+    }
+  }, [controlsOn, mini]);
   const VolIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const btn = 'rounded p-1.5 text-white/90 hover:bg-white/15 transition-colors';
   // dark-themed dropdown-menu styling (the menus live over the video)

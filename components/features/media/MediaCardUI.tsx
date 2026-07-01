@@ -21,6 +21,7 @@ import MoreOptions from './MoreOptions';
 import RemoveFromContinueWatching from './RemoveFromContinueWatching';
 import { extractTrailerInfo } from './TrailerDisplayOnHover';
 import { useAverageColor } from '@/hooks/useAverageColor';
+import { useInView } from '@/hooks/useInView';
 
 // How long the pointer must rest on a card before the trailer pop-out opens.
 // Kept fairly long so a passing cursor — or a quick hover-then-click to navigate
@@ -107,13 +108,18 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
       ? ` | ${formatEpisodeCode(season_number, episode_number)}`
       : '';
 
-  // Extract average color from the displayed image (same logic as getImageUrl)
+  // Viewport gate: off-screen cards (esp. the far end of horizontal rows) skip
+  // both their progressive image loads AND the extra average-color image+canvas
+  // work until they're near the viewport. Attached to the <article> root below.
+  const [cardRef, inView] = useInView<HTMLElement>({ rootMargin: '300px' });
+
+  // Extract average color from the displayed image (same logic as getImageUrl).
+  // Only fetch the extra w200 image + run canvas extraction once in view.
   const colorImagePath =
     media?.images?.backdrops?.[0]?.file_path ||
     (season_number && episode_number ? media.still_path : media.backdrop_path);
-  const colorImageUrl = colorImagePath
-    ? `https://image.tmdb.org/t/p/w200${colorImagePath}`
-    : undefined;
+  const colorImageUrl =
+    inView && colorImagePath ? `https://image.tmdb.org/t/p/w200${colorImagePath}` : undefined;
   const mediaColor = useAverageColor(colorImageUrl);
 
   const href = getHrefFromMedia(
@@ -223,7 +229,10 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   );
 
   return (
-    <article className="group relative flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[512px]">
+    <article
+      ref={cardRef}
+      className="group relative flex w-full min-w-[70vw] max-w-[100vw] flex-col md:w-full md:min-w-[300px] md:max-w-[512px]"
+    >
       <div
         className="pointer-events-none absolute inset-0 scale-100 rounded-[8px] opacity-0 transition-all duration-300 group-hover:scale-[105%] group-hover:opacity-20"
         style={{ backgroundColor: mediaColor }}
@@ -257,6 +266,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
               altText={mediaTitle}
               quality="w1280"
               progressive={progressive}
+              active={inView}
             />
             {overlayNode}
             {/* Mobile play control — a small corner target (NOT a full-card

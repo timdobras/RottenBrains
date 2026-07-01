@@ -20,6 +20,9 @@ interface ImageWithFallbackProps {
   quality?: string;
   sizes?: string; // Responsive sizes attribute
   progressive?: boolean; // Enable progressive loading (low-res → high-res fade-in)
+  /** When false, the progressive loader holds off fetching (off-screen cards).
+   *  The non-progressive path already uses native loading="lazy". Default true. */
+  active?: boolean;
 }
 
 const ImageWithFallback: FC<ImageWithFallbackProps> = ({
@@ -29,12 +32,13 @@ const ImageWithFallback: FC<ImageWithFallbackProps> = ({
   quality = 'w500', // Default image quality (w500, w780, w1280, etc.) - w500 for most thumbnails
   sizes = '(max-width: 767px) 50vw, (max-width: 1024px) 33vw, 25vw',
   progressive = true,
+  active = true,
 }) => {
   // Progressive mode: load low-res first, then upgrade
   if (progressive && imageUrl) {
     return (
       <div className="relative aspect-[16/9] h-full w-full bg-foreground/10">
-        <ProgressiveImage backdropPath={imageUrl} alt={altText} />
+        <ProgressiveImage backdropPath={imageUrl} alt={altText} active={active} />
       </div>
     );
   }

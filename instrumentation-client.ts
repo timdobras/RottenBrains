@@ -17,12 +17,15 @@ Sentry.init({
       (process.env.NODE_ENV === 'production' ? '0.1' : '1.0'),
   ),
 
-  // Session Replay
-  replaysSessionSampleRate: 0.1, // 10% of sessions
-  replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
+  // Session Replay — no always-on session recording (its rrweb DOM-mutation
+  // observers + continuous buffering ran on every page and were a real
+  // main-thread cost). We keep replay for ERRORS only, and even that is added
+  // lazily once the browser is idle (below) so it never runs during initial
+  // page load / hydration.
+  replaysSessionSampleRate: 0,
+  replaysOnErrorSampleRate: 1.0, // capture a replay around errors
 
   integrations: [
-    Sentry.replayIntegration(),
     Sentry.browserTracingIntegration(),
     // Forward browser console.warn/console.error into Sentry Logs.
     Sentry.consoleLoggingIntegration({ levels: ['warn', 'error'] }),
@@ -35,6 +38,20 @@ Sentry.init({
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 });
+
+// Add Session Replay (error capture) lazily, once the browser is idle, so its
+// observers + buffering don't compete with first paint / hydration on load.
+if (typeof window !== 'undefined') {
+  const addReplay = () => Sentry.addIntegration(Sentry.replayIntegration());
+  const w = window as unknown as {
+    requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+  };
+  if (w.requestIdleCallback) {
+    w.requestIdleCallback(addReplay, { timeout: 5000 });
+  } else {
+    setTimeout(addReplay, 3000);
+  }
+}
 
 // Instrument client-side navigations for performance monitoring
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

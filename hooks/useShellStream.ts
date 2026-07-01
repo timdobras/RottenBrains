@@ -84,25 +84,47 @@ export function useShellStream(
   }, [coordKey]);
 
   // One availability fetch per title (cheap Redis lookup, ok-only entries).
+  // DEFERRED off the critical path: the source-switcher list isn't needed for
+  // playback to start, so we wait until the browser is idle rather than firing
+  // it immediately, where it competed with stream extraction + hydration on
+  // load. Falls back to a short timeout when requestIdleCallback is missing.
   useEffect(() => {
     if (!enabled || !input || !coordKey) return;
     let cancelled = false;
-    setAvailLoading(true);
-    fetch(`/api/stream/availability?${availabilityQuery(input)}`)
-      .then((r) => (r.ok ? r.json() : { providers: [] }))
-      .then((d) => {
-        if (cancelled) return;
-        const ok = (d.providers ?? []).filter((p: AvailabilityEntry) => p.ok);
-        setAvailable(ok);
-      })
-      .catch(() => {
-        if (!cancelled) setAvailable([]);
-      })
-      .finally(() => {
-        if (!cancelled) setAvailLoading(false);
-      });
+    const run = () => {
+      if (cancelled) return;
+      setAvailLoading(true);
+      fetch(`/api/stream/availability?${availabilityQuery(input)}`)
+        .then((r) => (r.ok ? r.json() : { providers: [] }))
+        .then((d) => {
+          if (cancelled) return;
+          const ok = (d.providers ?? []).filter((p: AvailabilityEntry) => p.ok);
+          setAvailable(ok);
+        })
+        .catch(() => {
+          if (!cancelled) setAvailable([]);
+        })
+        .finally(() => {
+          if (!cancelled) setAvailLoading(false);
+        });
+    };
+
+    const w = typeof window !== 'undefined' ? (window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    }) : undefined;
+    let idleId: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (w?.requestIdleCallback) {
+      idleId = w.requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      timer = setTimeout(run, 1500);
+    }
+
     return () => {
       cancelled = true;
+      if (idleId !== undefined && w?.cancelIdleCallback) w.cancelIdleCallback(idleId);
+      if (timer) clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coordKey, enabled]);

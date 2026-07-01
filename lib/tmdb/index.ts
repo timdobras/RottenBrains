@@ -58,12 +58,16 @@ export const getAiringToday = async () => {
   return fetchFromApi('tv/airing_today?language=en-US&page=1');
 };
 
+// include_image_language=en,null limits the appended images to English +
+// language-neutral assets instead of every language TMDB has (which returned
+// hundreds of image objects per title). Cuts the detail payload ~5-10x while
+// still providing the backdrop/poster/logo the cards and hero actually use.
 export const getMovieDetails = async (movieId: number) => {
-  return fetchFromApi(`movie/${movieId}?language=en`, 'images');
+  return fetchFromApi(`movie/${movieId}?language=en&include_image_language=en,null`, 'images');
 };
 
 export const getTVDetails = async (tvId: number) => {
-  return fetchFromApi(`tv/${tvId}?language=en`, 'images');
+  return fetchFromApi(`tv/${tvId}?language=en&include_image_language=en,null`, 'images');
 };
 
 export const getMovieCredits = async (movieId: number) => {
