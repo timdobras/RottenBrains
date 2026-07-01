@@ -1,4 +1,4 @@
-import { getPostByIdNew, getPostsFromFollowedUsers } from '../supabase/serverQueries';
+import { getPostByIdNew, getPostsFromFollowedUsers } from '@/lib/db/queries';
 import { fetchMediaData } from './fetchMediaData';
 import { logger } from '@/lib/logger';
 

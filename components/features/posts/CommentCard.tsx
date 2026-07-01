@@ -5,7 +5,7 @@ import { getCommentReplies } from '@/lib/db/client-actions';
 import { getRelativeTime } from '@/lib/utils';
 import AddComment from './AddComment';
 
-const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
+const CommentCard = ({ comment, post, user_id, fetchComments, onCommentAdded }: any) => {
   const [reply, setReply] = useState(false);
   const [replies, setReplies] = useState<any[]>([]);
   const creator = comment.users;
@@ -73,6 +73,7 @@ const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
                 post={post}
                 user_id={user_id}
                 fetchComments={fetchComments}
+                onCommentAdded={onCommentAdded}
                 parent_id={comment.id}
               />
             )}
@@ -88,6 +89,7 @@ const CommentCard = ({ comment, post, user_id, fetchComments }: any) => {
                       post={post}
                       user_id={user_id}
                       fetchComments={fetchComments}
+                      onCommentAdded={onCommentAdded}
                     ></CommentCard>
                   );
                 })}

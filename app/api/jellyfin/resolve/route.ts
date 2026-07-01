@@ -37,7 +37,11 @@ export async function POST(req: NextRequest) {
 
     const config = await getJellyfinConfigForPlayback(user.id);
     if (!config) {
-      return NextResponse.json({ found: false, reason: 'No Jellyfin configuration found' });
+      return NextResponse.json({
+        found: false,
+        configured: false,
+        reason: 'No Jellyfin configuration found',
+      });
     }
 
     // Resolve TMDB ID to Jellyfin item
@@ -56,7 +60,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (!jellyfinItem) {
-      return NextResponse.json({ found: false, reason: 'Item not found in Jellyfin library' });
+      return NextResponse.json({
+        found: false,
+        configured: true,
+        reason: 'Item not found in Jellyfin library',
+      });
     }
 
     const serverUrl = config.server_url.replace(/\/+$/, '');
@@ -75,6 +83,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       found: true,
+      configured: true,
       jellyfin_url: jellyfinUrl,
       jellyfin_item_id: jellyfinItem.Id,
     });

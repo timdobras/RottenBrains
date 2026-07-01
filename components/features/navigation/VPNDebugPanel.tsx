@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/hooks/UserContext';
+import { getIpAddresses } from '@/lib/db/mutations';
 import { isVPNDetectionDisabled } from '@/lib/mocks/config';
 
 // This component contains the actual logic and hooks
 const VPNDebugPanelContent = () => {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [savedIPs, setSavedIPs] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user } = useUser();
 
   const fetchDebugInfo = async () => {
     try {
@@ -20,18 +21,9 @@ const VPNDebugPanelContent = () => {
       const ipData = await ipResponse.json();
       const currentIP = ipData.ip;
 
-      // Get saved IPs directly from database
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUser(user);
-
-      if (user) {
-        const { data: ips } = await supabase
-          .from('user_ip_addresses')
-          .select('*')
-          .eq('user_id', user.id);
+      // Get saved IPs from db-server (Better Auth identity via UserContext).
+      if (user?.id) {
+        const ips = await getIpAddresses(String(user.id));
         setSavedIPs(ips || []);
       }
 
@@ -81,7 +73,9 @@ const VPNDebugPanelContent = () => {
     fetchDebugInfo();
     const interval = setInterval(fetchDebugInfo, 5000); // Update every 5 seconds
     return () => clearInterval(interval);
-  }, []);
+    // Re-arm when the user resolves so saved-IP lookups use the right id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (!debugInfo) return <div>Loading debug info...</div>;
 

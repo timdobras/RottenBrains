@@ -11,10 +11,11 @@
  * - Additional in-memory timestamp-based dedup as a safety net
  */
 
-import { getOrCreatePrimaryFamily } from '@/lib/family/server';
 import { JELLYFIN_SYNC } from '@/lib/constants';
+import { rpc } from '@/lib/db/rpc';
+import { getOrCreatePrimaryFamily } from '@/lib/family/server';
 import { logger } from '@/lib/logger';
-import { createServiceClient } from '@/lib/supabase/serviceClient';
+import { prisma } from '@/lib/prisma';
 import {
   reportPlaybackProgress,
   markAsPlayed,
@@ -45,10 +46,27 @@ import type {
 // secret; the member link holds that user's Jellyfin account + personal token.
 // ============================================================
 
-/** Columns selected when resolving a member link into a JellyfinConfig. */
-const MEMBER_LINK_SELECT =
-  'id, user_id, external_user_id, external_username, access_token, sync_enabled, created_at, updated_at, ' +
-  'family_integrations!inner(id, server_url, api_key, webhook_secret, type)';
+/** Prisma include that resolves a member link + its shared integration. */
+const MEMBER_LINK_INCLUDE = {
+  family_integrations: {
+    select: { id: true, server_url: true, api_key: true, webhook_secret: true, type: true },
+  },
+} as const;
+
+/** Normalise a Prisma member-link row (Date fields → ISO strings) to MemberLinkRow. */
+function rowToMemberLink(link: any): MemberLinkRow {
+  return {
+    id: link.id,
+    user_id: link.user_id,
+    external_user_id: link.external_user_id,
+    external_username: link.external_username,
+    access_token: link.access_token,
+    sync_enabled: link.sync_enabled,
+    created_at: link.created_at?.toISOString?.() ?? '',
+    updated_at: link.updated_at?.toISOString?.() ?? '',
+    family_integrations: link.family_integrations,
+  };
+}
 
 interface MemberLinkRow {
   id: string;
@@ -93,19 +111,13 @@ function linkToConfig(link: MemberLinkRow): JellyfinConfig | null {
  */
 export async function getJellyfinConfig(userId: string): Promise<JellyfinConfig | null> {
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from('integration_member_links')
-      .select(MEMBER_LINK_SELECT)
-      .eq('user_id', userId)
-      .eq('sync_enabled', true)
-      .eq('family_integrations.type', 'jellyfin')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return linkToConfig(data as unknown as MemberLinkRow);
+    const link = await prisma.integration_member_links.findFirst({
+      where: { user_id: userId, sync_enabled: true, family_integrations: { type: 'jellyfin' } },
+      orderBy: { created_at: 'asc' },
+      include: MEMBER_LINK_INCLUDE,
+    });
+    if (!link) return null;
+    return linkToConfig(rowToMemberLink(link));
   } catch (error) {
     logger.warn('Failed to fetch Jellyfin config:', error);
     return null;
@@ -121,18 +133,13 @@ export async function getJellyfinConfigForPlayback(
   userId: string
 ): Promise<JellyfinConfig | null> {
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from('integration_member_links')
-      .select(MEMBER_LINK_SELECT)
-      .eq('user_id', userId)
-      .eq('family_integrations.type', 'jellyfin')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return linkToConfig(data as unknown as MemberLinkRow);
+    const link = await prisma.integration_member_links.findFirst({
+      where: { user_id: userId, family_integrations: { type: 'jellyfin' } },
+      orderBy: { created_at: 'asc' },
+      include: MEMBER_LINK_INCLUDE,
+    });
+    if (!link) return null;
+    return linkToConfig(rowToMemberLink(link));
   } catch (error) {
     logger.warn('Failed to fetch Jellyfin config for playback:', error);
     return null;
@@ -149,16 +156,12 @@ export async function getJellyfinIntegrationByWebhookSecret(
   webhookSecret: string
 ): Promise<JellyfinIntegration | null> {
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from('family_integrations')
-      .select('id, family_id, server_url, api_key, webhook_secret')
-      .eq('webhook_secret', webhookSecret)
-      .eq('type', 'jellyfin')
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return data as JellyfinIntegration;
+    const integ = await prisma.family_integrations.findFirst({
+      where: { webhook_secret: webhookSecret, type: 'jellyfin' },
+      select: { id: true, family_id: true, server_url: true, api_key: true, webhook_secret: true },
+    });
+    if (!integ) return null;
+    return integ as unknown as JellyfinIntegration;
   } catch (error) {
     logger.warn('Failed to look up Jellyfin integration by webhook secret:', error);
     return null;
@@ -175,18 +178,12 @@ export async function getMemberConfigByJellyfinUser(
   jellyfinUserId: string
 ): Promise<JellyfinConfig | null> {
   try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from('integration_member_links')
-      .select(MEMBER_LINK_SELECT)
-      .eq('integration_id', integrationId)
-      .eq('external_user_id', jellyfinUserId)
-      .eq('sync_enabled', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (error || !data) return null;
-    return linkToConfig(data as unknown as MemberLinkRow);
+    const link = await prisma.integration_member_links.findFirst({
+      where: { integration_id: integrationId, external_user_id: jellyfinUserId, sync_enabled: true },
+      include: MEMBER_LINK_INCLUDE,
+    });
+    if (!link) return null;
+    return linkToConfig(rowToMemberLink(link));
   } catch (error) {
     logger.warn('Failed to resolve member by Jellyfin user id:', error);
     return null;
@@ -208,7 +205,6 @@ export async function linkJellyfinAccount(params: {
   jellyfinUserId: string;
   jellyfinUsername?: string | null;
 }): Promise<{ integrationId: string; webhookSecret: string }> {
-  const supabase = createServiceClient();
   const serverUrl = params.serverUrl.replace(/\/+$/, '');
 
   // Prefer an EXISTING Jellyfin integration for this server in ANY family the
@@ -217,58 +213,64 @@ export async function linkJellyfinAccount(params: {
   // integration (in their primary family) if none exists yet.
   let integration: { id: string; webhook_secret: string } | null = null;
 
-  const { data: memberships } = await supabase
-    .from('family_members')
-    .select('family_id')
-    .eq('user_id', params.userId);
-  const familyIds = (memberships ?? []).map((m) => m.family_id);
+  const memberships = await prisma.family_members.findMany({
+    where: { user_id: params.userId },
+    select: { family_id: true },
+  });
+  const familyIds = memberships.map((m) => m.family_id);
 
   if (familyIds.length > 0) {
-    const { data: existing } = await supabase
-      .from('family_integrations')
-      .select('id, webhook_secret')
-      .in('family_id', familyIds)
-      .eq('type', 'jellyfin')
-      .eq('server_url', serverUrl)
-      .limit(1)
-      .maybeSingle();
-    integration = existing ?? null;
+    integration = await prisma.family_integrations.findFirst({
+      where: { family_id: { in: familyIds }, type: 'jellyfin', server_url: serverUrl },
+      select: { id: true, webhook_secret: true },
+    });
   }
 
   if (!integration) {
     const familyId = await getOrCreatePrimaryFamily(params.userId);
-    const { data: created, error } = await supabase
-      .from('family_integrations')
-      .insert({
-        family_id: familyId,
-        type: 'jellyfin',
-        server_url: serverUrl,
-        api_key: params.apiKey,
-        created_by: params.userId,
-      })
-      .select('id, webhook_secret')
-      .single();
-    if (error || !created) {
-      throw new Error(`Failed to create Jellyfin integration: ${error?.message ?? 'unknown error'}`);
+    try {
+      integration = await prisma.family_integrations.create({
+        data: {
+          family_id: familyId,
+          type: 'jellyfin',
+          server_url: serverUrl,
+          api_key: params.apiKey,
+          created_by: params.userId,
+        },
+        select: { id: true, webhook_secret: true },
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to create Jellyfin integration: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
-    integration = created;
   }
 
-  const { error: linkError } = await supabase.from('integration_member_links').upsert(
-    {
-      integration_id: integration.id,
-      user_id: params.userId,
-      external_user_id: params.jellyfinUserId,
-      external_username: params.jellyfinUsername ?? null,
-      access_token: params.apiKey,
-      sync_enabled: true,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'integration_id,user_id' }
-  );
-
-  if (linkError) {
-    throw new Error(`Failed to link Jellyfin account: ${linkError.message}`);
+  try {
+    await prisma.integration_member_links.upsert({
+      where: {
+        integration_id_user_id: { integration_id: integration.id, user_id: params.userId },
+      },
+      create: {
+        integration_id: integration.id,
+        user_id: params.userId,
+        external_user_id: params.jellyfinUserId,
+        external_username: params.jellyfinUsername ?? null,
+        access_token: params.apiKey,
+        sync_enabled: true,
+      },
+      update: {
+        external_user_id: params.jellyfinUserId,
+        external_username: params.jellyfinUsername ?? null,
+        access_token: params.apiKey,
+        sync_enabled: true,
+        updated_at: new Date(),
+      },
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to link Jellyfin account: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
   }
 
   return { integrationId: integration.id, webhookSecret: integration.webhook_secret };
@@ -442,8 +444,6 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
     }
 
     // 2. Upsert into watch_history with sync_source='jellyfin'
-    const supabase = createServiceClient();
-
     const normalizedSeason = seasonNumber ?? -1;
     const normalizedEpisode = episodeNumber ?? -1;
 
@@ -452,7 +452,7 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
     const positionSeconds =
       playbackPosition != null && playbackPosition > 0 ? Math.floor(playbackPosition) : null;
 
-    const { error } = await supabase.rpc('upsert_watch_history_atomic', {
+    await rpc('upsert_watch_history_atomic', {
       p_user_id: userId,
       p_media_type: mediaType,
       p_media_id: tmdbId,
@@ -463,10 +463,6 @@ export async function syncFromJellyfin(params: SyncFromJellyfinParams): Promise<
       p_sync_source: 'jellyfin',
       p_playback_position: positionSeconds,
     });
-
-    if (error) {
-      throw new Error(`Database upsert failed: ${error.message}`);
-    }
 
     recordSyncEvent(userId, 'from_jellyfin', mediaType, tmdbId);
     logger.info('Synced from Jellyfin', { userId, mediaType, tmdbId, percentageWatched });
@@ -595,19 +591,19 @@ async function syncSingleItemFromPoll(
   }
 
   // Check current local state — only sync if percentage actually differs
-  const supabase = createServiceClient();
   const normalizedSeason = seasonNumber ?? -1;
   const normalizedEpisode = episodeNumber ?? -1;
 
-  const { data: existing } = await supabase
-    .from('watch_history')
-    .select('percentage_watched')
-    .eq('user_id', userId)
-    .eq('media_type', mediaType)
-    .eq('media_id', tmdbId)
-    .eq('season_number', normalizedSeason)
-    .eq('episode_number', normalizedEpisode)
-    .single();
+  const existing = await prisma.watch_history.findFirst({
+    where: {
+      user_id: userId,
+      media_type: mediaType,
+      media_id: tmdbId,
+      season_number: normalizedSeason,
+      episode_number: normalizedEpisode,
+    },
+    select: { percentage_watched: true },
+  });
 
   const localPercentage = existing ? parseFloat(String(existing.percentage_watched)) : 0;
 

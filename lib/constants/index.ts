@@ -1,5 +1,3 @@
-import { fetchUserDataServer } from '@/lib/server/fetchUserData';
-
 export const sidebarLinks = [
   {
     image_url: '/assets/icons/home-outline.svg',

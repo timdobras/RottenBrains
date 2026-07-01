@@ -2,7 +2,13 @@
 import { useState } from 'react';
 import { addComment } from '@/lib/db/mutations';
 
-const AddComment: React.FC<any> = ({ post, user_id, fetchComments, parent_id }) => {
+const AddComment: React.FC<any> = ({
+  post,
+  user_id,
+  fetchComments,
+  onCommentAdded,
+  parent_id,
+}) => {
   const [content, setContent] = useState('');
   const postId = post.id;
 
@@ -15,7 +21,8 @@ const AddComment: React.FC<any> = ({ post, user_id, fetchComments, parent_id }) 
     }
 
     try {
-      await addComment({ postId, content, parentId: parent_id });
+      const { total_comments } = await addComment({ postId, content, parentId: parent_id });
+      onCommentAdded?.(total_comments);
       setContent('');
       await fetchComments(); // Fetch comments after adding a new comment
     } catch (error) {

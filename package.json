@@ -22,8 +22,6 @@
     "@prisma/client": "^6.19.3",
     "@sentry/nextjs": "^10.43.0",
     "@serwist/next": "^9.2.3",
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.106.2",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tanstack/react-query": "^5.62.16",
     "autoprefixer": "^10.4.20",

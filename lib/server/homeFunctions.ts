@@ -3,7 +3,7 @@ import {
   getContinueWatchingItems,
   getLatestNewEpisodes,
   getUpNextItems,
-} from '../supabase/serverQueries';
+} from '@/lib/db/queries';
 import { getMediaDetails, getEpisodeDetails } from '../tmdb';
 import { fetchMediaData } from './fetchMediaData';
 import { logger } from '../logger';

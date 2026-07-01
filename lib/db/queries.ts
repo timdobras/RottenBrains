@@ -1,11 +1,12 @@
 import 'server-only';
 import { cache } from 'react';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/current-user';
 import { handleError as handleAppError, DatabaseError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { IUser } from '@/types';
-import { createClient } from '@/lib/supabase/server';
 import { rpc, rpcOne, jsonb, serializeRows } from '@/lib/db/rpc';
 import { upsertWatchHistorySchema } from '@/lib/validations';
 import {
@@ -112,11 +113,8 @@ export async function getPostById(post_id: string): Promise<any | null> {
 }
 
 export const signOut = async () => {
-  // TODO(cutover): Better Auth signOut — auth is migrated separately, so for now
-  // keep delegating to the Supabase session.
-  const supabase = await createClient();
-  // sign out from the current session only
-  await supabase.auth.signOut();
+  // Better Auth server-side sign-out (Supabase auth fully retired).
+  await auth.api.signOut({ headers: await headers() });
 };
 
 export const getPostsOfMedia = async (

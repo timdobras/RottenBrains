@@ -1,5 +1,5 @@
 import { fetchMediaData } from '../server/fetchMediaData';
-import { getUserPosts, getUserPostsType } from '../supabase/clientQueries';
+import { getUserPosts, getUserPostsType } from '@/lib/db/client-actions';
 
 export async function fetchPostsDataForUser(
   user_id: string,

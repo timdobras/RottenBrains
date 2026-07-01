@@ -3,6 +3,7 @@ import { Heart, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { setPostCommentCount, usePostCommentCount } from '@/lib/client/postCommentCounts';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getPostComments } from '@/lib/db/client-actions';
 import AddComment from './AddComment';
@@ -14,9 +15,10 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
   const [state, setState] = useState({
     isOpen: false,
     comments: [],
-    commentCount: post.total_comments || 0,
     loading: true,
   });
+  // Cross-tree count store: stays in sync with the post modal's comment UI.
+  const commentCount = usePostCommentCount(postId, post.total_comments || 0);
 
   // Shared like state (kept in sync with the double-tap-to-like gesture). Falls back
   // to a local toggle if this card is ever rendered outside a PostLikeProvider.
@@ -51,6 +53,8 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
         console.error('Error toggling like:', error);
       });
   };
+
+  const handleCommentAdded = (total: number) => setPostCommentCount(postId, total);
 
   const fetchComments = async () => {
     try {
@@ -134,6 +138,7 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
                               post={post}
                               user_id={user_id}
                               fetchComments={fetchComments}
+                              onCommentAdded={handleCommentAdded}
                             />
                           </div>
                         );
@@ -143,12 +148,17 @@ const PostStats = ({ post, user_id, current_user, post_link }: any) => {
                 )}
               </div>
               <div className="absolute bottom-6 w-11/12">
-                <AddComment post={post} user_id={user_id} fetchComments={fetchComments} />
+                <AddComment
+                  post={post}
+                  user_id={user_id}
+                  fetchComments={fetchComments}
+                  onCommentAdded={handleCommentAdded}
+                />
               </div>
             </DialogContent>
           </Dialog>
         </div>
-        <p className="font-bold">{state.commentCount}</p>
+        <p className="font-bold">{commentCount}</p>
       </div>
     </div>
   );

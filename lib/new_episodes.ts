@@ -3,7 +3,7 @@ import {
   getAllUsers,
   getTvWatchListForUser,
   upsertNewEpisodeRecord,
-} from './supabase/serverQueries';
+} from '@/lib/db/queries';
 
 export async function dailyNewEpisodesJob(): Promise<void> {
   console.log('--- Starting dailyNewEpisodesJob ---');

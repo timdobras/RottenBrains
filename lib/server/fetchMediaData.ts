@@ -1,4 +1,4 @@
-import { getWatchTime } from '../supabase/serverQueries';
+import { getWatchTime } from '@/lib/db/queries';
 import { getEpisodeDetails, getMediaDetails } from '../tmdb';
 
 export async function fetchMediaData(

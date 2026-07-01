@@ -5,13 +5,13 @@
  * Jellyseerr / Sonarr / Radarr). Members of a family share access to the
  * family's integrations.
  *
- * These helpers use the service-role client (RLS-bypassing) and therefore
- * enforce authorization explicitly. Always pass the *authenticated* user id —
- * routes must verify the session (supabase.auth.getUser()) before calling.
+ * These helpers run server-side via Prisma (db-server) and enforce authorization
+ * explicitly. Always pass the *authenticated* user id — routes must verify the
+ * session (Better Auth `getServerUser()`) before calling.
  */
 
 import { logger } from '@/lib/logger';
-import { createServiceClient } from '@/lib/supabase/serviceClient';
+import { prisma } from '@/lib/prisma';
 
 export type FamilyRole = 'owner' | 'admin' | 'member';
 
@@ -42,27 +42,21 @@ export interface FamilyWithMembers {
  * a user connects an integration before explicitly creating a family.
  */
 export async function getOrCreatePrimaryFamily(userId: string): Promise<string> {
-  const supabase = createServiceClient();
-
-  const { data: owned } = await supabase
-    .from('family_members')
-    .select('family_id, families!inner(owner_id, created_at)')
-    .eq('user_id', userId)
-    .eq('role', 'owner')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const owned = await prisma.family_members.findFirst({
+    where: { user_id: userId, role: 'owner' },
+    orderBy: { families: { created_at: 'asc' } },
+    select: { family_id: true },
+  });
 
   if (owned?.family_id) {
     return owned.family_id;
   }
 
   // No owned family — create a personal one named after the user.
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, username')
-    .eq('id', userId)
-    .maybeSingle();
+  const profile = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { name: true, username: true },
+  });
 
   const label = profile?.name || profile?.username || 'My';
   return createFamily(userId, `${label}'s Family`);
@@ -73,93 +67,80 @@ export async function getOrCreatePrimaryFamily(userId: string): Promise<string> 
  * Returns the new family id.
  */
 export async function createFamily(userId: string, name: string): Promise<string> {
-  const supabase = createServiceClient();
-
-  const { data: family, error } = await supabase
-    .from('families')
-    .insert({ name: name.trim() || 'My Family', owner_id: userId })
-    .select('id')
-    .single();
-
-  if (error || !family) {
-    throw new Error(`Failed to create family: ${error?.message ?? 'unknown error'}`);
+  try {
+    // Transaction: family + owner member are created together or not at all
+    // (no ownerless family left behind on failure).
+    return await prisma.$transaction(async (tx) => {
+      const family = await tx.families.create({
+        data: { name: name.trim() || 'My Family', owner_id: userId },
+        select: { id: true },
+      });
+      await tx.family_members.create({
+        data: { family_id: family.id, user_id: userId, role: 'owner' },
+      });
+      return family.id;
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to create family: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
   }
-
-  const { error: memberError } = await supabase
-    .from('family_members')
-    .insert({ family_id: family.id, user_id: userId, role: 'owner' });
-
-  if (memberError) {
-    // Best-effort cleanup so we don't leave an ownerless family behind.
-    await supabase.from('families').delete().eq('id', family.id);
-    throw new Error(`Failed to add owner to family: ${memberError.message}`);
-  }
-
-  return family.id;
 }
 
 /** List all families the user belongs to, with members and the user's role. */
 export async function listUserFamilies(userId: string): Promise<FamilyWithMembers[]> {
-  const supabase = createServiceClient();
-
-  const { data: memberships, error } = await supabase
-    .from('family_members')
-    .select('family_id, role, families!inner(id, name, owner_id, created_at)')
-    .eq('user_id', userId);
-
-  if (error || !memberships?.length) return [];
-
-  const familyIds = memberships.map((m) => m.family_id);
-
-  const { data: allMembers } = await supabase
-    .from('family_members')
-    .select('family_id, user_id, role, created_at')
-    .in('family_id', familyIds);
-
-  // family_members.user_id FKs to auth.users, so PostgREST can't embed public.users
-  // directly — fetch the profiles separately and merge by id.
-  const memberUserIds = [...new Set((allMembers ?? []).map((am) => am.user_id))];
-  const { data: profiles } = await supabase
-    .from('users')
-    .select('id, username, name, image_url')
-    .in('id', memberUserIds);
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
-
-  return memberships.map((m) => {
-    const fam = m.families as unknown as {
-      id: string;
-      name: string;
-      owner_id: string;
-      created_at: string;
-    };
-    return {
-      id: fam.id,
-      name: fam.name,
-      owner_id: fam.owner_id,
-      created_at: fam.created_at,
-      role: m.role as FamilyRole,
-      members: (allMembers ?? [])
-        .filter((am) => am.family_id === fam.id)
-        .map((am) => ({
-          user_id: am.user_id,
-          role: am.role as FamilyRole,
-          created_at: am.created_at,
-          user: profileMap.get(am.user_id) ?? null,
-        })),
-    };
+  const memberships = await prisma.family_members.findMany({
+    where: { user_id: userId },
+    select: {
+      role: true,
+      families: {
+        select: {
+          id: true,
+          name: true,
+          owner_id: true,
+          created_at: true,
+          family_members: {
+            select: {
+              user_id: true,
+              role: true,
+              created_at: true,
+              users: { select: { id: true, username: true, name: true, image_url: true } },
+            },
+          },
+        },
+      },
+    },
   });
+
+  return memberships.map((m) => ({
+    id: m.families.id,
+    name: m.families.name,
+    owner_id: m.families.owner_id,
+    created_at: m.families.created_at.toISOString(),
+    role: m.role as FamilyRole,
+    members: m.families.family_members.map((am) => ({
+      user_id: am.user_id,
+      role: am.role as FamilyRole,
+      created_at: am.created_at.toISOString(),
+      user: am.users
+        ? {
+            id: am.users.id,
+            username: am.users.username,
+            name: am.users.name,
+            image_url: am.users.image_url,
+          }
+        : null,
+    })),
+  }));
 }
 
 /** Whether the user is an owner/admin of the family. */
 export async function isFamilyAdmin(userId: string, familyId: string): Promise<boolean> {
-  const supabase = createServiceClient();
-  const { data } = await supabase
-    .from('family_members')
-    .select('role')
-    .eq('family_id', familyId)
-    .eq('user_id', userId)
-    .maybeSingle();
-  return data?.role === 'owner' || data?.role === 'admin';
+  const member = await prisma.family_members.findFirst({
+    where: { family_id: familyId, user_id: userId },
+    select: { role: true },
+  });
+  return member?.role === 'owner' || member?.role === 'admin';
 }
 
 export interface CreateInviteOptions {
@@ -177,27 +158,28 @@ export async function createInvite(
     throw new Error('Only family admins can create invites');
   }
 
-  const supabase = createServiceClient();
   const expiresAt =
     opts.expiresInDays && opts.expiresInDays > 0
-      ? new Date(Date.now() + opts.expiresInDays * 86_400_000).toISOString()
+      ? new Date(Date.now() + opts.expiresInDays * 86_400_000)
       : null;
 
-  const { data, error } = await supabase
-    .from('family_invites')
-    .insert({
-      family_id: familyId,
-      created_by: userId,
-      expires_at: expiresAt,
-      max_uses: opts.maxUses ?? null,
-    })
-    .select('code')
-    .single();
-
-  if (error || !data) {
-    throw new Error(`Failed to create invite: ${error?.message ?? 'unknown error'}`);
+  try {
+    // `code` is DB-generated (random hex) — created without a value, read back.
+    const data = await prisma.family_invites.create({
+      data: {
+        family_id: familyId,
+        created_by: userId,
+        expires_at: expiresAt,
+        max_uses: opts.maxUses ?? null,
+      },
+      select: { code: true },
+    });
+    return { code: data.code };
+  } catch (error) {
+    throw new Error(
+      `Failed to create invite: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
   }
-  return { code: data.code };
 }
 
 /**
@@ -208,45 +190,52 @@ export async function redeemInvite(
   userId: string,
   code: string
 ): Promise<{ familyId: string; familyName: string }> {
-  const supabase = createServiceClient();
-
-  const { data: invite } = await supabase
-    .from('family_invites')
-    .select('id, family_id, expires_at, max_uses, uses, families!inner(name)')
-    .eq('code', code.trim())
-    .maybeSingle();
+  const invite = await prisma.family_invites.findUnique({
+    where: { code: code.trim() },
+    select: {
+      id: true,
+      family_id: true,
+      expires_at: true,
+      max_uses: true,
+      uses: true,
+      families: { select: { name: true } },
+    },
+  });
 
   if (!invite) {
     throw new Error('Invalid invite code');
   }
-  if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) {
+  if (invite.expires_at && invite.expires_at.getTime() < Date.now()) {
     throw new Error('This invite has expired');
   }
   if (invite.max_uses != null && invite.uses >= invite.max_uses) {
     throw new Error('This invite has reached its usage limit');
   }
 
-  const familyName = (invite.families as unknown as { name: string }).name;
+  const familyName = invite.families.name;
 
   // Already a member? No-op.
-  const { data: existing } = await supabase
-    .from('family_members')
-    .select('id')
-    .eq('family_id', invite.family_id)
-    .eq('user_id', userId)
-    .maybeSingle();
+  const existing = await prisma.family_members.findFirst({
+    where: { family_id: invite.family_id, user_id: userId },
+    select: { id: true },
+  });
 
   if (!existing) {
-    const { error: insertError } = await supabase
-      .from('family_members')
-      .insert({ family_id: invite.family_id, user_id: userId, role: 'member' });
-    if (insertError) {
-      throw new Error(`Failed to join family: ${insertError.message}`);
+    try {
+      await prisma.$transaction([
+        prisma.family_members.create({
+          data: { family_id: invite.family_id, user_id: userId, role: 'member' },
+        }),
+        prisma.family_invites.update({
+          where: { id: invite.id },
+          data: { uses: { increment: 1 } },
+        }),
+      ]);
+    } catch (error) {
+      throw new Error(
+        `Failed to join family: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
-    await supabase
-      .from('family_invites')
-      .update({ uses: invite.uses + 1 })
-      .eq('id', invite.id);
   }
 
   return { familyId: invite.family_id, familyName };
@@ -261,13 +250,10 @@ export async function removeMember(
   familyId: string,
   targetUserId: string
 ): Promise<void> {
-  const supabase = createServiceClient();
-
-  const { data: family } = await supabase
-    .from('families')
-    .select('owner_id')
-    .eq('id', familyId)
-    .maybeSingle();
+  const family = await prisma.families.findUnique({
+    where: { id: familyId },
+    select: { owner_id: true },
+  });
 
   if (!family) throw new Error('Family not found');
   if (targetUserId === family.owner_id) {
@@ -279,14 +265,16 @@ export async function removeMember(
     throw new Error('Only family admins can remove other members');
   }
 
-  const { error } = await supabase
-    .from('family_members')
-    .delete()
-    .eq('family_id', familyId)
-    .eq('user_id', targetUserId);
-
-  if (error) {
-    logger.error('Failed to remove family member', { familyId, targetUserId, error: error.message });
+  try {
+    await prisma.family_members.deleteMany({
+      where: { family_id: familyId, user_id: targetUserId },
+    });
+  } catch (error) {
+    logger.error('Failed to remove family member', {
+      familyId,
+      targetUserId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw new Error('Failed to remove member');
   }
 }

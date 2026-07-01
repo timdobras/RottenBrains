@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useUser } from '@/hooks/UserContext';
 import { getCachedComments, setCachedComments } from '@/lib/client/commentCache';
 import { getLikedCommentIds } from '@/lib/client/commentLikes';
+import { setPostCommentCount, usePostCommentCount } from '@/lib/client/postCommentCounts';
 import { likePost, removeLike } from '@/lib/client/updatePostData';
 import { getCommentsByPostId, getRepliesByCommentId } from '@/lib/db/client-actions';
 import AddComment from './AddCommentModal';
@@ -83,11 +84,14 @@ const CommentSection = ({ post_data, current_user }: any) => {
   const [liked, setLiked] = useState<boolean>(!!current_user?.has_liked);
   const [likes, setLikes] = useState<number>(post.total_likes || 0);
   const [likeAnimate, setLikeAnimate] = useState(false);
-  // Displayed count is seeded from the post's DB counter and bumped to the
-  // authoritative post-increment total each time a comment/reply is added, so it
-  // stays in sync without a full reload.
-  const [commentCount, setCommentCount] = useState<number>(post.total_comments || 0);
-  const handleCommentAdded = useCallback((total: number) => setCommentCount(total), []);
+  // Count lives in a cross-tree store so the feed card footer and this modal stay
+  // in sync: seeded from the post's DB counter, bumped to the authoritative
+  // post-increment total each time a comment/reply is added (no reload needed).
+  const commentCount = usePostCommentCount(postId, post.total_comments || 0);
+  const handleCommentAdded = useCallback(
+    (total: number) => setPostCommentCount(postId, total),
+    [postId]
+  );
 
   // Keyboard height (visualViewport) — lifts only the composer above the
   // keyboard while the sheet frame stays anchored (interactiveWidget:resizes-visual).
@@ -238,6 +242,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
           user_id={user_id}
           fetchComments={fetchComments}
           fetchReplies={fetchReplies}
+          onCommentAdded={handleCommentAdded}
         />
       </div>
 
@@ -302,6 +307,7 @@ const CommentSection = ({ post_data, current_user }: any) => {
                 user_id={user_id}
                 fetchComments={fetchComments}
                 fetchReplies={fetchReplies}
+                onCommentAdded={handleCommentAdded}
               />
             </div>
           </Drawer.Content>

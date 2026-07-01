@@ -1,6 +1,6 @@
 import { getMovieRecommendationsForUser, getTvRecommendationsForUser } from '@/lib/recommendations';
 import { logger } from '@/lib/logger';
-import { getBatchWatchedItemsForUser } from '../supabase/clientQueries';
+import { getBatchWatchedItemsForUser } from '@/lib/db/client-actions';
 import movieGenresJson from '@/lib/constants/movie_genres.json';
 import tvGenresJson from '@/lib/constants/tv_genres.json';
 

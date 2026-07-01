@@ -1,4 +1,4 @@
-import { getFollowedUsersPosts } from '../supabase/clientQueries';
+import { getFollowedUsersPosts } from '@/lib/db/client-actions';
 import { fetchMediaData } from './fetchMediaData';
 import { logger } from '@/lib/logger';
 

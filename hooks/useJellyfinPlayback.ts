@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 
 interface JellyfinPlaybackState {
   isConfigured: boolean;
@@ -44,38 +43,10 @@ export function useJellyfinPlayback(
     async function resolve() {
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      // Step 1: Check if user has Jellyfin configured
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (cancelled) return;
-
-      if (!user) {
-        setState({ isConfigured: false, isLoading: false, jellyfinUrl: null, isInLibrary: false });
-        return;
-      }
-
-      const { data: config } = await supabase
-        .from('integration_member_links')
-        .select('id, family_integrations!inner(type)')
-        .eq('user_id', user.id)
-        .eq('family_integrations.type', 'jellyfin')
-        .limit(1)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (!config) {
-        setState({ isConfigured: false, isLoading: false, jellyfinUrl: null, isInLibrary: false });
-        return;
-      }
-
-      // User has Jellyfin configured
       const cacheKey = `${mediaType}-${mediaId}${seasonNumber ? `-${seasonNumber}` : ''}${episodeNumber ? `-${episodeNumber}` : ''}`;
 
-      // Check cache
+      // Cache only holds entries for configured users (we bail before caching
+      // otherwise), so a hit implies isConfigured = true.
       if (cacheRef.current.has(cacheKey)) {
         const cached = cacheRef.current.get(cacheKey)!;
         setState({
@@ -87,7 +58,8 @@ export function useJellyfinPlayback(
         return;
       }
 
-      // Step 2: Resolve via API
+      // Resolve via API — it checks auth + Jellyfin config server-side (Better
+      // Auth session + db-server) and reports `configured` in the response.
       try {
         const res = await fetch('/api/jellyfin/resolve', {
           method: 'POST',
@@ -102,7 +74,18 @@ export function useJellyfinPlayback(
 
         if (cancelled) return;
 
+        // 401 (no session) or any non-OK → treat as not configured.
+        if (!res.ok) {
+          setState({ isConfigured: false, isLoading: false, jellyfinUrl: null, isInLibrary: false });
+          return;
+        }
+
         const data = await res.json();
+
+        if (data.configured === false) {
+          setState({ isConfigured: false, isLoading: false, jellyfinUrl: null, isInLibrary: false });
+          return;
+        }
 
         if (data.found) {
           cacheRef.current.set(cacheKey, data.jellyfin_url);
@@ -124,7 +107,7 @@ export function useJellyfinPlayback(
       } catch {
         if (cancelled) return;
         setState({
-          isConfigured: true,
+          isConfigured: false,
           isLoading: false,
           jellyfinUrl: null,
           isInLibrary: false,
