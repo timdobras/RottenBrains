@@ -1,10 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { useVideo } from '@/hooks/VideoProvider';
 
 const VideoEmbed = () => {
   const { state } = useVideo();
   const isTheater = state.theaterMode && state.mode === 'full';
+  // Size the player box to the real content aspect (width/height), defaulting to
+  // 16/9 until the <video> reports its dimensions. So a 2.39:1 film isn't
+  // letterboxed and a 4:3 show isn't cropped — the box fits the content.
+  const ratio = state.aspectRatio && state.aspectRatio > 0 ? state.aspectRatio : 16 / 9;
+
+  // Publish the mobile player height (full width at the content aspect) so the
+  // sticky season bar + description drawer track the real bottom edge.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--watch-player-h', `${(100 / ratio).toFixed(3)}vw`);
+  }, [ratio]);
 
   return (
     <section
@@ -23,20 +35,14 @@ const VideoEmbed = () => {
         <div
           id="video-inline-placeholder"
           className={`relative w-full overflow-hidden bg-black ${
-            isTheater
-              ? 'aspect-[16/9] max-h-[calc(100vh-4rem)]'
-              : 'aspect-[16/9] bg-foreground/10 md:rounded-[8px]'
+            isTheater ? 'max-h-[calc(100vh-4rem)]' : 'bg-foreground/10 md:rounded-[8px]'
           }`}
-          style={
-            isTheater
-              ? {
-                  // Cap width so the 16:9 player fits within the available
-                  // viewport height (below the 4rem navbar). Prevents the
-                  // video from overflowing below the fold.
-                  maxWidth: 'calc((100vh - 4rem) * 16 / 9)',
-                }
-              : undefined
-          }
+          style={{
+            aspectRatio: String(ratio),
+            // Theater: cap width so the box fits within the available viewport
+            // height (below the 4rem navbar) instead of overflowing below the fold.
+            ...(isTheater ? { maxWidth: `calc((100vh - 4rem) * ${ratio})` } : {}),
+          }}
         />
       </div>
     </section>

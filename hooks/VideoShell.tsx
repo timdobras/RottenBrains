@@ -3,7 +3,7 @@
 import { animate, motion, useMotionValue, useMotionValueEvent, type MotionStyle, type MotionValue } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import ReactDOM from 'react-dom';
 
 import CustomPlayer, { type CustomPlayerSubtitle } from '@/components/features/watch/CustomPlayer';
@@ -39,6 +39,11 @@ function estimateFullRect(isMobile: boolean) {
 }
 
 type Rect = { top: number; left: number; width: number; height: number };
+
+// Memoized so the shell's per-transition state ticks (phase, shield) don't
+// re-render the heavy player mid-morph — it only re-renders when its own props
+// actually change (stream/src, mini at rest), which is what caused the hitching.
+const MemoCustomPlayer = memo(CustomPlayer);
 
 // Spring used for every non-drag transition (buttons + drag-release snap), so a
 // tapped minimize/maximize plays the exact same motion as a flung drag.
@@ -108,12 +113,17 @@ export default function VideoShell() {
   }
   const display = lastStreamRef.current;
 
-  // Intrinsic video aspect (width/height); the mini window restores its original
-  // content-fit sizing from this (16/9 default until metadata loads).
-  const [aspectRatio, setAspectRatio] = useState(16 / 9);
-  useEffect(() => {
-    setAspectRatio(16 / 9);
-  }, [media_id, media_type, season_number, episode_number]);
+  // Intrinsic content aspect (width/height), shared via the store so BOTH the full
+  // player (its placeholder) and the mini window size to the real content —
+  // defaulting to 16/9 until the <video> reports its dimensions. Auto-resets per
+  // title because VideoContextSetter replaces the whole store state on a new title.
+  const aspectRatio = state.aspectRatio && state.aspectRatio > 0 ? state.aspectRatio : 16 / 9;
+  const setAspectRatio = useCallback(
+    (r: number) => {
+      if (r > 0) setState((s) => (s.aspectRatio === r ? s : { ...s, aspectRatio: r }));
+    },
+    [setState],
+  );
 
   // ── geometry ──
   // Full-mode box: the measured placeholder, else the geometry estimate. Computed
@@ -123,8 +133,15 @@ export default function VideoShell() {
     placeholderRect && placeholderRect.width > 0
       ? { top: placeholderRect.top, left: placeholderRect.left, width: placeholderRect.width, height: placeholderRect.height }
       : estimateFullRect(isMobile);
-  // Mini-mode box: the floating window from useMiniplayerState (position + 16/9 size).
-  const miniRect: Rect = { top: position.y, left: position.x, width: size.width, height: size.height };
+  // Mini-mode box: the floating window from useMiniplayerState, but sized to the
+  // CONTENT aspect (matches the mini rest render + the full box, so the morph
+  // scales uniformly with no aspect pop at the handoff).
+  const miniRect: Rect = {
+    top: position.y,
+    left: position.x,
+    width: size.width,
+    height: Math.round(size.width / aspectRatio),
+  };
 
   // Live refs for the imperative transform + pointer handlers (avoid stale closures).
   const geomRef = useRef<{ full: Rect | null; mini: Rect }>({ full: fullRect, mini: miniRect });
@@ -202,7 +219,15 @@ export default function VideoShell() {
     (target: 0 | 1) => {
       animRef.current?.stop();
       setSnapping(true);
-      animRef.current = animate(progress, target, SPRING);
+      const controls = animate(progress, target, SPRING);
+      animRef.current = controls;
+      // Clear the shield off the completion promise — NOT just off progress
+      // 'change' events. If we're already AT the target (e.g. dragged fully to the
+      // dock before releasing), the animation emits no change events, so a
+      // change-only clear would leave the shield stuck on top blocking all
+      // interaction. `.finished` always settles (resolves on finish, rejects on
+      // interrupt — and the interrupting animateTo re-arms its own clear).
+      controls.finished.then(() => setSnapping(false)).catch(() => {});
     },
     [progress],
   );
@@ -563,7 +588,7 @@ export default function VideoShell() {
               {phase !== 'mini' ? 'You need to be a premium user to watch videos.' : 'Premium required'}
             </div>
           ) : (
-            <CustomPlayer
+            <MemoCustomPlayer
               // key excludes mode + provider → no remount on toggle/switch
               key={`${media_type}-${media_id}-${season_number ?? ''}-${episode_number ?? ''}`}
               src={display.src}

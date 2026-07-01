@@ -509,23 +509,24 @@
   box-shadow: 0px 0px 10px 5px hsla(0, 0%, 0%, 0.2);
 }
 
-/* Portrait: video is 16:9 based on viewport width. The player is pinned at the
-   very top of the watch surface (no navbar on watch), so its bottom edge is a
-   fixed 56.25vw — everything below keys off that single number. */
+/* Portrait: the player is pinned at the top of the watch surface (no navbar), so
+   its bottom edge is its height — full viewport width at the content aspect. That
+   height is published as --watch-player-h (falls back to 56.25vw = 16:9), so
+   everything below tracks the real player height even for non-16:9 content. */
 @media (max-width: 1024px) and (orientation: portrait) {
   .small-screen-watch-margin-premium,
   .small-screen-watch-margin {
-    margin-top: 56.25vw;
+    margin-top: var(--watch-player-h, 56.25vw);
   }
   .small-screen-watch-margin-info-premium,
   .small-screen-watch-margin-info {
     /* Description drawer opens flush under the player's bottom edge. */
-    margin-top: 56.25vw;
+    margin-top: var(--watch-player-h, 56.25vw);
   }
   .small-screen-watch-top-premium,
   .small-screen-watch-top {
-    /* Season bar sticks right under the player (top:0 + 56.25vw tall). */
-    top: 56.25vw;
+    /* Season bar sticks right under the player. */
+    top: var(--watch-player-h, 56.25vw);
   }
 }
 

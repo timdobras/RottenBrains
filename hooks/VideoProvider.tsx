@@ -13,6 +13,10 @@ export type VideoState = {
   provider?: string;
   resumePosition?: number; // playback position in seconds for resume (from DB)
   theaterMode?: boolean; // edge-to-edge immersive player on desktop
+  // Intrinsic content aspect ratio (width/height) reported by the <video> once
+  // metadata loads. Shared so BOTH the full player (its placeholder) and the mini
+  // window size to the real content. Undefined → default 16/9.
+  aspectRatio?: number;
   // True while the current title was opened via the @watch intercepting overlay
   // (soft nav) rather than a hard-loaded /watch page. Decides whether minimize/
   // close pop the overlay (router.back) or fall back to pushing '/'.
