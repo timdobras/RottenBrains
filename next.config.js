@@ -15,6 +15,13 @@ const nextConfig = {
   // Babel so dev/build compile is a bit slower; runtime re-renders are reduced.
   reactCompiler: true,
   images: {
+    // MinIO (minios3.timdobras.com) resolves to a private LAN IP (10.10.99.16 —
+    // the Traefik edge, via the AdGuard *.timdobras.com rewrite) from inside the
+    // container. Next 16's new SSRF guard (dangerouslyAllowLocalIP, default false)
+    // blocks the server-side image optimizer from fetching private-resolving
+    // hosts, breaking every MinIO-hosted avatar rendered through next/image.
+    // Safe here because remotePatterns below is a strict allowlist of trusted hosts.
+    dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
         protocol: 'https',
