@@ -79,6 +79,10 @@ interface CustomPlayerProps {
   onClose?: () => void;
   /** Full player: shrink to the miniplayer (and go home). */
   onMinimize?: () => void;
+  /** True while the player is mid-morph (being dragged or animating between full
+   *  and mini). Hides the chrome INSTANTLY; it fades back in (~250ms) once the
+   *  morph settles. */
+  morphing?: boolean;
 }
 
 function fmt(t: number): string {
@@ -115,6 +119,7 @@ export default function CustomPlayer({
   onExpand,
   onClose,
   onMinimize,
+  morphing = false,
 }: CustomPlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -634,12 +639,14 @@ export default function CustomPlayer({
         </div>
       )}
 
-      {/* full-mode controls */}
+      {/* full-mode controls. During a morph: hidden INSTANTLY (duration-0). On
+          settle: fades back in over 300ms. transition-opacity stays present so the
+          duration/opacity swap animates reliably. */}
       {!mini && (
       <div
-        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 transition-opacity duration-200 ${
-          controlsOn ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 transition-opacity ${
+          morphing ? 'duration-0' : 'duration-300'
+        } ${!morphing && controlsOn ? 'opacity-100' : 'opacity-0'}`}
       >
         <div className="mb-1.5">{scrubberEl}</div>
 
@@ -767,9 +774,14 @@ export default function CustomPlayer({
       )}
 
       {/* ===== miniplayer overlay (chrome + controls live here; the shell owns
-              the window box + drag + tap routing) ===== */}
-      {mini &&
-        (mobile ? (
+              the window box + drag + tap routing). Wrapped so the whole chrome
+              fades in (chrome-in) when it mounts on settle-to-mini; during the
+              morph `mini` is false so it isn't rendered at all = instant hide. The
+              wrapper is a transparent inset-0 layer, so taps still bubble to the
+              shell (expand) and the buttons stopPropagation as before. ===== */}
+      {mini && (
+        <div className="chrome-in absolute inset-0">
+          {mobile ? (
           <>
             {/* mobile: play/pause top-left, close top-right, no scrubber.
                 A tap on the video routes to expand (handled by the shell). */}
@@ -833,7 +845,9 @@ export default function CustomPlayer({
               {scrubberEl}
             </div>
           </>
-        ))}
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -609,6 +609,8 @@ export default function VideoShell() {
               autoPlay
               // Chrome swaps to mini only at rest (phase 'mini') — never mid-morph.
               mini={phase === 'mini'}
+              // Hide the chrome instantly during the morph; it fades back in on settle.
+              morphing={phase === 'morph'}
               providers={stream.providers}
               currentProvider={stream.currentProvider}
               onSelectProvider={stream.onSelectProvider}

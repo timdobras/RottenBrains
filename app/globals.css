@@ -223,6 +223,13 @@
   }
 }
 
+/* Player chrome fade-in when the morph settles (mini chrome mounts fresh). Paired
+   with an INSTANT hide during the morph. `both` holds opacity:0 before it runs so
+   there's no first-frame flash. */
+.chrome-in {
+  animation: fadeIn 0.25s ease-out both;
+}
+
 .flex-between {
   @apply flex items-center justify-between;
 }
