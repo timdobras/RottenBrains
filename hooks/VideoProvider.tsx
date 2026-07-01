@@ -17,6 +17,9 @@ export type VideoState = {
   // metadata loads. Shared so BOTH the full player (its placeholder) and the mini
   // window size to the real content. Undefined → default 16/9.
   aspectRatio?: number;
+  // Human title of what's currently playing (movie title / show name), shown in
+  // the fullscreen player chrome.
+  title?: string;
   // True while the current title was opened via the @watch intercepting overlay
   // (soft nav) rather than a hard-loaded /watch page. Decides whether minimize/
   // close pop the overlay (router.back) or fall back to pushing '/'.

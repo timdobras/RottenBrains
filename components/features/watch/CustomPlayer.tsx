@@ -84,6 +84,8 @@ interface CustomPlayerProps {
    *  and mini). Hides the chrome INSTANTLY; it fades back in (~250ms) once the
    *  morph settles. */
   morphing?: boolean;
+  /** Human title of what's playing — shown in the fullscreen chrome (top-left). */
+  title?: string;
 }
 
 function fmt(t: number): string {
@@ -121,6 +123,7 @@ export default function CustomPlayer({
   onClose,
   onMinimize,
   morphing = false,
+  title,
 }: CustomPlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -480,6 +483,18 @@ export default function CustomPlayer({
       v.webkitEnterFullscreen();
     }
   }, []);
+  // Minimize from the player: if we're in fullscreen, leave it first (which also
+  // releases the landscape lock) THEN dock to the mini player.
+  const handleMinimize = useCallback(() => {
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      document
+        .exitFullscreen()
+        .catch(() => {})
+        .finally(() => onMinimize?.());
+    } else {
+      onMinimize?.();
+    }
+  }, [onMinimize]);
   const togglePip = useCallback(async () => {
     const v = videoRef.current;
     if (!v) return;
@@ -545,7 +560,8 @@ export default function CustomPlayer({
   const VolIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
   const btn = 'rounded p-1.5 text-white/90 hover:bg-white/15 transition-colors';
   // dark-themed dropdown-menu styling (the menus live over the video)
-  const menuCls = 'z-50 max-h-[60vh] w-56 overflow-y-auto border-white/10 bg-black/95 text-white shadow-xl';
+  const menuCls =
+    'z-50 max-h-[60vh] w-56 overflow-y-auto overscroll-contain border-white/10 bg-black/95 text-white shadow-xl';
   const radioCls =
     'cursor-pointer text-xs text-white/85 focus:bg-white/15 focus:text-white data-[state=checked]:text-red-400';
   const menuLabelCls = 'px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/40';
@@ -683,8 +699,9 @@ export default function CustomPlayer({
         playsInline
         crossOrigin="anonymous"
         // object-contain: show the video at its true aspect ratio, centered in the
-        // container; letterbox area stays black.
-        className="h-full w-full bg-black object-contain"
+        // container; letterbox area stays black. touch-none: this is a drag surface
+        // for the shell's drag-to-minimize, so the browser mustn't grab the swipe.
+        className="h-full w-full touch-none bg-black object-contain"
         // mini: the shell routes taps (expand). full desktop: tap toggles play.
         // full mobile: tap reveals the controls (the big center button plays/pauses).
         onClick={mini ? undefined : mobile ? poke : togglePlay}
@@ -750,54 +767,63 @@ export default function CustomPlayer({
             } ${!morphing && controlsOn ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
           >
             {/* tap empty space to hide controls (the video's onClick reveals them
-                again while they're hidden). A downward drag still bubbles to the
-                shell to minimize. */}
-            <div className="absolute inset-0" onClick={() => setShow(false)} />
+                again while they're hidden). touch-none so a downward drag here is
+                claimed by the shell (minimize) instead of scrolling. */}
+            <div className="absolute inset-0 touch-none" onClick={() => setShow(false)} />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
 
-            {/* top-left: minimize (chevron down) */}
-            {onMinimize && (
-              <button
-                onClick={onMinimize}
-                aria-label="minimize to miniplayer"
-                className="absolute left-1 top-1 grid h-14 w-14 place-items-center rounded-full text-white"
-              >
-                <ChevronDown className="h-7 w-7" />
-              </button>
-            )}
-
-            {/* top-right: subtitles + settings + pip */}
-            <div className="absolute right-0.5 top-1 flex items-center text-white">
-              {subtitles.length > 0 && (
-                <DropdownMenu open={subsOpen} onOpenChange={(o) => { setSubsOpen(o); poke(); }}>
+            {/* top bar: [chevron + title] on the left (title truncates, fullscreen
+                only), settings cluster on the right — one flex row so the title
+                shrinks/ellipsizes and never runs under the right-side controls. */}
+            <div className="absolute inset-x-0 top-0 flex items-center gap-1 p-1 text-white">
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                {onMinimize && (
+                  <button
+                    onClick={handleMinimize}
+                    aria-label="minimize to miniplayer"
+                    className="grid h-14 w-14 shrink-0 place-items-center rounded-full text-white"
+                  >
+                    <ChevronDown className="h-7 w-7" />
+                  </button>
+                )}
+                {fs && title && (
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
+                    {title}
+                  </span>
+                )}
+              </div>
+              <div className="flex shrink-0 items-center">
+                {subtitles.length > 0 && (
+                  <DropdownMenu open={subsOpen} onOpenChange={(o) => { setSubsOpen(o); poke(); }}>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={`grid h-14 w-14 place-items-center rounded-full ${subIdx >= 0 ? 'text-red-400' : ''}`}
+                        aria-label="subtitles"
+                      >
+                        <Captions className="h-6 w-6" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    {subtitlesMenuContent}
+                  </DropdownMenu>
+                )}
+                <DropdownMenu open={settingsOpen} onOpenChange={(o) => { setSettingsOpen(o); poke(); }}>
                   <DropdownMenuTrigger asChild>
-                    <button
-                      className={`grid h-14 w-14 place-items-center rounded-full ${subIdx >= 0 ? 'text-red-400' : ''}`}
-                      aria-label="subtitles"
-                    >
-                      <Captions className="h-6 w-6" />
+                    <button className="grid h-14 w-14 place-items-center rounded-full" aria-label="settings">
+                      <Settings className="h-6 w-6" />
                     </button>
                   </DropdownMenuTrigger>
-                  {subtitlesMenuContent}
+                  {settingsMenuContent}
                 </DropdownMenu>
-              )}
-              <DropdownMenu open={settingsOpen} onOpenChange={(o) => { setSettingsOpen(o); poke(); }}>
-                <DropdownMenuTrigger asChild>
-                  <button className="grid h-14 w-14 place-items-center rounded-full" aria-label="settings">
-                    <Settings className="h-6 w-6" />
+                {hasPip && (
+                  <button
+                    onClick={togglePip}
+                    className="grid h-14 w-14 place-items-center rounded-full"
+                    aria-label="picture in picture"
+                  >
+                    <PictureInPicture2 className="h-5 w-5" />
                   </button>
-                </DropdownMenuTrigger>
-                {settingsMenuContent}
-              </DropdownMenu>
-              {hasPip && (
-                <button
-                  onClick={togglePip}
-                  className="grid h-14 w-14 place-items-center rounded-full"
-                  aria-label="picture in picture"
-                >
-                  <PictureInPicture2 className="h-5 w-5" />
-                </button>
-              )}
+                )}
+              </div>
             </div>
 
             {/* center: big play/pause */}
@@ -946,7 +972,7 @@ export default function CustomPlayer({
               </button>
             )}
             {onMinimize && (
-              <button className={btn} onClick={onMinimize} aria-label="minimize to miniplayer">
+              <button className={btn} onClick={handleMinimize} aria-label="minimize to miniplayer">
                 <Minimize2 className="h-5 w-5" />
               </button>
             )}

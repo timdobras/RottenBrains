@@ -44,6 +44,7 @@ export default async function WatchMovieBody({
         media_type={media_type}
         media_id={media_id}
         resumePosition={playbackPosition ?? undefined}
+        title={media.title || media.name}
         isOverlay={isOverlay}
       />
       <WatchPageWrapper>

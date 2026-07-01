@@ -232,6 +232,21 @@ export default function VideoShell() {
     if (v < 0.01 || v > 0.99) setSnapping((prev) => (prev ? false : prev));
   });
 
+  // The mini box's resize/snap CSS transition must be OFF on the morph→mini
+  // handoff frame — otherwise removing the transform while writing top/left
+  // animates the box from the full position (a visible "double" animation). Turn
+  // it on one frame after entering mini, so later double-tap resizes + edge snaps
+  // still animate.
+  const [miniSettled, setMiniSettled] = useState(false);
+  useEffect(() => {
+    if (phase !== 'mini') {
+      setMiniSettled(false);
+      return;
+    }
+    const id = requestAnimationFrame(() => setMiniSettled(true));
+    return () => cancelAnimationFrame(id);
+  }, [phase]);
+
   // ── mode → progress animation ──
   // Every minimize/maximize path in the app just sets store `mode`; this is the
   // single place that turns a mode change into the spring animation. So the
@@ -424,7 +439,7 @@ export default function VideoShell() {
         // Full: candidate minimize-drag, UNLESS the press started on a control
         // (scrubber, buttons, menus) — those own their gestures.
         const el = e.target as HTMLElement | null;
-        if (el?.closest('button, input, a, [role="menuitem"], [data-no-mindrag]')) return;
+        if (el?.closest('button, input, a, [role="menu"], [role="menuitem"], [data-no-mindrag]')) return;
         dragRef.current = {
           kind: 'full',
           startX: e.clientX,
@@ -565,11 +580,13 @@ export default function VideoShell() {
           boxShadow: SHADOW,
           touchAction: 'none',
           cursor: isDragging ? 'grabbing' : 'grab',
-          // Animate the double-tap resize + edge snap; instant while dragging so it
-          // tracks the finger.
-          transition: isDragging
-            ? 'none'
-            : 'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease',
+          // Animate the double-tap resize + edge snap; instant while dragging (track
+          // the finger) AND on the handoff frame (miniSettled false) so the box
+          // doesn't animate in from the full position.
+          transition:
+            isDragging || !miniSettled
+              ? 'none'
+              : 'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease',
         }
       : phase === 'morph'
         ? {
@@ -586,7 +603,10 @@ export default function VideoShell() {
             zIndex: 99999,
             boxShadow: SHADOW,
             willChange: 'transform',
-            touchAction: 'none',
+            // Full/morph: shell stays 'auto' so a portaled dropdown menu inside can
+            // scroll on touch. The drag surface (video + tap-catch) carries
+            // touch-none instead, so the drag-to-minimize still isn't stolen.
+            touchAction: 'auto',
           }
         : {
             // full, at rest — no transform, so fullscreen/PiP behave normally
@@ -598,7 +618,7 @@ export default function VideoShell() {
             zIndex: state.isOverlay ? 40 : 1,
             borderRadius: 0,
             boxShadow: 'none',
-            touchAction: 'none',
+            touchAction: 'auto',
           };
 
   return ReactDOM.createPortal(
@@ -660,6 +680,7 @@ export default function VideoShell() {
               onProgress={onProgress}
               onAspectRatio={setAspectRatio}
               mobile={isMobile}
+              title={state.title}
               noSource={stream.status === 'error' && !display.src}
               onExpand={maximize}
               onClose={closePlayer}

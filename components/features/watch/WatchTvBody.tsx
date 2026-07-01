@@ -91,6 +91,7 @@ export default async function WatchTvBody({
         season_number={season_number}
         episode_number={episode_number}
         resumePosition={playbackPosition ?? undefined}
+        title={`${media.name} · S${season_number} E${episode_number}`}
         isOverlay={isOverlay}
       />
       <WatchPageWrapper>

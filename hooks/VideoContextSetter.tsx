@@ -10,6 +10,8 @@ interface VideoContextSetterProps {
   season_number?: VideoState['season_number'];
   episode_number?: VideoState['episode_number'];
   resumePosition?: number; // playback position in seconds from watch history
+  // Human title of what's playing (shown in the fullscreen player chrome).
+  title?: string;
   // Set by the @watch intercepting overlay so the player knows it can pop the
   // overlay (router.back) on minimize/close. Defaults to false for the real
   // (hard-loaded) /watch page, preserving the previous push('/') behavior.
@@ -22,6 +24,7 @@ export default function VideoContextSetter({
   season_number,
   episode_number,
   resumePosition,
+  title,
   isOverlay = false,
 }: VideoContextSetterProps) {
   const { setState } = useVideo();
@@ -35,6 +38,7 @@ export default function VideoContextSetter({
       episode_number,
       mode: 'full',
       resumePosition,
+      title,
       isOverlay,
     });
     // NO cleanup-minimize on purpose. The overlay is kept alive, so hopping
@@ -43,7 +47,7 @@ export default function VideoContextSetter({
     // fire in that gap → a max→mini→max flash that briefly reveals the origin
     // page. Minimize is driven explicitly instead: the minimize button, the link
     // interceptor (navigating away), and the popstate handler (browser back).
-  }, [media_type, media_id, season_number, episode_number, resumePosition, isOverlay, setState]);
+  }, [media_type, media_id, season_number, episode_number, resumePosition, title, isOverlay, setState]);
 
   return null;
 }
