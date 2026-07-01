@@ -23,19 +23,19 @@ import { useWatchProgressTracker } from './useWatchProgressTracker';
 // an expand starts the player moving immediately instead of waiting for the
 // overlay route to render. The navbar is hidden on watch, so there's no bar
 // height to offset for — mobile pins flush to the top.
-function estimateFullRect(isMobile: boolean) {
+function estimateFullRect(isMobile: boolean, aspectRatio: number) {
   if (typeof window === 'undefined') return null;
   const vw = window.innerWidth;
   if (isMobile) {
     const width = vw;
-    return { top: 0, left: 0, width, height: Math.round((width * 9) / 16) };
+    return { top: 0, left: 0, width, height: Math.round(width / aspectRatio) };
   }
   const wrapperW = Math.min(vw, 1280); // max-w-7xl
   const padX = 32; // md:px-8
   const width = wrapperW - padX * 2;
   const left = Math.round(Math.max(0, (vw - wrapperW) / 2) + padX);
   const top = 24; // wrapper md:pt-6 (no navbar on watch)
-  return { top, left, width, height: Math.round((width * 9) / 16) };
+  return { top, left, width, height: Math.round(width / aspectRatio) };
 }
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -129,10 +129,19 @@ export default function VideoShell() {
   // Full-mode box: the measured placeholder, else the geometry estimate. Computed
   // even in mini (placeholder absent) so the morph transform always has a stable
   // base rect to interpolate FROM.
+  // Height is computed from the measured WIDTH and the content aspect (NOT the
+  // measured height) so the full player reacts to the aspect exactly like the mini
+  // — instantly on every render — instead of waiting on the placeholder-tracking
+  // loop to catch the CSS resize (which left the box stuck at 16/9).
   const fullRect: Rect | null =
     placeholderRect && placeholderRect.width > 0
-      ? { top: placeholderRect.top, left: placeholderRect.left, width: placeholderRect.width, height: placeholderRect.height }
-      : estimateFullRect(isMobile);
+      ? {
+          top: placeholderRect.top,
+          left: placeholderRect.left,
+          width: placeholderRect.width,
+          height: Math.round(placeholderRect.width / aspectRatio),
+        }
+      : estimateFullRect(isMobile, aspectRatio);
   // Mini-mode box: the floating window from useMiniplayerState, but sized to the
   // CONTENT aspect (matches the mini rest render + the full box, so the morph
   // scales uniformly with no aspect pop at the handoff).
