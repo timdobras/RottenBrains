@@ -57,7 +57,11 @@ const MemoCustomPlayer = memo(CustomPlayer);
 
 // Spring used for every non-drag transition (buttons + drag-release snap), so a
 // tapped minimize/maximize plays the exact same motion as a flung drag.
-const SPRING = { type: 'spring' as const, stiffness: 400, damping: 40 };
+// Softened from stiffness 400 → 260 (with damping ≈ critical, so it glides to
+// rest with no bounce): the old spring snapped a bit too fast/abruptly on a
+// button tap. On a drag-release the spring still inherits the pointer's velocity,
+// so a fast fling stays fast — this only gentles the from-rest button/tap case.
+const SPRING = { type: 'spring' as const, stiffness: 260, damping: 32 };
 
 /**
  * Persistent player shell. A single CustomPlayer (<video>/hls.js) lives in the

@@ -29,11 +29,15 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
     }
   }, [pathname, setState]);
 
-  // While the watch overlay is maximized, hide the origin page (YouTube-style:
-  // it `display:none`s the page behind). It stays MOUNTED — so minimize is still
-  // instant — but isn't painted or active behind the opaque overlay. display:none
-  // collapses the document scroll, so we remember the scroll position while the
-  // origin is visible and restore it when it comes back.
+  // While the watch overlay is maximized, hide the origin page (YouTube-style)
+  // behind the opaque overlay. We use `content-visibility: hidden` rather than
+  // `display: none`: both skip rendering the hidden subtree (and collapse it, so
+  // scroll behaves the same — hence we still save/restore scroll below), but
+  // content-visibility PRESERVES the rendered layout/paint state, so REVEALING it
+  // on minimize is a cheap repaint instead of a full relayout+repaint of the whole
+  // page (hero + every card) in a single frame — which was a ~180ms freeze at the
+  // start of the minimize morph. Old browsers ignore it and the opaque overlay
+  // still covers the origin, so degradation is graceful.
   //
   // Gated on `progress` (≈0 = fully full), NOT `mode`, so the origin is revealed
   // *during* the minimize morph — the player shrinks toward its dock over the
@@ -99,7 +103,13 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
       {/* single main wrapper — hidden (but kept mounted) while the watch overlay is up */}
       <main
         className={`${mobileBottomMargin} ${topMargin} w-full flex-1 md:mb-0`}
-        style={{ display: hideOrigin ? 'none' : undefined }}
+        style={
+          hideOrigin
+            ? // contain-intrinsic-size keeps the hidden page from collapsing to 0
+              // (which would jump the scrollbar) while its render state is cached.
+              { contentVisibility: 'hidden', containIntrinsicSize: 'auto 100vh' }
+            : undefined
+        }
       >
         {children}
       </main>
