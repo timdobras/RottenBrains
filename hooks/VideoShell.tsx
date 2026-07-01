@@ -1,7 +1,9 @@
 'use client';
 
+import { animate, motion, useMotionValue, useMotionValueEvent, type MotionValue } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import ReactDOM from 'react-dom';
 
 import CustomPlayer, { type CustomPlayerSubtitle } from '@/components/features/watch/CustomPlayer';
@@ -16,35 +18,44 @@ import { useVideo } from './VideoProvider';
 import { useWatchProgressTracker } from './useWatchProgressTracker';
 
 // Estimate the full-mode player rect from viewport geometry, mirroring the watch
-// layout (overlay top padding + a max-w-7xl wrapper with md:px-8 / md:pt-6,
-// non-theater). Used as the player's target while the real
-// #video-inline-placeholder hasn't mounted yet, so an expand starts the player
-// moving immediately instead of waiting for the overlay route to render.
+// layout (a max-w-7xl wrapper with md:px-8 / md:pt-6, non-theater). Used as the
+// player's target while the real #video-inline-placeholder hasn't mounted yet, so
+// an expand starts the player moving immediately instead of waiting for the
+// overlay route to render. The navbar is hidden on watch, so there's no bar
+// height to offset for — mobile pins flush to the top.
 function estimateFullRect(isMobile: boolean) {
   if (typeof window === 'undefined') return null;
   const vw = window.innerWidth;
   if (isMobile) {
     const width = vw;
-    return { top: 48, left: 0, width, height: Math.round((width * 9) / 16) };
+    return { top: 0, left: 0, width, height: Math.round((width * 9) / 16) };
   }
   const wrapperW = Math.min(vw, 1280); // max-w-7xl
   const padX = 32; // md:px-8
   const width = wrapperW - padX * 2;
   const left = Math.round(Math.max(0, (vw - wrapperW) / 2) + padX);
-  const top = 64 + 24; // navbar (md:h-16) + wrapper md:pt-6
+  const top = 24; // wrapper md:pt-6 (no navbar on watch)
   return { top, left, width, height: Math.round((width * 9) / 16) };
 }
 
+type Rect = { top: number; left: number; width: number; height: number };
+
+// Spring used for every non-drag transition (buttons + drag-release snap), so a
+// tapped minimize/maximize plays the exact same motion as a flung drag.
+const SPRING = { type: 'spring' as const, stiffness: 400, damping: 40 };
+
 /**
  * Persistent player shell. A single CustomPlayer (<video>/hls.js) lives in the
- * `#player-root` portal and survives navigation: it's repositioned between the
- * inline placeholder (full mode) and a floating draggable window (mini mode),
- * NEVER remounted on a mode/provider change — so playback is continuous. The
- * stream is resolved via the new pipeline (Auto-first + cached switcher) and
- * progress is tracked precisely in both modes.
+ * `#player-root` portal and survives navigation: it is NEVER remounted on a
+ * mode/provider change, so playback is continuous. Its box is always laid out at
+ * the full-mode rect (top/left/width/height); a `progress`-driven translate+scale
+ * transform (0 = full, 1 = mini) morphs it toward the floating mini window. That
+ * transform is what the drag-to-minimize gesture and the minimize/maximize
+ * buttons both animate — the video is dragged from a max player at the top down
+ * to a mini player docked bottom-right.
  */
 export default function VideoShell() {
-  const { state, setState } = useVideo();
+  const { state, setState, progress } = useVideo();
   const { media_type, media_id, season_number, episode_number, mode, resumePosition } = state;
 
   const isMobile = useIsMobile();
@@ -52,75 +63,25 @@ export default function VideoShell() {
   const { user } = useUser();
   const premium = !!user?.premium;
 
-  // Tracked placeholder rect for full-mode positioning (kept aligned via
-  // ResizeObserver + scroll listener).
+  // Tracked placeholder rect for full-mode positioning (kept aligned via a
+  // per-frame loop). Falls back to a geometry estimate when the placeholder
+  // isn't mounted (e.g. while mini, where the overlay is hidden).
   const [placeholderRect, setPlaceholderRect] = useState<DOMRect | null>(null);
-  const rafRef = useRef<number>(0);
-
-  // Intrinsic video aspect ratio (width/height); defaults to 16/9 until the
-  // metadata loads. Full mode keeps a 16/9 box (video letterboxed via
-  // object-contain); mini mode sizes its window to this ratio.
-  const [aspectRatio, setAspectRatio] = useState(16 / 9);
-  useEffect(() => {
-    // new title → back to the 16/9 default until its metadata arrives
-    setAspectRatio(16 / 9);
-  }, [media_id, media_type, season_number, episode_number]);
-
-  // Animate the geometry ONLY during a mini⟷full mode switch. Full mode normally
-  // runs with transition:none so it can track the placeholder on scroll without
-  // lag — so we flip this flag on for ~320ms around a mode change to get the
-  // slide+grow, then turn it back off for instant scroll tracking.
-  const [animatingMode, setAnimatingMode] = useState(false);
-  // Transient full-screen click-shield raised during EITHER mode switch
-  // (mini→full and full→mini). While the player + watch overlay animate, the
-  // content shifts under the pointer; without the shield a click — or, on
-  // touch, the tap's delayed synthetic click fired after the overlay has opened
-  // under the finger — lands on whatever element is now there and navigates to
-  // it ("expanding/minimizing opens a random media card"). The shield absorbs
-  // any click for the transition + a short buffer so nothing stray is hit.
-  const [shieldActive, setShieldActive] = useState(false);
-  const prevModeRef = useRef(mode);
-  useEffect(() => {
-    if (prevModeRef.current === mode) return;
-    prevModeRef.current = mode;
-    setAnimatingMode(true);
-    setShieldActive(true);
-    // animatingMode must outlast the 0.25s geometry transition so it isn't cut
-    // to `transition: none` mid-glide.
-    const t = setTimeout(() => setAnimatingMode(false), 320);
-    // Shield outlasts the animation AND a touch's ~300ms synthetic-click delay.
-    const t2 = setTimeout(() => setShieldActive(false), 450);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(t2);
-    };
-  }, [mode]);
 
   const { position, size, isDragging, setIsDragging, setTempPosition, handleDragEnd } =
     useMiniplayerState();
 
-  const dragStartRef = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number } | null>(
-    null,
-  );
-  const movedRef = useRef(false); // did the pointer move past the drag threshold
-  const shellElRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+  const shellElRef = useRef<HTMLDivElement | null>(null);
+  // Pending state for a direct-load minimize navigation to the origin — drives a
+  // loader behind the docked player while that page renders.
+  const [originPending, startOriginTransition] = useTransition();
+
   // watch-page href for this title (mini tap on mobile → expand here)
   const href =
     media_id && media_type ? getHrefFromMedia(media_type, media_id, season_number, episode_number) : '/';
-  const hrefRef = useRef(href);
-  hrefRef.current = href;
-  const isMobileRef = useRef(isMobile);
-  isMobileRef.current = isMobile;
-  // Whether the @watch overlay is currently populated. True once it has rendered
-  // (kept alive after), false when the title came from a hard-loaded real /watch
-  // page. Ref so the mobile pointer handler reads the live value, not a stale
-  // closure. Drives whether maximize can just replaceState (instant) or must do
-  // a real navigation to load the overlay's content first.
-  const isOverlayRef = useRef(state.isOverlay);
-  isOverlayRef.current = state.isOverlay;
 
-  // ── stream + tracking (the new pipeline) ──
+  // ── stream + tracking (the resolution pipeline) ──
   const input: ResolveInput | null =
     media_id && (media_type === 'movie' || media_type === 'tv')
       ? { mediaType: media_type, id: media_id, season: season_number, episode: episode_number }
@@ -131,15 +92,11 @@ export default function VideoShell() {
     { enabled: premium && !!input },
   );
 
-  // Hold the last successfully-resolved stream so a PROVIDER switch (where
-  // useStreamResolver briefly sets stream=null) doesn't blank the player —
-  // the old stream keeps playing until the new src is ready.
+  // Hold the last successfully-resolved stream so a PROVIDER switch (brief
+  // stream=null) doesn't blank the player. A TITLE change DOES drop it.
   const lastStreamRef = useRef<{ src: string; type: 'hls' | 'mp4'; subtitles: CustomPlayerSubtitle[] }>(
     { src: '', type: 'hls', subtitles: [] },
   );
-  // BUT a TITLE change must NOT keep the old stream — otherwise switching to a
-  // title no provider has would replay the previous media (and never show the
-  // no-source state). Drop the held stream whenever the title changes.
   const titleKey = `${media_type}-${media_id}-${season_number ?? ''}-${episode_number ?? ''}`;
   const lastTitleRef = useRef(titleKey);
   if (lastTitleRef.current !== titleKey) {
@@ -151,26 +108,203 @@ export default function VideoShell() {
   }
   const display = lastStreamRef.current;
 
+  // ── geometry ──
+  // Full-mode box: the measured placeholder, else the geometry estimate. Computed
+  // even in mini (placeholder absent) so the morph transform always has a stable
+  // base rect to interpolate FROM.
+  const fullRect: Rect | null =
+    placeholderRect && placeholderRect.width > 0
+      ? { top: placeholderRect.top, left: placeholderRect.left, width: placeholderRect.width, height: placeholderRect.height }
+      : estimateFullRect(isMobile);
+  // Mini-mode box: the floating window from useMiniplayerState (position + 16/9 size).
+  const miniRect: Rect = { top: position.y, left: position.x, width: size.width, height: size.height };
+
+  // Live refs for the imperative transform + pointer handlers (avoid stale closures).
+  const geomRef = useRef<{ full: Rect | null; mini: Rect }>({ full: fullRect, mini: miniRect });
+  geomRef.current.full = fullRect;
+  geomRef.current.mini = miniRect;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const hrefRef = useRef(href);
+  hrefRef.current = href;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
+  const isOverlayRef = useRef(state.isOverlay);
+  isOverlayRef.current = state.isOverlay;
+
+  // Motion outputs. The box stays at fullRect (React layout); these transforms
+  // (top-left origin) slide + shrink it toward miniRect as progress → 1.
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const scale = useMotionValue(1);
+  const radius = useMotionValue(0);
+
+  const applyTransform = useCallback(() => {
+    const v = progress.get();
+    const { full, mini } = geomRef.current;
+    if (!full) {
+      x.set(0);
+      y.set(0);
+      scale.set(1);
+      radius.set(0);
+      return;
+    }
+    const s = mini.width / full.width;
+    x.set((mini.left - full.left) * v);
+    y.set((mini.top - full.top) * v);
+    scale.set(1 + (s - 1) * v);
+    // ~14px visual corner radius when fully mini (pre-scale, so it survives the shrink)
+    radius.set(v * (14 / Math.max(s, 0.01)));
+  }, [progress, x, y, scale, radius]);
+
+  // Recompute the transform on every progress tick AND whenever the rects change
+  // (mini repositioning at rest, full-mode scroll/resize).
+  useEffect(() => {
+    applyTransform();
+    return progress.on('change', applyTransform);
+  }, [progress, applyTransform]);
+  useEffect(() => {
+    applyTransform();
+  }, [applyTransform, fullRect?.top, fullRect?.left, fullRect?.width, fullRect?.height, miniRect.top, miniRect.left, miniRect.width, miniRect.height]);
+
+  // `atFull` (progress ≈ 0) toggles the player's z-index/shadow and — crucially —
+  // the CustomPlayer chrome (full controls vs mini chrome). `snapping` is true
+  // only while a spring animation (button / drag-release) is in flight — it
+  // raises a transient click-shield so content shifting under the pointer can't be
+  // activated (e.g. a tap-maximize's delayed synthetic click). It is NOT set
+  // during a manual drag, so the shield never blocks the gesture itself.
+  const [atFull, setAtFull] = useState(progress.get() < 0.5);
+  const [snapping, setSnapping] = useState(false);
+  useMotionValueEvent(progress, 'change', (v) => {
+    const nextFull = v < 0.5;
+    setAtFull((prev) => (prev === nextFull ? prev : nextFull));
+    if (v < 0.01 || v > 0.99) setSnapping((prev) => (prev ? false : prev));
+  });
+
+  // ── mode → progress animation ──
+  // Every minimize/maximize path in the app just sets store `mode`; this is the
+  // single place that turns a mode change into the spring animation. So the
+  // buttons, the link interceptor, and browser back all "play the animation" for
+  // free — identically to a drag-release snap.
+  const animRef = useRef<ReturnType<typeof animate> | null>(null);
+  const animateTo = useCallback(
+    (target: 0 | 1) => {
+      animRef.current?.stop();
+      setSnapping(true);
+      animRef.current = animate(progress, target, SPRING);
+    },
+    [progress],
+  );
+  const prevModeRef = useRef<string | null>(null);
+  const prevMediaRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const media = media_id;
+    // No media open → nothing to animate; just keep the mode baseline in sync.
+    if (media == null) {
+      prevModeRef.current = mode;
+      prevMediaRef.current = undefined;
+      return;
+    }
+    const isFreshTitle = prevMediaRef.current !== media;
+    prevMediaRef.current = media;
+    // Fresh open or hop to a new title → snap to the mode's target with NO
+    // animation (a new player shouldn't fly in from the mini corner).
+    if (isFreshTitle) {
+      animRef.current?.stop();
+      progress.set(mode === 'mini' ? 1 : 0);
+      prevModeRef.current = mode;
+      return;
+    }
+    if (mode !== prevModeRef.current) {
+      prevModeRef.current = mode;
+      animateTo(mode === 'mini' ? 1 : 0);
+    }
+  }, [mode, media_id, progress, animateTo]);
+
+  // ── side-effecting transitions (URL rewrites live here; the animation is driven
+  //    by the mode change above) ──
+  const minimize = useCallback(() => {
+    setState((s) => ({ ...s, mode: 'mini' }));
+    if (isOverlayRef.current && typeof window !== 'undefined') {
+      // In-app path: both the overlay and the origin page are already mounted, so
+      // minimize is a visibility flip + a cosmetic URL rewrite — instant.
+      window.history.replaceState(window.history.state, '', state.originUrl || '/');
+    } else {
+      // Direct-load path: no origin mounted underneath, so this is a real
+      // navigation. Run it as a transition so `originPending` is true while the
+      // landing page renders — the player still docks instantly (its own spring),
+      // and we show a loader behind it if the page isn't warm yet (e.g. the user
+      // minimized immediately, before the background prefetch landed).
+      startOriginTransition(() => {
+        router.push(state.originUrl || '/', { scroll: false });
+      });
+    }
+  }, [setState, router, state.originUrl, startOriginTransition]);
+
+  const maximize = useCallback(() => {
+    setState((s) => ({ ...s, mode: 'full', isOverlay: true }));
+    if (isOverlayRef.current && typeof window !== 'undefined') {
+      window.history.replaceState(window.history.state, '', hrefRef.current);
+    } else {
+      router.push(hrefRef.current, { scroll: false });
+    }
+  }, [setState, router]);
+
+  const closePlayer = useCallback(() => {
+    if (isOverlayRef.current && typeof window !== 'undefined') {
+      window.history.replaceState(window.history.state, '', state.originUrl || '/');
+    }
+    setState((s) => ({ ...s, media_id: undefined, mode: 'mini' }));
+  }, [setState, state.originUrl]);
+
   // Mount check for portal
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Warm the watch route while the player sits in mini, so an expand navigates
-  // against an already-prefetched route instead of starting cold — the content
-  // renders as close to instant as the data allows.
+  // Warm the watch route while mini so an expand navigates against a prefetched route.
   useEffect(() => {
     if (mode === 'mini' && href && href !== '/') router.prefetch(href);
   }, [mode, href, router]);
 
-  // Track the placeholder position so the portal stays aligned in full mode.
-  // A per-frame loop (rather than ResizeObserver-on-a-node) is deliberate: the
-  // placeholder may not exist yet when `mode` flips to 'full' optimistically on
-  // an expand click, and it gets REPLACED when the loading skeleton swaps to the
-  // real page. Re-querying getElementById every frame locks onto whichever
-  // placeholder is currently mounted the instant it appears, survives that swap,
-  // and tracks scroll in both the full page and the self-scrolling overlay. The
-  // setState equality check means React only re-renders when the rect changes.
+  // Direct-loaded watch page (arrived by hard-loading the /watch URL, e.g. a
+  // shared link) has NO origin page mounted underneath — the @watch intercept
+  // only fires on soft navigation, so minimize has to actually navigate to the
+  // landing page. Warm it in the BACKGROUND so that navigation renders from cache
+  // with no network load (the persistent player keeps playing across it). The
+  // in-app overlay path already has its origin mounted, so this only runs when
+  // isOverlay is false.
+  //
+  // Crucially, DEFER it so it never competes with the player for bandwidth on
+  // first load: wait until the stream has actually resolved (player + video come
+  // first), then warm home only once the tab goes idle (with a timeout fallback).
+  // So the important stuff loads first and home trickles in afterwards.
+  const originWarmedRef = useRef(false);
+  useEffect(() => {
+    if (originWarmedRef.current) return;
+    if (!media_id || state.isOverlay) return;
+    if (!stream.src) return; // player hasn't got its stream yet → hold off
+    originWarmedRef.current = true;
+    const origin = state.originUrl || '/';
+    const warm = () => router.prefetch(origin);
+    // A short head start for the stream, then warm home when the browser is idle.
+    const t = setTimeout(() => {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        (window as unknown as { requestIdleCallback: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback(
+          warm,
+          { timeout: 3000 },
+        );
+      } else {
+        warm();
+      }
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [media_id, state.isOverlay, state.originUrl, stream.src, router]);
+
+  // Track the placeholder position so the full-mode box stays aligned. Per-frame
+  // (rather than ResizeObserver on a node) because the placeholder is created/
+  // replaced by the overlay route as it loads; re-querying every frame locks onto
+  // whichever placeholder is currently mounted and survives that swap.
   useEffect(() => {
     if (!mounted || mode !== 'full') {
       setPlaceholderRect(null);
@@ -181,9 +315,6 @@ export default function VideoShell() {
       const el = document.getElementById('video-inline-placeholder');
       if (el) {
         const rect = el.getBoundingClientRect();
-        // Ignore zero-size rects: the placeholder lives inside the overlay, which
-        // is display:none while minimized, so it measures as 0×0 — fall back to
-        // the estimated rect instead of collapsing the player to nothing.
         if (rect.width > 0 && rect.height > 0) {
           setPlaceholderRect((prev) =>
             prev &&
@@ -196,68 +327,131 @@ export default function VideoShell() {
           );
         }
       }
-      // If the placeholder isn't in the DOM yet (or briefly vanishes during the
-      // loading→page swap), KEEP the last measured rect rather than blanking it,
-      // so the player holds its spot instead of jittering back to mini.
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [mounted, mode]);
 
-  // ── miniplayer drag-or-tap ──
-  // The whole surface is grabbable; CustomPlayer's buttons + scrubber
-  // stopPropagation so they never start a drag. Moving past a small threshold =
-  // drag the window; a press without moving = a tap → play/pause (desktop) or
-  // expand to the watch page (mobile).
+  // ── pointer: mini reposition-drag + full drag-to-minimize ──
+  // A single pointerdown → window move/up cycle, branching on the current mode.
+  //  • mini: move past a threshold drags the floating window (snap-to-edge on
+  //    release); a press without moving = tap → expand (mobile) / play-pause (desktop).
+  //  • full: a predominantly-downward drag drives `progress` (the player follows
+  //    the finger, shrinking toward the mini dock). Release snaps to mini or back
+  //    to full by position + velocity. A tap does nothing here (the video's own
+  //    onClick handles play/pause / controls).
+  const dragRef = useRef<
+    | { kind: 'mini'; startX: number; startY: number; posX: number; posY: number; active: boolean }
+    | { kind: 'full'; startX: number; startY: number; active: boolean; vy: number; prevY: number; prevT: number }
+    | null
+  >(null);
+
   const onShellPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      dragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, posX: position.x, posY: position.y };
-      movedRef.current = false;
+      if (modeRef.current === 'mini') {
+        dragRef.current = {
+          kind: 'mini',
+          startX: e.clientX,
+          startY: e.clientY,
+          posX: position.x,
+          posY: position.y,
+          active: false,
+        };
+      } else {
+        // Full: candidate minimize-drag, UNLESS the press started on a control
+        // (scrubber, buttons, menus) — those own their gestures.
+        const el = e.target as HTMLElement | null;
+        if (el?.closest('button, input, a, [role="menuitem"], [data-no-mindrag]')) return;
+        dragRef.current = {
+          kind: 'full',
+          startX: e.clientX,
+          startY: e.clientY,
+          active: false,
+          vy: 0,
+          prevY: e.clientY,
+          prevT: e.timeStamp,
+        };
+      }
     },
     [position],
   );
 
   useEffect(() => {
-    const THRESHOLD = 5;
+    const THRESHOLD = 6;
     const onMove = (e: PointerEvent) => {
-      const s = dragStartRef.current;
+      const s = dragRef.current;
       if (!s) return;
-      const dx = e.clientX - s.mouseX;
-      const dy = e.clientY - s.mouseY;
-      if (!movedRef.current && Math.hypot(dx, dy) < THRESHOLD) return;
-      if (!movedRef.current) {
-        movedRef.current = true;
-        setIsDragging(true);
+      const dx = e.clientX - s.startX;
+      const dy = e.clientY - s.startY;
+
+      if (s.kind === 'mini') {
+        if (!s.active && Math.hypot(dx, dy) < 5) return;
+        if (!s.active) {
+          s.active = true;
+          setIsDragging(true);
+        }
+        e.preventDefault();
+        setTempPosition({ x: s.posX + dx, y: s.posY + dy });
+        return;
+      }
+
+      // full → minimize drag
+      if (!s.active) {
+        if (Math.hypot(dx, dy) < THRESHOLD) return;
+        // Only claim clearly-downward, vertical-dominant gestures; anything else
+        // (horizontal, upward) is abandoned so scrubbing/selection still works.
+        if (dy <= 0 || Math.abs(dy) <= Math.abs(dx)) {
+          dragRef.current = null;
+          return;
+        }
+        s.active = true;
+        animRef.current?.stop();
       }
       e.preventDefault();
-      setTempPosition({ x: s.posX + dx, y: s.posY + dy });
+      const { full, mini } = geomRef.current;
+      const range = full ? Math.max(120, mini.top - full.top) : 400;
+      progress.set(Math.min(1, Math.max(0, dy / range)));
+      const now = e.timeStamp;
+      const dt = now - s.prevT;
+      if (dt > 0) s.vy = (e.clientY - s.prevY) / dt; // px/ms
+      s.prevY = e.clientY;
+      s.prevT = now;
     };
+
     const onUp = (e: PointerEvent) => {
-      const s = dragStartRef.current;
+      const s = dragRef.current;
+      dragRef.current = null;
       if (!s) return;
-      dragStartRef.current = null;
-      if (movedRef.current) {
-        handleDragEnd(s.posX + (e.clientX - s.mouseX), s.posY + (e.clientY - s.mouseY));
-        setIsDragging(false);
-      } else {
-        // tap (no drag): mobile → expand to watch page; desktop → play/pause
-        if (isMobileRef.current) {
-          // mobile tap = maximize: navigation-free if the overlay is populated,
-          // else a real navigation to load it (see desktop onExpand for why).
-          setState((s) => ({ ...s, mode: 'full', isOverlay: true }));
-          if (isOverlayRef.current && typeof window !== 'undefined') {
-            window.history.replaceState(window.history.state, '', hrefRef.current);
-          } else {
-            router.push(hrefRef.current, { scroll: false });
-          }
+
+      if (s.kind === 'mini') {
+        if (s.active) {
+          handleDragEnd(s.posX + (e.clientX - s.startX), s.posY + (e.clientY - s.startY));
+          setIsDragging(false);
         } else {
-          const v = shellElRef.current?.querySelector('video');
-          if (v) v.paused ? v.play().catch(() => {}) : v.pause();
+          // tap: mobile → expand; desktop → play/pause
+          if (isMobileRef.current) {
+            maximize();
+          } else {
+            const v = shellElRef.current?.querySelector('video');
+            if (v) v.paused ? v.play().catch(() => {}) : v.pause();
+          }
         }
+        return;
       }
-      movedRef.current = false;
+
+      // full drag release
+      if (!s.active) return; // was a tap → leave play/pause to the video onClick
+      const cur = progress.get();
+      // Fling down (fast) → minimize; else decide by how far it was pulled.
+      const toMini = s.vy > 0.5 || (s.vy > -0.3 && cur > 0.35);
+      if (toMini) {
+        minimize(); // sets mode → the mode effect springs progress 0→1
+      } else {
+        animateTo(0); // stay full (mode unchanged, so animate directly)
+      }
     };
+
     window.addEventListener('pointermove', onMove, { passive: false });
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
@@ -266,156 +460,103 @@ export default function VideoShell() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [setIsDragging, setTempPosition, handleDragEnd, router, setState]);
+  }, [setIsDragging, setTempPosition, handleDragEnd, progress, animateTo, minimize, maximize]);
 
   // ── bail conditions ──
   if (!mounted) return null;
   if (!media_id || !media_type) return null;
   const container = document.getElementById('player-root');
   if (!container) return null;
+  if (!fullRect) return null;
 
-  // The full-mode target: the measured placeholder rect when it exists, else a
-  // geometry-computed estimate of where it WILL be. This lets the player start
-  // moving to full the instant `mode` flips on an expand click — before the
-  // overlay route renders its placeholder — so it leads the page instead of
-  // catching up to it. The measured rect takes over (and the transition eases
-  // out any small difference) the moment the real placeholder mounts.
-  const fullRect = placeholderRect ?? (mode === 'full' ? estimateFullRect(isMobile) : null);
-
-  // Same instance for both modes — only the wrapper style changes.
-  const isFullMode = mode === 'full' && !!fullRect;
-
-  const style: React.CSSProperties = isFullMode
-    ? {
-        position: 'fixed',
-        top: fullRect!.top,
-        left: fullRect!.left,
-        width: fullRect!.width,
-        height: fullRect!.height,
-        // In overlay mode the watch surface sits at z-30, so the player must
-        // ride above it (below the z-50 navbar). On the real full page there's
-        // no overlay, so keep the original low z to stay under page chrome.
-        zIndex: state.isOverlay ? 40 : 1,
-        borderRadius: 0,
-        boxShadow: 'none',
-        // Animate the geometry only during a mini⟷full mode switch; otherwise
-        // none, so full-mode scroll tracking stays pixel-locked to the placeholder.
-        transition: animatingMode
-          ? 'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease, border-radius 0.25s ease'
-          : 'none',
-      }
-    : {
-        position: 'fixed',
-        left: position.x,
-        top: position.y,
-        width: size.width,
-        // mini window adopts the content's aspect ratio (4/3 content → 4/3 box)
-        height: Math.round(size.width / aspectRatio),
-        zIndex: 99999,
-        borderRadius: 14,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-        cursor: isDragging ? 'grabbing' : 'grab',
-        // animate position + the aspect-ratio size change; instant while the
-        // user is actively dragging so it stays responsive. Border-radius is
-        // animated too so the full→mini corner-rounding eases in with the shrink.
-        transition: isDragging
-          ? 'none'
-          : 'left 0.3s ease-out, top 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out, border-radius 0.3s ease-out',
-      };
+  // z-index: at full rest the player sits just above the (z-30) overlay but below
+  // any page chrome; while transitioning or mini it must ride above everything so
+  // it floats over the origin page. Shadow only when it's a floating window.
+  const elevated = !atFull;
+  const zIndex = elevated ? 99999 : state.isOverlay ? 40 : 1;
 
   return ReactDOM.createPortal(
     <>
-      {shieldActive && (
+      {snapping && (
         <div
           aria-hidden
-          // Transient transition click-shield (see shieldActive above). A
-          // transparent fixed layer above everything (incl. the mini player's
-          // z-99999) that absorbs any click/tap while the player and overlay
-          // animate, so content shifting under the pointer can't be activated.
+          // Transient click-shield: absorbs any click/tap while a min/max spring
+          // plays and content shifts under the pointer. Above the mini player's
+          // z (99999) but only mounted mid-snap.
           className="fixed inset-0"
-          style={{ zIndex: 999999 }}
+          style={{ zIndex: 9999999 }}
         />
       )}
-      <div
-        ref={shellElRef}
-        className="relative overflow-hidden bg-black"
-        style={{ ...style, touchAction: isFullMode ? undefined : 'none' }}
-        onPointerDown={isFullMode ? undefined : onShellPointerDown}
-      >
-      {/* Player layer */}
+      {originPending && (
+        <div
+          // Loader behind the docked mini player while a direct-load minimize
+          // navigation renders the landing page. Covers the (stale) watch content
+          // with the theme background + a spinner so the transition reads as
+          // "page loading" rather than a broken flash. Below the mini player
+          // (z 99999) so it stays visible and interactive on top.
+          className="fixed inset-0 grid place-items-center bg-background"
+          style={{ zIndex: 9998 }}
+        >
+          <Loader2 className="h-8 w-8 animate-spin text-foreground/50" />
+        </div>
+      )}
+      <motion.div
+      ref={shellElRef}
+      className="overflow-hidden bg-black"
+      onPointerDown={onShellPointerDown}
+      style={{
+        position: 'fixed',
+        top: fullRect.top,
+        left: fullRect.left,
+        width: fullRect.width,
+        height: fullRect.height,
+        transformOrigin: 'top left',
+        x,
+        y,
+        scale,
+        borderRadius: radius,
+        zIndex,
+        boxShadow: elevated ? '0 4px 20px rgba(0,0,0,0.5)' : 'none',
+        // Mini: the floating window sits over the scrollable origin page, so it
+        // must own its touch gestures (reposition drag) rather than scroll the
+        // page. Full: the player is a fixed portal with the body scroll-locked, so
+        // nothing scrolls behind it anyway — leave touch-action default so the
+        // scrubber still works on touch, while our own handler claims the
+        // downward drag-to-minimize (preventDefault, no scroll to fight).
+        touchAction: mode === 'mini' ? 'none' : undefined,
+        cursor: mode === 'mini' ? (isDragging ? 'grabbing' : 'grab') : undefined,
+      }}
+    >
       <div className="absolute inset-0 overflow-hidden">
         {!premium ? (
           <div className="flex h-full w-full items-center justify-center bg-black px-4 text-center text-white">
-            {isFullMode ? 'You need to be a premium user to watch videos.' : 'Premium required'}
+            {atFull ? 'You need to be a premium user to watch videos.' : 'Premium required'}
           </div>
         ) : (
-          <>
-            <CustomPlayer
-              // key excludes mode + provider → no remount on toggle/switch
-              key={`${media_type}-${media_id}-${season_number ?? ''}-${episode_number ?? ''}`}
-              src={display.src}
-              type={display.type}
-              subtitles={display.subtitles}
-              startTime={resumePosition ?? 0}
-              autoPlay
-              mini={!isFullMode}
-              providers={stream.providers}
-              currentProvider={stream.currentProvider}
-              onSelectProvider={stream.onSelectProvider}
-              resolving={stream.resolving}
-              probing={stream.probing}
-              onProgress={onProgress}
-              onAspectRatio={setAspectRatio}
-              mobile={isMobile}
-              // resolution finished and nothing has it → player shows a message
-              noSource={stream.status === 'error' && !display.src}
-              onExpand={() => {
-                // Flip to full + overlay FIRST so the player starts growing AND
-                // the store-driven backdrop fades in immediately (before the
-                // overlay route renders), then navigate. The overlay's loading
-                // skeleton renders the placeholder so the player has somewhere to
-                // land before the real content finishes streaming in.
-                // Maximize: if the overlay is already populated (kept alive),
-                // it's navigation-free — just show it (mode → full) and rewrite
-                // the URL via the History API, no refetch. If it ISN'T populated
-                // (we started on a hard-loaded /watch page, so the content lived
-                // in the real page and unmounted when we navigated away), do a
-                // real navigation to load the overlay; cached fetchers keep it
-                // quick, and it stays alive for instant maximizes after.
-                setState((s) => ({ ...s, mode: 'full', isOverlay: true }));
-                if (state.isOverlay && typeof window !== 'undefined') {
-                  window.history.replaceState(window.history.state, '', href);
-                } else {
-                  router.push(href, { scroll: false });
-                }
-              }}
-              onClose={() => {
-                // Rewrite the URL back to the origin (no navigation), then drop
-                // the media so the player disappears entirely.
-                if (state.isOverlay && typeof window !== 'undefined') {
-                  window.history.replaceState(window.history.state, '', state.originUrl || '/');
-                }
-                setState((s) => ({ ...s, media_id: undefined, mode: 'mini' }));
-              }}
-              onMinimize={() => {
-                // No navigation at all — both the watch overlay and the origin
-                // page are already mounted, so minimizing is just a visibility
-                // flip (mode → mini hides the overlay, reveals the origin) plus a
-                // cosmetic URL rewrite back to the origin via the History API.
-                // Next syncs usePathname without any refetch/reload. (Hard-loaded
-                // full page has no overlay → fall back to a real navigation.)
-                setState((s) => ({ ...s, mode: 'mini' }));
-                if (state.isOverlay && typeof window !== 'undefined') {
-                  window.history.replaceState(window.history.state, '', state.originUrl || '/');
-                } else {
-                  router.push('/', { scroll: false });
-                }
-              }}
-            />
-          </>
+          <CustomPlayer
+            // key excludes mode + provider → no remount on toggle/switch
+            key={`${media_type}-${media_id}-${season_number ?? ''}-${episode_number ?? ''}`}
+            src={display.src}
+            type={display.type}
+            subtitles={display.subtitles}
+            startTime={resumePosition ?? 0}
+            autoPlay
+            mini={!atFull}
+            providers={stream.providers}
+            currentProvider={stream.currentProvider}
+            onSelectProvider={stream.onSelectProvider}
+            resolving={stream.resolving}
+            probing={stream.probing}
+            onProgress={onProgress}
+            mobile={isMobile}
+            noSource={stream.status === 'error' && !display.src}
+            onExpand={maximize}
+            onClose={closePlayer}
+            onMinimize={minimize}
+          />
         )}
       </div>
-      </div>
+      </motion.div>
     </>,
     container,
   );

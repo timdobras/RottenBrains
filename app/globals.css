@@ -509,23 +509,23 @@
   box-shadow: 0px 0px 10px 5px hsla(0, 0%, 0%, 0.2);
 }
 
-/* Portrait: video is 16:9 based on viewport width */
+/* Portrait: video is 16:9 based on viewport width. The player is pinned at the
+   very top of the watch surface (no navbar on watch), so its bottom edge is a
+   fixed 56.25vw — everything below keys off that single number. */
 @media (max-width: 1024px) and (orientation: portrait) {
   .small-screen-watch-margin-premium,
   .small-screen-watch-margin {
-    margin-top: calc(56.25vw + 40px);
+    margin-top: 56.25vw;
   }
   .small-screen-watch-margin-info-premium,
   .small-screen-watch-margin-info {
-    margin-top: calc(56.25vw + 40px);
+    /* Description drawer opens flush under the player's bottom edge. */
+    margin-top: 56.25vw;
   }
   .small-screen-watch-top-premium,
   .small-screen-watch-top {
-    /* Stick to the player's live bottom edge: the player sits at
-       --watch-player-top (rides up 48px→0 as the hide-on-scroll navbar
-       retracts) and is 56.25vw tall (full-width 16:9). Tracking the var keeps
-       this season bar pinned right under the player as it moves. */
-    top: calc(var(--watch-player-top, 48px) + 56.25vw);
+    /* Season bar sticks right under the player (top:0 + 56.25vw tall). */
+    top: 56.25vw;
   }
 }
 

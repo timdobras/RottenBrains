@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import { useMotionValueEvent } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useSwipeBack } from '@/hooks/useSwipeBack';
 import { useVideo } from '@/hooks/VideoProvider';
@@ -10,7 +11,7 @@ import NavBottom from '../features/navigation/mobile/NavBottom';
 
 const MainContent = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
-  const { state, setState } = useVideo();
+  const { state, setState, progress } = useVideo();
 
   const isWatchPage = pathname.includes('watch/tv') || pathname.includes('watch/movie');
 
@@ -33,7 +34,16 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
   // instant — but isn't painted or active behind the opaque overlay. display:none
   // collapses the document scroll, so we remember the scroll position while the
   // origin is visible and restore it when it comes back.
-  const hideOrigin = state.mode === 'full' && !!state.isOverlay;
+  //
+  // Gated on `progress` (≈0 = fully full), NOT `mode`, so the origin is revealed
+  // *during* the minimize morph — the player shrinks toward its dock over the
+  // origin page cross-dissolving in, instead of the page popping in only at the end.
+  const [atFull, setAtFull] = useState(progress.get() < 0.02);
+  useMotionValueEvent(progress, 'change', (v) => {
+    const next = v < 0.02;
+    setAtFull((prev) => (prev === next ? prev : next));
+  });
+  const hideOrigin = atFull && !!state.isOverlay;
   const scrollRef = useRef(0);
   const wasHiddenRef = useRef(false);
 
@@ -76,9 +86,10 @@ const MainContent = ({ children }: { children: React.ReactNode }) => {
   // On watch pages, NavBottom is hidden so no margin needed
   const mobileBottomMargin = isWatchPage ? 'mb-0' : 'mb-20';
 
-  // Top margin: clear the fixed Navbar (h-12 mobile, h-16 desktop)
-  // Always applied since the navbar is visible on all pages including watch pages
-  const topMargin = 'mt-12 md:mt-16';
+  // Top margin: clear the fixed Navbar (h-12 mobile, h-16 desktop).
+  // The navbar is hidden on the watch surface, so a hard-loaded /watch page gets
+  // no top offset — the player pins flush to the top like the soft-nav overlay.
+  const topMargin = isWatchPage ? 'mt-0' : 'mt-12 md:mt-16';
 
   return (
     <>

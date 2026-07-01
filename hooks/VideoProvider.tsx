@@ -2,6 +2,7 @@
 
 'use client';
 import { createContext, useContext, useMemo, useState } from 'react';
+import { useMotionValue, type MotionValue } from 'framer-motion';
 
 export type VideoState = {
   media_type?: string;
@@ -25,9 +26,17 @@ export type VideoState = {
 const VideoContext = createContext<{
   state: VideoState;
   setState: React.Dispatch<React.SetStateAction<VideoState>>;
+  // Continuous full⟷mini morph position: 0 = full (docked in the page), 1 = mini
+  // (floating window). Driven by VideoShell (drag + spring animations); READ by
+  // WatchOverlay (fade its content/backdrop) and MainContent (reveal the origin
+  // page) so the player, the surrounding chrome, and the page all move together.
+  // A MotionValue (not React state) so the drag updates it at 60fps with no
+  // re-renders.
+  progress: MotionValue<number>;
 }>({
   state: { mode: 'mini' },
   setState: () => {},
+  progress: undefined as unknown as MotionValue<number>,
 });
 
 export function useVideo() {
@@ -36,8 +45,10 @@ export function useVideo() {
 
 export default function VideoProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<VideoState>({ mode: 'mini' });
+  // Starts at 1 (mini/hidden) — no player is open on first load.
+  const progress = useMotionValue(1);
 
-  const value = useMemo(() => ({ state, setState }), [state]);
+  const value = useMemo(() => ({ state, setState, progress }), [state, progress]);
 
   return <VideoContext.Provider value={value}>{children}</VideoContext.Provider>;
 }

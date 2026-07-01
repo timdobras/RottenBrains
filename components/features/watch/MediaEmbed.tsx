@@ -8,9 +8,12 @@ const VideoEmbed = () => {
 
   return (
     <section
-      // mobile: stick to the live bottom edge of the (hide-on-scroll) navbar so
-      // the player rides up/down with it. desktop: normal flow (md:relative).
-      className={`sticky top-[var(--watch-player-top,3rem)] w-full flex-col md:relative md:top-0 ${
+      // mobile: pinned to the very top of the watch surface (the navbar is hidden
+      // on watch, so there's no bar to offset for). The player's sticky box now
+      // exactly matches its in-flow slot (top:0, height 56.25vw), so the details
+      // below start flush under it instead of being clipped by a navbar-height
+      // gap. desktop: normal flow (md:relative).
+      className={`sticky top-0 w-full flex-col md:relative md:top-0 ${
         isTheater ? 'bg-black' : 'bg-background'
       }`}
     >

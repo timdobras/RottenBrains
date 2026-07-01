@@ -1,7 +1,8 @@
 'use client';
 
+import { motion, useMotionValueEvent, useTransform } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useVideo } from '@/hooks/VideoProvider';
 
@@ -9,28 +10,43 @@ import { useVideo } from '@/hooks/VideoProvider';
  * Fullscreen surface for the @watch overlay — KEPT MOUNTED, shown/hidden rather
  * than unmounted, so full⟷mini is instant with no refetch (YouTube-style).
  *
- * The `@watch` parallel slot keeps this subpage mounted across soft navigation
- * (Next.js parallel-routes behavior), and the origin page stays mounted beneath
- * via the interception. We just toggle visibility off the store `mode`: visible
- * in full, `display:none` in mini (DOM + React state preserved). The persistent
- * player (VideoShell) portals on top of `#video-inline-placeholder` inside here.
+ * Its background + content are tied to the shared `progress` MotionValue (0 =
+ * full, 1 = mini): as the player is dragged/animated down into the mini window,
+ * this surface cross-dissolves out to reveal the origin page beneath it, then
+ * `display:none`s once fully docked. The persistent player (VideoShell) portals
+ * on top of `#video-inline-placeholder` inside here in full mode.
  *
- * Stacking: z-30 (above origin, below navbar z-50 and the player z-40).
+ * Stacking: z-30 (above origin, below the player z-40/99999).
  */
 export default function WatchOverlay({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { state, setState } = useVideo();
-  const visible = state.mode === 'full';
+  const { state, setState, progress } = useVideo();
+
+  // Displayed while the surface is anything but fully docked. Threshold state off
+  // `progress` so a mid-flight minimize keeps the (fading) content visible, and it
+  // only drops out of the layout once the player has fully reached the mini dock.
+  const [docked, setDocked] = useState(progress.get() > 0.999);
+  useMotionValueEvent(progress, 'change', (v) => {
+    const next = v > 0.999;
+    setDocked((prev) => (prev === next ? prev : next));
+  });
+  // Content is interactive only at (near) full; while morphing/mini it's inert so
+  // a stray tap on the fading details can't fire.
+  const [interactive, setInteractive] = useState(progress.get() < 0.02);
+  useMotionValueEvent(progress, 'change', (v) => {
+    const next = v < 0.02;
+    setInteractive((prev) => (prev === next ? prev : next));
+  });
+
+  const bgOpacity = useTransform(progress, [0, 1], [1, 0]);
+  const contentOpacity = useTransform(progress, [0, 0.85], [1, 0]);
 
   // If a soft navigation leaves the watch route while still in full mode (e.g.
   // tapping a cast/related link inside the overlay), drop to mini so the kept-
-  // mounted overlay hides instead of covering the destination page.
-  //
-  // Only fire on a genuine watch→non-watch TRANSITION (tracked via the previous
-  // pathname). Checking "mode is full but pathname isn't watch" naively would
-  // race the maximize navigation — `mode` flips to full a tick before the URL
-  // becomes /watch, so the guard would wrongly bounce it back to mini (the
-  // "needs a second click" bug).
+  // mounted overlay hides instead of covering the destination page. Only fire on
+  // a genuine watch→non-watch TRANSITION (tracked via the previous pathname), to
+  // avoid racing the maximize navigation (mode flips to full a tick before the
+  // URL becomes /watch).
   const prevPathRef = useRef(pathname);
   useEffect(() => {
     const was = prevPathRef.current;
@@ -44,28 +60,34 @@ export default function WatchOverlay({ children }: { children: React.ReactNode }
 
   // Lock the origin page's scroll only while the overlay is actually showing.
   useEffect(() => {
-    if (!visible) return;
+    if (docked) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [visible]);
+  }, [docked]);
 
   return (
     <div
-      // No mobile padding-top: the player section is `sticky top:var(--watch-player-top)`,
-      // and a scroll-container padding-top would STACK with that sticky inset
-      // (48 + 48 = 96), leaving a navbar-height gap above the player. The sticky
-      // var already offsets below the navbar. Desktop keeps md:pt-16 because the
-      // player there is in normal flow (md:relative), not sticky.
-      className="fixed inset-0 z-30 overflow-y-auto overscroll-contain md:pt-16"
-      style={{ display: visible ? undefined : 'none' }}
+      // The navbar is hidden on the watch surface, so the overlay owns the full
+      // viewport with no top padding: mobile pins the player flush to the top via
+      // `sticky top-0`, desktop uses the wrapper's own md:pt-6.
+      className="fixed inset-0 z-30 overflow-y-auto overscroll-contain"
+      style={{ display: docked ? 'none' : undefined }}
     >
-      {/* Background surface (fades in on first mount). */}
-      <div className="watch-overlay-bg pointer-events-none fixed inset-0 bg-background" />
-      {/* Content sits above the background. */}
-      <div className="relative">{children}</div>
+      {/* Background surface — fades out as the player docks, revealing the origin. */}
+      <motion.div
+        className="pointer-events-none fixed inset-0 bg-background"
+        style={{ opacity: bgOpacity }}
+      />
+      {/* Content sits above the background; inert unless (near) full. */}
+      <motion.div
+        className="relative"
+        style={{ opacity: contentOpacity, pointerEvents: interactive ? undefined : 'none' }}
+      >
+        {children}
+      </motion.div>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { LogoWordmark } from '@/components/ui/Logo';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import { PlusIcon, SearchIcon } from '@/components/ui/Icon';
 import { useUser } from '@/hooks/UserContext';
@@ -26,8 +27,18 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const { user, isLoading } = useUser();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // The watch page is a self-contained immersive surface: the video is pinned to
+  // the very top and its own overlay controls (minimize/close) replace the global
+  // chrome. Hiding the navbar here is also what decouples the player from the
+  // fragile --watch-player-top scroll math (the player now pins at top:0, not
+  // below the bar). Keyed off the pathname so it hides for BOTH the hard-loaded
+  // /watch page and the soft-nav @watch overlay (whose URL is a /watch route),
+  // and returns the instant you minimize back to the origin page.
+  const isWatchPage = pathname.includes('watch/tv') || pathname.includes('watch/movie');
 
   // Mobile hide-on-scroll-down / reveal-on-scroll-up.
   // The transform is driven imperatively (no React re-render, no CSS transition)
@@ -116,6 +127,9 @@ export default function Navbar() {
     return () =>
       window.removeEventListener('scroll', onScroll, { capture: true } as EventListenerOptions);
   }, []);
+
+  // Hidden entirely on the watch surface (after hooks, so hook order is stable).
+  if (isWatchPage) return null;
 
   return (
     <>
