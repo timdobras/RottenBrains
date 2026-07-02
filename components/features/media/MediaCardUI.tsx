@@ -11,6 +11,7 @@ import MediaCardHoverPreview, {
 import {
   formatDate,
   formatEpisodeCode,
+  getBackdropPath,
   getHrefFromMedia,
   getImageUrl,
   transformRuntime,
@@ -116,7 +117,7 @@ const MediaCardUI: React.FC<MediaCardProps> = ({
   // Extract average color from the displayed image (same logic as getImageUrl).
   // Only fetch the extra w200 image + run canvas extraction once in view.
   const colorImagePath =
-    media?.images?.backdrops?.[0]?.file_path ||
+    getBackdropPath(media) ||
     (season_number && episode_number ? media.still_path : media.backdrop_path);
   const colorImageUrl =
     inView && colorImagePath ? `https://image.tmdb.org/t/p/w200${colorImagePath}` : undefined;

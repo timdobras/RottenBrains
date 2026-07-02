@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import React, { FC } from 'react';
-import { getRelativeTime } from '@/lib/utils';
+import { getBackdropPath, getRelativeTime } from '@/lib/utils';
 import ImageWithFallback from '../media/ImageWithFallback';
 import FollowButton from './FollowButton';
 
@@ -11,7 +11,7 @@ interface FollowCardProps {
 
 const PostCard: FC<FollowCardProps> = ({ notification }) => {
   const imageUrl =
-    notification.media_data?.images?.backdrops?.[0]?.file_path ||
+    getBackdropPath(notification.media_data) ||
     notification.media_data.backdrop_path;
   const post_link = `/post/${notification.post.id}`;
 

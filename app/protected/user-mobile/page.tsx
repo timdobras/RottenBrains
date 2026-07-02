@@ -9,6 +9,7 @@ import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
 import { getWatchHistoryForUser } from '@/lib/db/client-actions';
 import { getWatchListSpecific, getCurrentUser } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
+import { getBackdropPath } from '@/lib/utils';
 import Profile from './Profile';
 
 export const dynamic = 'force-dynamic';
@@ -51,11 +52,11 @@ const page = async () => {
   ]);
 
   const watchedImageUrl =
-    watchedMedia?.images?.backdrops?.[0]?.file_path || watchedMedia?.backdrop_path;
+    getBackdropPath(watchedMedia) || watchedMedia?.backdrop_path;
   const watchingImageUrl =
-    watchingMedia?.images?.backdrops?.[0]?.file_path || watchingMedia?.backdrop_path;
+    getBackdropPath(watchingMedia) || watchingMedia?.backdrop_path;
   const plannedImageUrl =
-    plannedMedia?.images?.backdrops?.[0]?.file_path || plannedMedia?.backdrop_path;
+    getBackdropPath(plannedMedia) || plannedMedia?.backdrop_path;
   return (
     <>
       <section className="w-full">

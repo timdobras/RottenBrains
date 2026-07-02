@@ -94,9 +94,27 @@ export function getRelativeTime(dateString: string): string {
   }
 }
 
+/**
+ * Pick the best backdrop file_path from a TMDB images.backdrops array.
+ *
+ * We prefer the English (`iso_639_1 === 'en'`) backdrop because those are the
+ * ones with the title/logo text baked in — the card art we actually want.
+ * TMDB sorts backdrops by vote_average, and since we started requesting
+ * `include_image_language=en,null` the textless (`iso_639_1 === null`)
+ * backdrops usually outrank the English ones and land at index [0], which is
+ * why cards started showing a plain, logo-less backdrop. Falling back to the
+ * first entry keeps titles that have no English backdrop working.
+ */
+export function getBackdropPath(media: any): string | undefined {
+  const backdrops = media?.images?.backdrops;
+  if (!backdrops?.length) return undefined;
+  const english = backdrops.find((b: any) => b?.iso_639_1 === 'en');
+  return (english || backdrops[0])?.file_path;
+}
+
 export function getImageUrl(media: any, season_number?: number, episode_number?: number) {
   return (
-    media?.images?.backdrops?.[0]?.file_path ||
+    getBackdropPath(media) ||
     (season_number && episode_number ? media.still_path : media.backdrop_path)
   );
 }

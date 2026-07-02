@@ -4,6 +4,7 @@ import WatchListCard from '@/components/features/library/CategoryCard';
 import { getAverageColorSafe } from '@/lib/getAverageColorSafe';
 import { getCurrentUser, getWatchListSpecific } from '@/lib/db/queries';
 import { getMediaDetails } from '@/lib/tmdb';
+import { getBackdropPath } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,11 +46,11 @@ const page = async () => {
   ]);
 
   const watchedImageUrl =
-    watchedMedia?.images?.backdrops?.[0]?.file_path || watchedMedia?.backdrop_path;
+    getBackdropPath(watchedMedia) || watchedMedia?.backdrop_path;
   const watchingImageUrl =
-    watchingMedia?.images?.backdrops?.[0]?.file_path || watchingMedia?.backdrop_path;
+    getBackdropPath(watchingMedia) || watchingMedia?.backdrop_path;
   const plannedImageUrl =
-    plannedMedia?.images?.backdrops?.[0]?.file_path || plannedMedia?.backdrop_path;
+    getBackdropPath(plannedMedia) || plannedMedia?.backdrop_path;
 
   return (
     <div className="mb-16 w-full flex-col px-4 py-4 md:px-0">

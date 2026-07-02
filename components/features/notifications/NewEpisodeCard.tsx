@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import React, { FC } from 'react';
-import { formatEpisodeCode, getRelativeTime } from '@/lib/utils';
+import { formatEpisodeCode, getBackdropPath, getRelativeTime } from '@/lib/utils';
 import ImageWithFallback from '../media/ImageWithFallback';
 
 interface NewEpisodeCardProps {
@@ -10,7 +10,7 @@ interface NewEpisodeCardProps {
 const NewEpisodeCard: FC<NewEpisodeCardProps> = ({ notification }) => {
   const imageUrl =
     notification.episode_data.still_path ||
-    notification.media_data?.images?.backdrops?.[0]?.file_path ||
+    getBackdropPath(notification.media_data) ||
     notification.media_data.backdrop_path;
   return (
     <div className="flex w-full flex-row gap-4 p-4">

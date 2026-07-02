@@ -9,6 +9,7 @@ import { createPost, updatePost, deletePost } from '@/lib/db/mutations';
 import { getTMDBImageUrl } from '@/lib/mocks/config';
 import { updateGenreStats } from '@/lib/db/client-actions';
 import { getMediaDetails } from '@/lib/tmdb';
+import { getBackdropPath } from '@/lib/utils';
 import { useToast } from '../../ui/use-toast';
 import PostContent from './PostContent';
 import PostHeader from './PostHeader';
@@ -72,7 +73,7 @@ const PostForm = ({ post, action, from_media }: PostFormProps) => {
   useEffect(() => {
     if (media?.images?.backdrops?.length > 0) {
       if (action === 'Create' || (action === 'Update' && !post?.image_path)) {
-        setSelectedImagePath(media.images.backdrops[0].file_path);
+        setSelectedImagePath(getBackdropPath(media) ?? media.images.backdrops[0].file_path);
       }
     }
   }, [media]);
